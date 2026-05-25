@@ -1,0 +1,42 @@
+# backend/requirements.txt
+# ─── Core ────────────────────────────────────────────────────────
+Django==4.2.7
+djangorestframework==3.14.0
+djangorestframework-simplejwt>=5.5.0
+psycopg2-binary==2.9.9
+django-cors-headers==4.3.1
+django-filter==23.5
+bcrypt==4.1.2
+Pillow==10.1.0
+gunicorn==21.2.0
+python-dotenv>=1.0.0
+dj-database-url==2.2.0
+whitenoise==6.7.0
+
+# ─── Resume Engine: Async Jobs (Layer 2) ─────────────────────────
+celery>=5.3.0
+redis>=5.0.0
+
+# ─── Resume Engine: PDF Generation ──────────────────────────────
+# weasyprint>=60.0       # Uncomment for PDF generation (requires system deps)
+# PyPDF2>=3.0.0          # Uncomment for PDF text extraction
+
+# ─── Resume Engine: Template Security (Layer 11) ────────────────
+bleach>=6.1.0
+
+# ─── Resume Engine: Storage (Layer 13) ──────────────────────────
+# django-storages[boto3]>=1.14.0  # Uncomment for S3 storage
+
+# ─── Testing ────────────────────────────────────────────────────
+pytest==7.4.3
+pytest-django==4.7.0
+pytest-cov==4.1.0
+model-bakery==1.17.0
+
+# ─── Scraped Jobs: External API + Processing ────────────────────
+requests==2.31.0
+django-celery-beat==2.5.0
+rapidfuzz==3.6.1
+validators==0.22.0
+openai>=1.0.0
+groq>=0.9.0

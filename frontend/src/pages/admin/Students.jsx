@@ -1,0 +1,2082 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import api from '../../api/axios';
+import useAuthStore from '../../store/authStore';
+
+const getFullImageUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+  const hostBase = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${hostBase}${cleanPath}`;
+};
+
+export default function Students() {
+  const [students, setStudents] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [uploadHistory, setUploadHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const { user } = useAuthStore();
+
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmToggleAccess, setConfirmToggleAccess] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState('academics');
+  const [studentSessions, setStudentSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [selectedSessionDetail, setSelectedSessionDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+
+  const [filters, setFilters] = useState({ 
+    year: '', 
+    category: '', 
+    backlogs: '',
+    course: '',
+    stream: '',
+    semester: '',
+    cgpaRange: '',
+    trainingRange: ''
+  });
+
+  const fetchStudentProfile = async (studentId) => {
+    setProfileLoading(true);
+    try {
+      const { data } = await api.get(`/students/${studentId}/`);
+      setSelectedStudent(data);
+      setActiveModalTab('academics');
+    } catch {
+      showToast('Failed to load student profile.', 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleCategoryChange = async (studentId, newCategory) => {
+    try {
+      const { data } = await api.post(`/students/${studentId}/change-category/`, { category: newCategory });
+      showToast('Student category updated successfully!');
+      
+      // Update selectedStudent in state so modal updates instantly
+      setSelectedStudent(prev => prev ? {
+        ...prev,
+        category: data.category,
+        is_category_manual: data.is_category_manual
+      } : null);
+      
+      // Refresh the main student list too
+      fetchStudents(page);
+    } catch (err) {
+      const errMsg = err.response?.data?.error || 'Failed to update student category.';
+      showToast(errMsg, 'error');
+    }
+  };
+
+  const fetchStudentSessions = async (studentId) => {
+    setSessionsLoading(true);
+    setStudentSessions([]);
+    setSelectedSessionDetail(null);
+    try {
+      const { data } = await api.get(`/interviews/sessions/?student_id=${studentId}`);
+      setStudentSessions(data || []);
+    } catch {
+      showToast('Failed to load mock interview sessions.', 'error');
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  const fetchSessionDetail = async (sessionId) => {
+    setDetailLoading(true);
+    setSelectedSessionDetail(null);
+    try {
+      const { data } = await api.get(`/interviews/sessions/${sessionId}/`);
+      setSelectedSessionDetail(data);
+    } catch {
+      showToast('Failed to load interview feedback details.', 'error');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeModalTab === 'mock_interviews' && selectedStudent) {
+      fetchStudentSessions(selectedStudent.id);
+    }
+  }, [activeModalTab, selectedStudent]);
+
+  const fetchStudents = useCallback(async (p = 1) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: p, limit: 20 });
+      if (search) params.set('search', search);
+      if (filters.year) params.set('year', filters.year);
+      if (filters.category) params.set('category', filters.category);
+      if (filters.backlogs) params.set('backlogs', filters.backlogs);
+      if (filters.course) params.set('course', filters.course);
+      if (filters.stream) params.set('stream', filters.stream);
+      if (filters.semester) params.set('semester', filters.semester);
+      
+      if (filters.cgpaRange) {
+        if (filters.cgpaRange === 'high') {
+          params.set('cgpa_min', '8.0');
+        } else if (filters.cgpaRange === 'medium') {
+          params.set('cgpa_min', '6.5');
+        } else if (filters.cgpaRange === 'low') {
+          params.set('cgpa_max', '5.0');
+        }
+      }
+
+      if (filters.trainingRange) {
+        if (filters.trainingRange === 'perfect') {
+          params.set('training_attendance_min', '100');
+        } else if (filters.trainingRange === 'good') {
+          params.set('training_attendance_min', '80');
+        } else if (filters.trainingRange === 'shortage') {
+          params.set('training_attendance_max', '79.9');
+        } else if (filters.trainingRange === 'critical') {
+          params.set('training_attendance_max', '65');
+        }
+      }
+      
+      const { data } = await api.get(`/students/?${params}`);
+      setStudents(data.results || []);
+      setTotal(data.count);
+      setPage(data.page);
+      setTotalPages(data.total_pages);
+    } catch { showToast('Failed to load students.', 'error'); }
+    finally { setLoading(false); }
+  }, [search, filters]);
+
+  useEffect(() => { fetchStudents(1); }, [fetchStudents]);
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadResult(null);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const { data } = await api.post('/students/import-csv/', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setUploadResult(data);
+      showToast(data.message);
+      fetchStudents(1);
+
+      // Auto-download credentials CSV
+      if (data.credentials_csv) {
+        const blob = new Blob([data.credentials_csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `credentials_${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'CSV upload failed.', 'error');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const { data } = await api.get('/students/upload-history/');
+      setUploadHistory(data);
+      setShowHistory(true);
+    } catch { /* */ }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    try {
+      await api.delete(`/students/${studentId}/delete/`);
+      showToast('Student profile and portal account deleted permanently.');
+      setConfirmDelete(null);
+      fetchStudents(page);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to delete student.', 'error');
+    }
+  };
+
+  const handleToggleAccess = async (studentId) => {
+    try {
+      const { data } = await api.post(`/students/${studentId}/toggle-access/`);
+      showToast(data.message);
+      setConfirmToggleAccess(null);
+      fetchStudents(page);
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to toggle student access.', 'error');
+    }
+  };
+
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <h1>Students ({total})</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
+            {uploading ? 'Uploading...' : '📤 Upload CSV'}
+            <input type="file" accept=".csv" onChange={handleCSVUpload} hidden disabled={uploading} />
+          </label>
+          <button className="btn btn-secondary" onClick={fetchHistory}>📜 Upload History</button>
+        </div>
+      </div>
+
+      {uploadResult && uploadResult.upload_log && (
+        <div className="card upload-result">
+          <h3>Upload Result</h3>
+          <p>✅ {uploadResult.upload_log.successful_records} created | ❌ {uploadResult.upload_log.failed_records} failed | Total: {uploadResult.upload_log.total_records}</p>
+          {uploadResult.upload_log.error_details && <pre className="error-pre">{uploadResult.upload_log.error_details}</pre>}
+          <p style={{ color: 'var(--success)', fontSize: '0.85rem', marginTop: 8 }}>📥 Credentials CSV downloaded automatically.</p>
+        </div>
+      )}
+
+      <div className="search-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input 
+          className="input-field" 
+          placeholder="Search by name, reg no, or email..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          style={{ flex: 1, minWidth: 250 }}
+        />
+        
+        <select 
+          className="input-field" 
+          value={filters.course} 
+          onChange={(e) => setFilters({...filters, course: e.target.value})}
+          style={{ width: 125 }}
+        >
+          <option value="">All Courses</option>
+          <option value="BCA">BCA</option>
+          <option value="BBA">BBA</option>
+          <option value="MCA">MCA</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.stream} 
+          onChange={(e) => setFilters({...filters, stream: e.target.value})}
+          style={{ width: 145 }}
+        >
+          <option value="">All Streams</option>
+          <option value="Computer Science">Comp Science</option>
+          <option value="Data Science">Data Science</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Finance">Finance</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.semester} 
+          onChange={(e) => setFilters({...filters, semester: e.target.value})}
+          style={{ width: 110 }}
+        >
+          <option value="">All Sems</option>
+          <option value="4">Sem 4</option>
+          <option value="6">Sem 6</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.year} 
+          onChange={(e) => setFilters({...filters, year: e.target.value})}
+          style={{ width: 115 }}
+        >
+          <option value="">All Years</option>
+          <option value="3rd">3rd Year</option>
+          <option value="4th">4th Year</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.category} 
+          onChange={(e) => setFilters({...filters, category: e.target.value})}
+          style={{ width: 135 }}
+        >
+          <option value="">All Categories</option>
+          <option value="A">Category A</option>
+          <option value="B">Category B</option>
+          <option value="C">Category C</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.cgpaRange} 
+          onChange={(e) => setFilters({...filters, cgpaRange: e.target.value})}
+          style={{ width: 145 }}
+        >
+          <option value="">CGPA: All</option>
+          <option value="high">Excellent (≥ 8.0)</option>
+          <option value="medium">Average (≥ 6.5)</option>
+          <option value="low">{"Needs Imp (< 5.0)"}</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.trainingRange} 
+          onChange={(e) => setFilters({...filters, trainingRange: e.target.value})}
+          style={{ width: 165 }}
+        >
+          <option value="">Training Attd: All</option>
+          <option value="perfect">Perfect (100%)</option>
+          <option value="good">Good (≥ 80%)</option>
+          <option value="shortage">{"Warning (< 80%)"}</option>
+          <option value="critical">Critical (≤ 65%)</option>
+        </select>
+
+        <select 
+          className="input-field" 
+          value={filters.backlogs} 
+          onChange={(e) => setFilters({...filters, backlogs: e.target.value})}
+          style={{ width: 125 }}
+        >
+          <option value="">Backlogs: All</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+
+        {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange || search) && (
+          <button 
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setSearch('');
+              setFilters({
+                year: '', 
+                category: '', 
+                backlogs: '', 
+                course: '', 
+                stream: '', 
+                semester: '', 
+                cgpaRange: '', 
+                trainingRange: ''
+              });
+            }}
+            style={{ 
+              padding: '6px 12px', 
+              fontSize: '0.8rem', 
+              height: '38px', 
+              borderRadius: '6px', 
+              backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+              color: '#ef4444', 
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              cursor: 'pointer',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            ✕ Reset Filters
+          </button>
+        )}
+      </div>
+
+      {loading ? <div className="loading-screen" style={{ minHeight: 200 }}><div className="spinner" /></div> : (
+        <>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name & Contact</th>
+                  <th>Reg No</th>
+                  <th>Course & Stream</th>
+                  <th>Year / Sem</th>
+                  <th>Cat</th>
+                  <th>Backlogs</th>
+                  <th>CGPA</th>
+                  <th>General Attd</th>
+                  <th>Training Attd</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((s) => (
+                  <tr key={s.id}>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span 
+                          style={{ 
+                            fontWeight: 600, 
+                            color: 'var(--accent-primary)', 
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s'
+                          }}
+                          onClick={() => fetchStudentProfile(s.id)}
+                          title="Click to view full student profile"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = 'underline';
+                            e.currentTarget.style.opacity = '0.85';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.textDecoration = 'none';
+                            e.currentTarget.style.opacity = '1';
+                          }}
+                        >
+                          👤 {s.name}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '4px 8px' }}>
+                          <span>📧 {s.email}</span>
+                          {s.phone_number && <span>• 📞 {s.phone_number}</span>}
+                        </span>
+                      </div>
+                    </td>
+                    <td style={{ verticalAlign: 'middle', fontWeight: 500 }}>{s.registration_number}</td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.course || '—'}</span>
+                        {s.stream && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.stream}</span>}
+                      </div>
+                    </td>
+                    <td style={{ verticalAlign: 'middle', fontSize: '0.85rem' }}>
+                      {s.year ? `${s.year} Year` : '—'}
+                      {s.semester ? ` / Sem ${s.semester}` : ''}
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      {s.category ? (
+                        <span 
+                          className="badge" 
+                          style={{ 
+                            background: s.category === 'A' ? 'rgba(16, 185, 129, 0.15)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444',
+                            border: `1px solid ${s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444'}`,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          Cat {s.category}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span className={`badge ${s.backlogs_count > 0 ? 'badge-danger' : 'badge-success'}`}>
+                        {s.backlogs_count > 0 ? `${s.backlogs_count} Active` : 'No'}
+                      </span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle', fontWeight: 600 }}>{s.cgpa != null ? s.cgpa.toFixed(2) : '—'}</td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span style={{ 
+                        fontWeight: 600,
+                        color: s.attendance >= 75 ? '#10b981' : s.attendance >= 50 ? '#f59e0b' : '#ef4444'
+                      }}>
+                        {s.attendance != null ? `${s.attendance}%` : '—'}
+                      </span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span style={{ 
+                        fontWeight: 600,
+                        color: s.training_attendance >= 100.0 ? '#10b981' : s.training_attendance >= 80.0 ? '#f59e0b' : '#ef4444'
+                      }}>
+                        {s.training_attendance != null ? `${s.training_attendance}%` : '—'}
+                      </span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span className={`badge ${s.is_active !== false ? 'badge-success' : 'badge-danger'}`}>
+                        {s.is_active !== false ? 'Active' : 'Disabled'}
+                      </span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {(user?.role === 'admin' || user?.can_manage_students) && (
+                          <button 
+                            className={`btn btn-sm ${s.is_active !== false ? 'btn-warning' : 'btn-success'}`}
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', cursor: 'pointer' }}
+                            onClick={() => setConfirmToggleAccess(s)}
+                          >
+                            {s.is_active !== false ? 'Block' : 'Authorize'}
+                          </button>
+                        )}
+                        {user?.role === 'admin' && (
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', cursor: 'pointer' }}
+                            onClick={() => setConfirmDelete(s)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                        {!(user?.role === 'admin' || user?.can_manage_students) && (
+                          <span className="text-muted" style={{ fontSize: '0.75rem' }}>None</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {students.length === 0 && <tr><td colSpan={11} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No students found. Upload a CSV to get started.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="pagination-bar">
+              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => fetchStudents(page - 1)}>← Prev</button>
+              <span className="page-info">Page {page} / {totalPages}</span>
+              <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => fetchStudents(page + 1)}>Next →</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {showHistory && (
+        <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700 }}>
+            <div className="modal-header"><h2>Upload History</h2><button className="modal-close" onClick={() => setShowHistory(false)}>×</button></div>
+            <div className="table-container" style={{ maxHeight: 400, overflow: 'auto' }}>
+              <table>
+                <thead><tr><th>File</th><th>By</th><th>Total</th><th>Success</th><th>Failed</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody>
+                  {uploadHistory.map((log) => (
+                    <tr key={log.id}>
+                      <td>{log.file_name}</td>
+                      <td>{log.uploaded_by_name}</td>
+                      <td>{log.total_records}</td>
+                      <td style={{ color: 'var(--success)' }}>{log.successful_records}</td>
+                      <td style={{ color: 'var(--danger)' }}>{log.failed_records}</td>
+                      <td><span className={`badge ${log.status === 'success' ? 'badge-success' : log.status === 'partial' ? 'badge-warning' : 'badge-danger'}`}>{log.status}</span></td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(log.uploaded_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450, padding: 24 }}>
+            <div className="modal-header">
+              <h2 style={{ color: 'var(--danger)', margin: 0 }}>⚠️ Permanent Deletion Warning</h2>
+              <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
+            </div>
+            <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--text-muted)', marginTop: 12 }}>
+              Are you sure you want to permanently delete <strong>{confirmDelete.name}</strong> ({confirmDelete.registration_number})?
+            </p>
+            <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: 12, borderRadius: 6, margin: '16px 0', fontSize: '0.8rem', color: '#991b1b' }}>
+              <strong>CRITICAL:</strong> This will erase all user logins, profile info, uploaded resumes, assignments, and placement histories. This action is absolute and cannot be undone.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDeleteStudent(confirmDelete.id)}>Confirm Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmToggleAccess && (
+        <div className="modal-overlay" onClick={() => setConfirmToggleAccess(null)}>
+          <div className="modal card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450, padding: 24 }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0 }}>🔐 Portal Access Control</h2>
+              <button className="modal-close" onClick={() => setConfirmToggleAccess(null)}>×</button>
+            </div>
+            <p style={{ fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--text-muted)', marginTop: 12 }}>
+              Are you sure you want to <strong>{confirmToggleAccess.is_active !== false ? 'Revoke' : 'Restore'}</strong> portal access for <strong>{confirmToggleAccess.name}</strong>?
+            </p>
+            <div style={{ background: 'var(--card-hover)', border: '1px solid var(--border-color)', padding: 12, borderRadius: 6, margin: '16px 0', fontSize: '0.8rem' }}>
+              {confirmToggleAccess.is_active !== false ? 
+                "The student will be blocked from logging into the portal, editing their profile, and submitting applications immediately." : 
+                "The student will immediately regain full access to search jobs, create resumes, and log in."
+              }
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setConfirmToggleAccess(null)}>Cancel</button>
+              <button className="btn btn-primary" style={{ backgroundColor: 'var(--accent-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }} onClick={() => handleToggleAccess(confirmToggleAccess.id)}>
+                {confirmToggleAccess.is_active !== false ? 'Block Access' : 'Authorize Access'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {profileLoading && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal card" style={{ maxWidth: 300, textAlign: 'center', padding: 32 }}>
+            <div className="spinner" style={{ margin: '0 auto 16px auto' }} />
+            <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Loading student profile...</p>
+          </div>
+        </div>
+      )}
+
+      {selectedStudent && (
+        <div className="modal-overlay" onClick={() => setSelectedStudent(null)} style={{ zIndex: 1100 }}>
+          <div 
+            className="modal card animate-in" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              width: '95vw', 
+              height: '92vh',
+              maxWidth: '1350px', 
+              maxHeight: '900px',
+              padding: 0, 
+              overflow: 'hidden', 
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-card)',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px',
+              boxShadow: 'var(--shadow-lg)'
+            }}
+          >
+            {/* Modal Header Banner */}
+            <div 
+              style={{ 
+                background: 'var(--accent-gradient)',
+                padding: '20px 32px', 
+                color: 'white',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 20,
+                height: '110px',
+                boxSizing: 'border-box',
+                flexShrink: 0
+              }}
+            >
+              <button 
+                className="modal-close" 
+                onClick={() => setSelectedStudent(null)}
+                style={{ 
+                  position: 'absolute', 
+                  top: 16, 
+                  right: 16, 
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: '1.8rem',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+              
+              <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
+                {selectedStudent.profile?.profile_picture && (
+                  <img 
+                    src={getFullImageUrl(selectedStudent.profile.profile_picture)} 
+                    alt={selectedStudent.name}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2px solid rgba(255,255,255,0.4)',
+                      boxShadow: 'var(--shadow-md)',
+                      background: 'rgba(255,255,255,0.1)',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      zIndex: 2
+                    }}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+                <div 
+                  style={{ 
+                    width: 56, 
+                    height: 56, 
+                    borderRadius: '50%', 
+                    background: 'rgba(255,255,255,0.2)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontSize: '1.6rem', 
+                    fontWeight: 900,
+                    fontFamily: 'var(--font-heading)',
+                    backdropFilter: 'blur(10px)',
+                    border: '2px solid rgba(255,255,255,0.4)',
+                    boxShadow: 'var(--shadow-md)',
+                    textTransform: 'uppercase',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    zIndex: 1
+                  }}
+                >
+                  {selectedStudent.name ? selectedStudent.name.charAt(0) : 'S'}
+                </div>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'white', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>
+                    {selectedStudent.name}
+                  </h2>
+                  {selectedStudent.category && (
+                    <span 
+                      style={{ 
+                        background: 'rgba(255,255,255,0.25)', 
+                        color: 'white', 
+                        padding: '2px 8px', 
+                        borderRadius: 20, 
+                        fontSize: '0.65rem', 
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      Cat {selectedStudent.category}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: '2px 0 0 0', opacity: 0.9, fontSize: '0.85rem', fontWeight: 500 }}>
+                  Reg No: <strong style={{ letterSpacing: '0.5px' }}>{selectedStudent.registration_number}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Split Screen Modal Body */}
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'row',
+                height: 'calc(100% - 110px)',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Left Sidebar */}
+              <div 
+                style={{ 
+                  width: '300px', 
+                  minWidth: '300px', 
+                  background: 'var(--bg-card-hover)', 
+                  borderRight: '1px solid var(--border-color)', 
+                  padding: '24px', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: 20,
+                  overflowY: 'auto',
+                  height: '100%',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {/* CGPA Stat Card */}
+                <div 
+                  className="card hover-lift" 
+                  style={{ 
+                    padding: '12px 16px', 
+                    textAlign: 'center',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>CGPA</span>
+                  <div 
+                    style={{ 
+                      fontSize: '1.8rem', 
+                      fontWeight: 900, 
+                      color: selectedStudent.cgpa >= 8.0 ? 'var(--success)' : selectedStudent.cgpa >= 6.5 ? 'var(--warning)' : 'var(--danger)',
+                      margin: '2px 0',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    {selectedStudent.cgpa != null ? selectedStudent.cgpa.toFixed(2) : '—'}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Scale 10.0</span>
+                </div>
+
+                {/* Attendance Stat Card */}
+                <div 
+                  className="card hover-lift" 
+                  style={{ 
+                    padding: '12px 16px', 
+                    textAlign: 'center',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Attendance</span>
+                  <div 
+                    style={{ 
+                      fontSize: '1.8rem', 
+                      fontWeight: 900, 
+                      color: selectedStudent.attendance >= 85 ? 'var(--success)' : selectedStudent.attendance >= 75 ? 'var(--warning)' : 'var(--danger)',
+                      margin: '2px 0',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    {selectedStudent.attendance != null ? `${selectedStudent.attendance}%` : '—'}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    {selectedStudent.attendance >= 85 ? 'Excellent' : selectedStudent.attendance >= 75 ? 'Good' : 'Shortage'}
+                  </span>
+                </div>
+
+                {/* Training Attendance Stat Card */}
+                <div 
+                  className="card hover-lift" 
+                  style={{ 
+                    padding: '12px 16px', 
+                    textAlign: 'center',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Training Attendance</span>
+                  <div 
+                    style={{ 
+                      fontSize: '1.8rem', 
+                      fontWeight: 900, 
+                      color: selectedStudent.training_attendance >= 100.0 ? 'var(--success)' : selectedStudent.training_attendance >= 80.0 ? 'var(--warning)' : 'var(--danger)',
+                      margin: '2px 0',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    {selectedStudent.training_attendance != null ? `${selectedStudent.training_attendance}%` : '—'}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    {selectedStudent.training_attendance >= 100.0 ? '100% Attended' : selectedStudent.training_attendance >= 80.0 ? 'Good Attendance' : 'Shortage'}
+                  </span>
+                </div>
+
+                {/* Backlogs Stat Card */}
+                <div 
+                  className="card hover-lift" 
+                  style={{ 
+                    padding: '12px 16px', 
+                    textAlign: 'center',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Backlogs</span>
+                  <div 
+                    style={{ 
+                      fontSize: '1.8rem', 
+                      fontWeight: 900, 
+                      color: selectedStudent.backlogs_count > 0 ? 'var(--danger)' : 'var(--success)',
+                      margin: '2px 0',
+                      fontFamily: 'var(--font-heading)'
+                    }}
+                  >
+                    {selectedStudent.backlogs_count != null ? selectedStudent.backlogs_count : '0'}
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    {selectedStudent.backlogs_count > 0 ? `${selectedStudent.backlogs_count} Active` : 'No Backlogs'}
+                  </span>
+                </div>
+
+                {/* Contact Information */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Contact Details</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <a 
+                      href={`mailto:${selectedStudent.email}`}
+                      title="Send email to student"
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 10, 
+                        fontSize: '0.75rem', 
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        background: 'var(--bg-card)',
+                        boxShadow: 'var(--shadow-sm)',
+                        transition: 'all 0.2s ease-in-out',
+                        cursor: 'pointer',
+                        wordBreak: 'break-all'
+                      }}
+                      onMouseEnter={(e) => { 
+                        e.currentTarget.style.borderColor = 'var(--accent-primary)'; 
+                        e.currentTarget.style.background = 'var(--accent-soft)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                      }}
+                      onMouseLeave={(e) => { 
+                        e.currentTarget.style.borderColor = 'var(--border-color)'; 
+                        e.currentTarget.style.background = 'var(--bg-card)';
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                      }}
+                    >
+                      <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>📧</span> 
+                      <span style={{ transition: 'color 0.2s' }}>{selectedStudent.email}</span>
+                    </a>
+                    
+                    {selectedStudent.phone_number ? (
+                      <a 
+                        href={`tel:${selectedStudent.phone_number}`}
+                        title="Call student phone number"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 10, 
+                          fontSize: '0.75rem', 
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          textDecoration: 'none',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          background: 'var(--bg-card)',
+                          boxShadow: 'var(--shadow-sm)',
+                          transition: 'all 0.2s ease-in-out',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => { 
+                          e.currentTarget.style.borderColor = 'var(--accent-primary)'; 
+                          e.currentTarget.style.background = 'var(--accent-soft)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                        }}
+                        onMouseLeave={(e) => { 
+                          e.currentTarget.style.borderColor = 'var(--border-color)'; 
+                          e.currentTarget.style.background = 'var(--bg-card)';
+                          e.currentTarget.style.transform = 'none';
+                          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>📞</span> 
+                        <span>{selectedStudent.phone_number}</span>
+                      </a>
+                    ) : (
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 10, 
+                          fontSize: '0.75rem', 
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-muted)',
+                          background: 'var(--bg-card)',
+                          fontStyle: 'italic'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>📞</span>
+                        <span>No Phone Number</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Links */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Socials & Portfolio</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {selectedStudent.profile?.linkedin && (
+                      <a 
+                        href={selectedStudent.profile.linkedin} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: '0.75rem', 
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          background: 'var(--bg-card)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--accent-soft)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-card)'; }}
+                      >
+                        🌐 LinkedIn Profile
+                      </a>
+                    )}
+                    {selectedStudent.profile?.github && (
+                      <a 
+                        href={selectedStudent.profile.github} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: '0.75rem', 
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          background: 'var(--bg-card)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--accent-soft)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-card)'; }}
+                      >
+                        💻 GitHub Profile
+                      </a>
+                    )}
+                    {selectedStudent.profile?.portfolio && (
+                      <a 
+                        href={selectedStudent.profile.portfolio} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: '0.75rem', 
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          background: 'var(--bg-card)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--accent-soft)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-card)'; }}
+                      >
+                        🎨 Portfolio Website
+                      </a>
+                    )}
+                    {selectedStudent.profile?.location && (
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 8, 
+                          fontSize: '0.75rem', 
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-secondary)',
+                          background: 'var(--bg-card)'
+                        }}
+                      >
+                        📍 {selectedStudent.profile.location}
+                      </div>
+                    )}
+                    {!selectedStudent.profile?.linkedin && !selectedStudent.profile?.github && !selectedStudent.profile?.portfolio && (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic', paddingLeft: 4 }}>No social or portfolio links.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account details */}
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Portal Access</div>
+                    <span className={`badge ${selectedStudent.is_active !== false ? 'badge-success' : 'badge-danger'}`} style={{ padding: '3px 8px', fontSize: '0.65rem' }}>
+                      {selectedStudent.is_active !== false ? 'Active' : 'Disabled'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Record Logs</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, lineHeight: 1.4 }}>
+                      Created: {selectedStudent.created_at ? new Date(selectedStudent.created_at).toLocaleDateString() : '—'}<br/>
+                      Updated: {selectedStudent.updated_at ? new Date(selectedStudent.updated_at).toLocaleDateString() : '—'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Main Panel */}
+              <div 
+                style={{ 
+                  flex: 1, 
+                  padding: '24px 32px', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  height: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Tab Navigation */}
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    borderBottom: '1px solid var(--border-color)', 
+                    marginBottom: 20,
+                    gap: 8,
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    flexShrink: 0
+                  }}
+                >
+                  {[
+                    { id: 'academics', label: '🎓 Academics' },
+                    { id: 'skills', label: '🛠️ Skills & Bio' },
+                    { id: 'experience', label: '💼 Projects & Exp' },
+                    { id: 'mock_interviews', label: '🎯 Mock Interviews' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveModalTab(tab.id)}
+                      style={{
+                        padding: '10px 16px',
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: activeModalTab === tab.id ? '2.5px solid var(--accent-primary)' : '2.5px solid transparent',
+                        color: activeModalTab === tab.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        fontWeight: activeModalTab === tab.id ? '700' : '500',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        whiteSpace: 'nowrap',
+                        outline: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Scrollable Tab Content Area */}
+                <div 
+                  style={{ 
+                    flex: 1, 
+                    overflowY: 'auto',
+                    paddingRight: 6,
+                    marginBottom: 20
+                  }}
+                >
+                  {activeModalTab === 'academics' && (() => {
+                    const attendanceVal = selectedStudent.attendance ?? 0;
+                    const cgpaVal = selectedStudent.cgpa ?? 0;
+                    const trainingVal = selectedStudent.training_attendance ?? 100.0;
+                    const backlogCountVal = selectedStudent.backlogs_count ?? 0;
+
+                    // Category A Rules
+                    const condA1 = attendanceVal >= 75.0;
+                    const condA2 = cgpaVal >= 8.0;
+                    const condA3 = backlogCountVal === 0;
+                    const condA4 = trainingVal >= 100.0;
+                    const scoreA = [condA1, condA2, condA3, condA4].filter(Boolean).length;
+
+                    // Category B Rules
+                    const condB1 = attendanceVal >= 50.0;
+                    const condB2 = cgpaVal >= 6.5;
+                    const condB3 = backlogCountVal <= 2;
+                    const condB4 = trainingVal >= 80.0;
+                    const scoreB = [condB1, condB2, condB3, condB4].filter(Boolean).length;
+
+                    // Category C Rules
+                    const condC1 = attendanceVal < 30.0;
+                    const condC2 = cgpaVal < 5.0;
+                    const condC3 = trainingVal <= 65.0;
+                    const condC4 = true; // Always satisfied
+                    const scoreC = [condC1, condC2, condC3, condC4].filter(Boolean).length;
+
+                    // Assigned determination
+                    let assignedCat = 'C';
+                    if (selectedStudent.is_category_manual) {
+                      assignedCat = selectedStudent.category;
+                    } else {
+                      if (scoreA >= 3) assignedCat = 'A';
+                      else if (scoreB >= 3) assignedCat = 'B';
+                    }
+
+                    const renderConditionIndicator = (isMet, labelText, gotText) => (
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          fontSize: '0.78rem', 
+                          padding: '6px 10px',
+                          background: isMet ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.03)',
+                          borderLeft: `3px solid ${isMet ? 'var(--success)' : 'var(--border-color)'}`,
+                          borderRadius: '4px',
+                          color: isMet ? 'var(--text-primary)' : 'var(--text-muted)'
+                        }}
+                      >
+                        <span style={{ fontWeight: 500 }}>{labelText}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{gotText}</span>
+                          <span 
+                            style={{ 
+                              color: isMet ? 'var(--success)' : 'var(--danger)',
+                              fontWeight: 900,
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            {isMet ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+
+                    return (
+                      <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                        {/* Student Core Academic Grid */}
+                        <div 
+                          style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: '20px 24px',
+                            fontSize: '0.9rem',
+                            lineHeight: '1.6'
+                          }}
+                        >
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedStudent.course || '—'}</div>
+                          </div>
+
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stream</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedStudent.stream || '—'}</div>
+                          </div>
+
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Year & Semester</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                              {selectedStudent.year ? `${selectedStudent.year} Year` : '—'} 
+                              {selectedStudent.semester ? ` (Sem ${selectedStudent.semester})` : ''}
+                            </div>
+                          </div>
+
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Graduation Year</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedStudent.passing_year || '—'}</div>
+                          </div>
+
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone Number</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{selectedStudent.phone_number || '—'}</div>
+                          </div>
+
+                          <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: 8 }}>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{selectedStudent.email}</div>
+                          </div>
+                        </div>
+
+                        {/* Category and KPI Scorecard */}
+                        <div 
+                          style={{ 
+                            border: '1px solid var(--border-color)', 
+                            borderRadius: '12px',
+                            background: 'var(--bg-card-hover)',
+                            padding: '20px 24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 16
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+                              🎯 Placement Category Eligibility Engine
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                              Students are classified based on a multi-KPI scorecard. Satisfying <strong>at least 3 out of 4 conditions</strong> places the student into that tier.
+                            </div>
+                          </div>
+
+                          {/* Category Manual Override */}
+                          <div 
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '12px 16px',
+                              background: 'var(--bg-card)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              marginTop: '4px',
+                              flexWrap: 'wrap',
+                              gap: 12
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                ⚙️ Category Manual Override
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                                {selectedStudent.is_category_manual 
+                                  ? `Manually forced to Category ${selectedStudent.category}.` 
+                                  : "Currently auto-calculated by the eligibility engine."
+                                }
+                              </div>
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              {['A', 'B', 'C', 'auto'].map((cat) => {
+                                const isSelected = cat === 'auto' 
+                                  ? !selectedStudent.is_category_manual 
+                                  : (selectedStudent.is_category_manual && selectedStudent.category === cat);
+                                return (
+                                  <button
+                                    key={cat}
+                                    onClick={() => handleCategoryChange(selectedStudent.id, cat)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      borderRadius: '6px',
+                                      border: isSelected 
+                                        ? `1px solid ${cat === 'A' ? '#10b981' : cat === 'B' ? '#f59e0b' : cat === 'C' ? '#ef4444' : 'var(--accent-primary)'}` 
+                                        : '1px solid var(--border-color)',
+                                      background: isSelected 
+                                        ? (cat === 'A' ? 'rgba(16, 185, 129, 0.15)' : cat === 'B' ? 'rgba(245, 158, 11, 0.15)' : cat === 'C' ? 'rgba(239, 68, 68, 0.15)' : 'var(--accent-soft)') 
+                                        : 'var(--bg-card)',
+                                      color: isSelected 
+                                        ? (cat === 'A' ? '#10b981' : cat === 'B' ? '#f59e0b' : cat === 'C' ? '#ef4444' : 'var(--accent-primary)') 
+                                        : 'var(--text-secondary)',
+                                      transition: 'all 0.2s ease',
+                                      boxShadow: isSelected ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'
+                                    }}
+                                  >
+                                    {cat === 'auto' ? '🔄 Auto (Reset)' : `Cat ${cat}`}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Row of Categories A, B, C */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 4 }}>
+                            {/* Category A Card */}
+                            <div 
+                              style={{ 
+                                background: 'var(--bg-card)', 
+                                border: assignedCat === 'A' ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                                borderRadius: '8px', 
+                                padding: '14px',
+                                position: 'relative',
+                                opacity: assignedCat === 'A' ? 1 : 0.75,
+                                transition: 'all 0.2s',
+                                boxShadow: assignedCat === 'A' ? 'var(--shadow-md)' : 'none'
+                              }}
+                            >
+                              {assignedCat === 'A' && (
+                                <span 
+                                  style={{ 
+                                    position: 'absolute', 
+                                    top: -10, 
+                                    right: 12, 
+                                    background: 'var(--success)', 
+                                    color: 'white', 
+                                    fontSize: '0.6rem', 
+                                    fontWeight: 800, 
+                                    padding: '2px 8px', 
+                                    borderRadius: 10,
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Active
+                                </span>
+                              )}
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: assignedCat === 'A' ? 'var(--success)' : 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>Category A</span>
+                                <span style={{ fontSize: '0.72rem', background: 'var(--bg-input)', padding: '2px 6px', borderRadius: 4 }}>{scoreA}/4 Met</span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+                                {renderConditionIndicator(condA1, 'Attendance ≥ 75%', `${attendanceVal}%`)}
+                                {renderConditionIndicator(condA2, 'CGPA ≥ 8.0', cgpaVal.toFixed(2))}
+                                {renderConditionIndicator(condA3, 'No Backlogs', `${backlogCountVal}`)}
+                                {renderConditionIndicator(condA4, 'Training Attendance = 100%', `${trainingVal}%`)}
+                              </div>
+                            </div>
+
+                            {/* Category B Card */}
+                            <div 
+                              style={{ 
+                                background: 'var(--bg-card)', 
+                                border: assignedCat === 'B' ? '2px solid var(--warning)' : '1px solid var(--border-color)',
+                                borderRadius: '8px', 
+                                padding: '14px',
+                                position: 'relative',
+                                opacity: assignedCat === 'B' ? 1 : 0.75,
+                                transition: 'all 0.2s',
+                                boxShadow: assignedCat === 'B' ? 'var(--shadow-md)' : 'none'
+                              }}
+                            >
+                              {assignedCat === 'B' && (
+                                <span 
+                                  style={{ 
+                                    position: 'absolute', 
+                                    top: -10, 
+                                    right: 12, 
+                                    background: 'var(--warning)', 
+                                    color: 'white', 
+                                    fontSize: '0.6rem', 
+                                    fontWeight: 800, 
+                                    padding: '2px 8px', 
+                                    borderRadius: 10,
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Active
+                                </span>
+                              )}
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: assignedCat === 'B' ? 'var(--warning)' : 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>Category B</span>
+                                <span style={{ fontSize: '0.72rem', background: 'var(--bg-input)', padding: '2px 6px', borderRadius: 4 }}>{scoreB}/4 Met</span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+                                {renderConditionIndicator(condB1, 'Attendance ≥ 50%', `${attendanceVal}%`)}
+                                {renderConditionIndicator(condB2, 'CGPA ≥ 6.5', cgpaVal.toFixed(2))}
+                                {renderConditionIndicator(condB3, 'Backlogs ≤ 2', `${backlogCountVal}`)}
+                                {renderConditionIndicator(condB4, 'Training Attendance ≥ 80%', `${trainingVal}%`)}
+                              </div>
+                            </div>
+
+                            {/* Category C Card */}
+                            <div 
+                              style={{ 
+                                background: 'var(--bg-card)', 
+                                border: assignedCat === 'C' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                                borderRadius: '8px', 
+                                padding: '14px',
+                                position: 'relative',
+                                opacity: assignedCat === 'C' ? 1 : 0.75,
+                                transition: 'all 0.2s',
+                                boxShadow: assignedCat === 'C' ? 'var(--shadow-md)' : 'none'
+                              }}
+                            >
+                              {assignedCat === 'C' && (
+                                <span 
+                                  style={{ 
+                                    position: 'absolute', 
+                                    top: -10, 
+                                    right: 12, 
+                                    background: 'var(--accent-primary)', 
+                                    color: 'white', 
+                                    fontSize: '0.6rem', 
+                                    fontWeight: 800, 
+                                    padding: '2px 8px', 
+                                    borderRadius: 10,
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  Active
+                                </span>
+                              )}
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: assignedCat === 'C' ? 'var(--accent-primary)' : 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>Category C</span>
+                                <span style={{ fontSize: '0.72rem', background: 'var(--bg-input)', padding: '2px 6px', borderRadius: 4 }}>{scoreC}/4 Met</span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+                                {renderConditionIndicator(condC1, 'Attendance < 30%', `${attendanceVal}%`)}
+                                {renderConditionIndicator(condC2, 'CGPA < 5.0', cgpaVal.toFixed(2))}
+                                {renderConditionIndicator(condC3, 'Training Attd ≤ 65%', `${trainingVal}%`)}
+                                {renderConditionIndicator(condC4, 'Backlogs Max (Any)', 'Yes')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {activeModalTab === 'skills' && (
+                    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                      {/* Summary Box */}
+                      <div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Professional Summary</div>
+                        <div style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '16px 20px', fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                          {selectedStudent.profile?.professional_summary || "No professional summary has been set up for this student yet."}
+                        </div>
+                      </div>
+
+                      {/* Skills badges */}
+                      <div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Technical & Soft Skills</div>
+                        {selectedStudent.profile?.skills && selectedStudent.profile.skills.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                            {selectedStudent.profile.skills.map((skill) => (
+                              <div 
+                                key={skill.id} 
+                                className="skill-badge"
+                                style={{ 
+                                  padding: '8px 16px',
+                                  borderRadius: 20,
+                                  fontSize: '0.85rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 8
+                                }}
+                              >
+                                <span className="skill-name">{skill.name}</span>
+                                {skill.proficiency && (
+                                  <span 
+                                    className="skill-level"
+                                    style={{ 
+                                      fontSize: '0.65rem',
+                                      textTransform: 'uppercase',
+                                      color: 'var(--accent-primary)',
+                                      fontWeight: 800,
+                                      background: 'rgba(249, 115, 22, 0.1)',
+                                      padding: '1px 6px',
+                                      borderRadius: 4
+                                    }}
+                                  >
+                                    {skill.proficiency}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>No skills specified in student profile yet.</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeModalTab === 'experience' && (() => {
+                    const parseTech = (tech) => {
+                      if (!tech) return [];
+                      if (Array.isArray(tech)) return tech;
+                      return tech.split(',').map(t => t.trim()).filter(Boolean);
+                    };
+
+                    const projects = selectedStudent.profile?.projects || [];
+                    const experiences = selectedStudent.profile?.experiences || [];
+                    const education = selectedStudent.profile?.education_entries || [];
+                    const certifications = selectedStudent.profile?.certifications || [];
+
+                    return (
+                      <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        {/* Projects Section */}
+                        <div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>Projects</div>
+                          {projects.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              {projects.map((proj) => (
+                                <div key={proj.id} className="project-card" style={{ borderLeft: '3px solid var(--border-color)', paddingLeft: 12, paddingBottom: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{proj.title}</h4>
+                                    {proj.date && (
+                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                        {new Date(proj.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {proj.description && (
+                                    <p style={{ margin: '6px 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{proj.description}</p>
+                                  )}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                      {parseTech(proj.technologies).map((tech, idx) => (
+                                        <span 
+                                          key={idx} 
+                                          style={{ 
+                                            fontSize: '0.65rem', 
+                                            fontWeight: 600, 
+                                            background: 'var(--bg-input)',
+                                            border: '1px solid var(--border-color)',
+                                            color: 'var(--text-secondary)',
+                                            padding: '2px 8px', 
+                                            borderRadius: 4
+                                          }}
+                                        >
+                                          {tech}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {proj.link && (
+                                      <a 
+                                        href={proj.link} 
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                                      >
+                                        🔗 Project Link
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>No projects listed.</div>
+                          )}
+                        </div>
+
+                        {/* Experiences Section */}
+                        <div>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>Work Experiences</div>
+                          {experiences.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              {experiences.map((exp) => (
+                                <div key={exp.id} className="experience-card" style={{ borderLeft: '3px solid var(--border-color)', paddingLeft: 12, paddingBottom: 4 }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                                    <div>
+                                      <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>{exp.position}</h4>
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, marginTop: 2 }}>{exp.company}</div>
+                                    </div>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                      {exp.start_date ? new Date(exp.start_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : '—'} 
+                                      {' - '}
+                                      {exp.is_current ? 'Present' : exp.end_date ? new Date(exp.end_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : '—'}
+                                    </span>
+                                  </div>
+                                  {exp.description && (
+                                    <p style={{ margin: '6px 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>{exp.description}</p>
+                                  )}
+                                  {exp.achievements && (
+                                    <div style={{ marginTop: 6 }}>
+                                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>Key Achievements</div>
+                                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>{exp.achievements}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>No professional experience listed.</div>
+                          )}
+                        </div>
+
+                        {/* Education & Certs Row */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                          {/* Education column */}
+                          <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Education</div>
+                            {education.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {education.map((edu) => (
+                                  <div key={edu.id} style={{ fontSize: '0.8rem' }}>
+                                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{edu.degree} in {edu.field}</div>
+                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{edu.institution}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                      <span>Grad: {edu.graduation_date ? new Date(edu.graduation_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : '—'}</span>
+                                      {edu.gpa && <span>GPA: {edu.gpa}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic' }}>No additional education entries.</div>
+                            )}
+                          </div>
+
+                          {/* Certifications column */}
+                          <div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Certifications</div>
+                            {certifications.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {certifications.map((cert) => (
+                                  <div key={cert.id} style={{ fontSize: '0.8rem' }}>
+                                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {cert.credential_url ? (
+                                        <a href={cert.credential_url} target="_blank" rel="noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'none' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>
+                                          📜 {cert.name} 🔗
+                                        </a>
+                                      ) : (
+                                        `📜 ${cert.name}`
+                                      )}
+                                    </div>
+                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Issued by: {cert.issuer}</div>
+                                    {cert.date && (
+                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                        Date: {new Date(cert.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontStyle: 'italic' }}>No certifications listed.</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {activeModalTab === 'mock_interviews' && (() => {
+                    if (sessionsLoading) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 12 }}>
+                          <div className="spinner" style={{ width: 30, height: 30, border: '3px solid rgba(249, 115, 22, 0.1)', borderTop: '3px solid var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Loading mock interview sessions...</span>
+                        </div>
+                      );
+                    }
+
+                    if (selectedSessionDetail) {
+                      const feedback = selectedSessionDetail.feedback || {};
+                      const answers = selectedSessionDetail.answers || [];
+                      const isPendingReview = selectedSessionDetail.status === 'pending_review' || feedback.total_score === null || feedback.total_score === undefined;
+                      
+                      const scoreColor = isPendingReview
+                        ? 'var(--warning)'
+                        : feedback.total_score >= 70
+                        ? 'var(--success)'
+                        : feedback.total_score >= 50
+                        ? 'var(--warning)'
+                        : 'var(--danger)';
+
+                      const scoreGrade = isPendingReview
+                        ? 'Pending Review'
+                        : feedback.total_score >= 85
+                        ? 'Excellent'
+                        : feedback.total_score >= 70
+                        ? 'Good'
+                        : feedback.total_score >= 55
+                        ? 'Average'
+                        : 'Needs Work';
+
+                      return (
+                        <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                          {/* Back Button */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              onClick={() => setSelectedSessionDetail(null)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--accent-primary)',
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                padding: '4px 8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                outline: 'none'
+                              }}
+                            >
+                              ← Back to Session List
+                            </button>
+                          </div>
+
+                          {/* Detail Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
+                            <div>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {selectedSessionDetail.domain_name}
+                              </span>
+                              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                {selectedSessionDetail.interview_type_name}
+                              </h3>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                                Session ID: <code style={{ fontSize: '0.7rem' }}>{selectedSessionDetail.id}</code> &bull; Taken {new Date(selectedSessionDetail.created_at).toLocaleString()}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '4px 10px',
+                                borderRadius: 12,
+                                background: selectedSessionDetail.use_voice ? 'rgba(59, 130, 246, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                color: selectedSessionDetail.use_voice ? '#3B82F6' : 'var(--text-secondary)'
+                              }}>
+                                {selectedSessionDetail.use_voice ? '🎤 Voice' : '⌨️ Written'}
+                              </span>
+                              <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '4px 10px',
+                                borderRadius: 12,
+                                background: selectedSessionDetail.status === 'completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                color: selectedSessionDetail.status === 'completed' ? '#10B981' : '#F59E0B'
+                              }}>
+                                {selectedSessionDetail.status === 'completed' ? 'Completed' : 'Pending Review'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Score and Dimensions Overview Row */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20, alignItems: 'center', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: 20 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRight: '1px solid var(--border-color)', paddingRight: 20 }}>
+                              <div style={{
+                                width: 90,
+                                height: 90,
+                                borderRadius: '50%',
+                                border: `6px solid ${scoreColor}`,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 8px'
+                              }}>
+                                <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
+                                  {isPendingReview ? '—' : Math.round(feedback.total_score)}
+                                </span>
+                                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 2 }}>
+                                  Overall
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: scoreColor }}>
+                                {scoreGrade}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                Core Dimension Scores
+                              </h4>
+                              {feedback.dimension_averages && Object.entries(feedback.dimension_averages).map(([dim, data]) => {
+                                if (dim !== 'technical_accuracy' && dim !== 'depth') return null;
+                                const label = dim === 'technical_accuracy' ? 'Technical Accuracy' : 'Depth';
+                                const barColor = data.score >= 7 ? 'var(--success)' : data.score >= 5 ? 'var(--warning)' : 'var(--danger)';
+                                const scorePct = (data.score / 10) * 100;
+                                
+                                return (
+                                  <div key={dim}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: 4 }}>
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{label}</span>
+                                      <span style={{ fontWeight: 800, color: barColor }}>{Number(data.score).toFixed(1)}/10</span>
+                                    </div>
+                                    <div style={{ height: 6, background: 'var(--bg-input)', borderRadius: 3, overflow: 'hidden' }}>
+                                      <div style={{ height: '100%', background: barColor, width: `${scorePct}%`, borderRadius: 3 }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Executive Summary */}
+                          {feedback.feedback_summary && (
+                            <div>
+                              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Executive Feedback Summary</div>
+                              <div style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '16px 20px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{feedback.feedback_summary}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Strengths and Growth Areas Double Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            {feedback.strengths && feedback.strengths.length > 0 && (
+                              <div style={{ background: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.15)', borderRadius: 'var(--radius-md)', padding: 16 }}>
+                                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  💪 Key Strengths
+                                </h4>
+                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {feedback.strengths.slice(0, 5).map((s, idx) => <li key={idx}>{s}</li>)}
+                                </ul>
+                              </div>
+                            )}
+
+                            {feedback.weaknesses && feedback.weaknesses.length > 0 && (
+                              <div style={{ background: 'rgba(245, 158, 11, 0.03)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: 'var(--radius-md)', padding: 16 }}>
+                                <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 800, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  🚀 Growth Areas
+                                </h4>
+                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {feedback.weaknesses.slice(0, 5).map((w, idx) => <li key={idx}>{w}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Question-by-Question Analysis */}
+                          {answers.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Question-by-Question Breakdown</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                {answers.map((ans, idx) => {
+                                  const failedEval = ans.eval_status === 'failed';
+                                  const evalJson = ans.evaluation_json || {};
+                                  return (
+                                    <div key={ans.id || idx} style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: 16 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', paddingBottom: 8, marginBottom: 12, gap: 12 }}>
+                                        <div style={{ flex: 1 }}>
+                                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--accent-primary)', display: 'block', marginBottom: 2 }}>
+                                            Question {ans.question_number}
+                                          </span>
+                                          <h5 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                                            {ans.question_text || `Question Detail`}
+                                          </h5>
+                                        </div>
+                                        <div style={{ textAlign: 'right', minWidth: 60 }}>
+                                          {failedEval ? (
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: 4 }}>
+                                              Failed Eval
+                                            </span>
+                                          ) : (
+                                            <div>
+                                              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: ans.score >= 70 ? 'var(--success)' : ans.score >= 50 ? 'var(--warning)' : 'var(--danger)' }}>
+                                                {ans.score}
+                                              </span>
+                                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>/100</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        {/* Candidate's answer */}
+                                        <div>
+                                          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>
+                                            Learner Response:
+                                          </div>
+                                          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 6, borderLeft: '3px solid var(--border-color)', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                            {ans.answer_text}
+                                          </p>
+                                        </div>
+
+                                        {/* Ideal answer summary */}
+                                        {evalJson.ideal_answer_summary && (
+                                          <div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: 4 }}>
+                                              Reference Benchmark Summary:
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 6, borderLeft: '3px solid var(--accent-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                                              {evalJson.ideal_answer_summary}
+                                            </p>
+                                          </div>
+                                        )}
+
+                                        {/* Score explanation */}
+                                        {evalJson.score_explanation && (
+                                          <div style={{ background: 'rgba(245, 158, 11, 0.04)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: 6, padding: '8px 12px' }}>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--warning)', textTransform: 'uppercase', marginBottom: 4 }}>
+                                              AI Score Justification:
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                              {evalJson.score_explanation}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    if (studentSessions.length === 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '50px 20px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '2.5rem', marginBottom: 12 }}>🎯</span>
+                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Mock Interviews Recorded</h4>
+                          <p style={{ margin: '6px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: 280, lineHeight: 1.4 }}>
+                            This student has not attempted any AI mock interviews yet.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>Mock Interview Sessions History</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {studentSessions.map((session) => {
+                            const isPending = session.total_score === null || session.total_score === undefined;
+                            const scoreClass = isPending ? 'badge-warning' : session.total_score >= 70 ? 'badge-success' : session.total_score >= 50 ? 'badge-warning' : 'badge-danger';
+                            
+                            return (
+                              <div
+                                key={session.id}
+                                style={{
+                                  background: 'var(--bg-card-hover)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: 'var(--radius-md)',
+                                  padding: '14px 18px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  gap: 12,
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <div>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {session.domain_name}
+                                  </span>
+                                  <h4 style={{ margin: '2px 0 4px 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    {session.interview_type_name}
+                                  </h4>
+                                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <span>📅 {new Date(session.created_at).toLocaleDateString()}</span>
+                                    <span>&bull;</span>
+                                    <span>{session.use_voice ? '🎤 Voice' : '⌨️ Written'}</span>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                  <div>
+                                    {isPending ? (
+                                      <span className="badge badge-warning" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>
+                                        Pending
+                                      </span>
+                                    ) : (
+                                      <span className={`badge ${scoreClass}`} style={{ fontSize: '0.8rem', padding: '4px 10px', fontWeight: 800 }}>
+                                        {Math.round(session.total_score)}%
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => fetchSessionDetail(session.id)}
+                                    className="btn btn-outline btn-sm"
+                                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                    disabled={detailLoading}
+                                  >
+                                    {detailLoading ? '...' : '👁️ Analyze'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Pinned Action Buttons */}
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    gap: 12,
+                    borderTop: '1px solid var(--border-color)',
+                    paddingTop: 16,
+                    flexShrink: 0
+                  }}
+                >
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={() => setSelectedStudent(null)}
+                    style={{ textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '0.5px' }}
+                  >
+                    Close
+                  </button>
+                  {/* Removed Block/Authorize Access button from modal footer per user request */}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

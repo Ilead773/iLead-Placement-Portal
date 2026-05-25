@@ -1,0 +1,168 @@
+# apps/profiles/serializers.py
+"""DRF serializers for student profiles and completion metrics."""
+
+from rest_framework import serializers
+from .models import (
+    StudentProfile, Skill, Experience, 
+    Project, Education, Certification, Achievement
+)
+
+
+class SkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['id', 'name', 'category', 'proficiency']
+
+
+class ExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Experience
+        fields = [
+            'id', 'company', 'position',
+            'start_date', 'end_date', 'is_current', 'description', 'achievements'
+        ]
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            'id', 'title', 'description', 'technologies',
+            'link', 'date'
+        ]
+
+
+class EducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Education
+        fields = [
+            'id', 'institution', 'degree', 'field',
+            'graduation_date', 'gpa', 'honors'
+        ]
+
+
+class CertificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certification
+        fields = ['id', 'name', 'issuer', 'date', 'credential_url']
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Achievement
+        fields = ['id', 'title', 'issuer', 'date', 'description']
+
+
+class AchievementCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Achievement
+        fields = ['title', 'issuer', 'date', 'description']
+
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    skills = SkillSerializer(many=True, read_only=True)
+    experiences = ExperienceSerializer(many=True, read_only=True)
+    projects = ProjectSerializer(many=True, read_only=True)
+    education_entries = EducationSerializer(many=True, read_only=True)
+    certifications = CertificationSerializer(many=True, read_only=True)
+    achievements = AchievementSerializer(many=True, read_only=True)
+    
+    # Completion metrics
+    completion_score = serializers.FloatField(read_only=True)
+    completion_details = serializers.JSONField(read_only=True)
+    improvement_suggestions = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 'student', 'phone', 'location',
+            'professional_summary', 'linkedin', 'github', 'portfolio',
+            'profile_picture',
+            'skills', 'experiences', 'projects', 'education_entries', 'certifications', 'achievements',
+            'completion_score', 'completion_details', 'improvement_suggestions',
+            'created_at', 'updated_at',
+            # Fields from core.Student
+            'student_name', 'student_phone', 'student_year', 'student_category', 'student_backlogs'
+        ]
+        read_only_fields = ['id', 'student', 'completion_score', 'completion_details', 'improvement_suggestions']
+
+    student_name = serializers.CharField(source='student.name', read_only=True)
+    student_phone = serializers.CharField(source='student.phone_number', read_only=True)
+    student_year = serializers.CharField(source='student.year', read_only=True)
+    student_category = serializers.CharField(source='student.category', read_only=True)
+    student_backlogs = serializers.BooleanField(source='student.backlogs', read_only=True)
+
+
+class ProfileSummarySerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing profiles."""
+    student_name = serializers.CharField(source='student.name', read_only=True)
+    
+    class Meta:
+        model = StudentProfile
+        fields = ['id', 'student_name', 'location', 'completion_score', 'updated_at']
+
+
+class StudentProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for partial profile updates including core student data."""
+    phone_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    year = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    category = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    backlogs = serializers.BooleanField(write_only=True, required=False)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'phone', 'location', 'professional_summary',
+            'linkedin', 'github', 'portfolio',
+            'phone_number', 'year', 'category', 'backlogs'
+        ]
+
+    def update(self, instance, validated_data):
+        # Extract student fields
+        student_data = {}
+        if 'phone_number' in validated_data:
+            student_data['phone_number'] = validated_data.pop('phone_number')
+        if 'year' in validated_data:
+            student_data['year'] = validated_data.pop('year')
+        if 'category' in validated_data:
+            student_data['category'] = validated_data.pop('category')
+        if 'backlogs' in validated_data:
+            student_data['backlogs'] = validated_data.pop('backlogs')
+
+        # Update student record if needed
+        if student_data:
+            student = instance.student
+            for attr, value in student_data.items():
+                setattr(student, attr, value)
+            student.save()
+
+        return super().update(instance, validated_data)
+
+
+class SkillCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Skill
+        fields = ['name', 'category', 'proficiency']
+
+
+class ExperienceCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Experience
+        fields = [
+            'company', 'position',
+            'start_date', 'end_date', 'is_current', 'description', 'achievements'
+        ]
+
+
+class ProjectCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            'title', 'description', 'technologies', 'link', 'date'
+        ]
+
+
+class CertificationCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certification
+        fields = ['name', 'issuer', 'date', 'credential_url']

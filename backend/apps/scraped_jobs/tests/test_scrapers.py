@@ -1,0 +1,78 @@
+import pytest
+from datetime import datetime, timezone
+from apps.scraped_jobs.scrapers.base import BaseJobScraper
+from apps.scraped_jobs.scrapers.lever_scraper import LeverScraper
+from unittest.mock import MagicMock, patch
+
+class MockScraper(BaseJobScraper):
+    SOURCE_NAME = 'mock'
+    def fetch_jobs(self, course_name, keywords, limit=25): return []
+    def fetch_internships(self, course_name, keywords, limit=10): return []
+
+@pytest.fixture
+def base_scraper():
+    return MockScraper()
+
+def test_normalize_text(base_scraper):
+    assert base_scraper._normalize_text("  Software   Engineer!  ") == "software engineer"
+    assert base_scraper._normalize_text("L.P.A.") == "lpa"
+    assert base_scraper._normalize_text(None) == ""
+
+def test_compute_dedup_hash(base_scraper):
+    h1 = base_scraper.compute_dedup_hash("Software Engineer", "Google")
+    h2 = base_scraper.compute_dedup_hash("software engineer", "google")
+    h3 = base_scraper.compute_dedup_hash("Backend Dev", "Google")
+    assert h1 == h2
+    assert h1 != h3
+
+def test_score_job_relevance(base_scraper):
+    keywords = ["Python", "Django", "React"]
+    # Title match (3.0) + Desc match (1.0) = 4.0. Max possible = 3 * 4.0 = 12.0. 4/12 = 0.333
+    score = base_scraper.score_job_relevance("Python Developer", "Knowledge of Django is good", keywords)
+    assert score >= 0.3
+    
+    # No match
+    score = base_scraper.score_job_relevance("Chef", "Cooking pasta", keywords)
+    assert score == 0.0
+
+def test_sanitize_description(base_scraper):
+    html = "<p>Hello <b>World</b><script>alert(1)</script></p>"
+    assert base_scraper.sanitize_description(html) == "Hello Worldalert(1)"
+
+def test_parse_salary(base_scraper):
+    res = base_scraper.parse_salary("5 - 10 LPA")
+    assert res['min'] == 5.0
+    assert res['max'] == 10.0
+    
+    res = base_scraper.parse_salary("20K - 30K per month")
+    assert res['min'] == 20.0
+    assert res['max'] == 30.0
+
+def test_extract_experience(base_scraper):
+    assert base_scraper.extract_experience("Requires 3-5 years of experience") == "3-5 years of experience"
+    assert base_scraper.extract_experience("Looking for fresHERs") == "Fresher"
+    assert base_scraper.extract_experience("No experience mentioned") == "Not specified"
+
+@patch('requests.Session.get')
+def test_lever_scraper_fetch(mock_get):
+    scraper = LeverScraper()
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = [
+        {
+            'id': 'job1',
+            'text': 'Software Intern',
+            'hostedUrl': 'https://lever.co/job1',
+            'categories': {'location': 'Remote', 'team': 'Engineering'},
+            'descriptionPlain': 'We need a Python intern',
+            'createdAt': int(datetime.now(timezone.utc).timestamp() * 1000)
+        }
+    ]
+    mock_get.return_value = mock_response
+    
+    # Use keywords that appear in title to boost score > 0.3
+    jobs = scraper.fetch_jobs('BSc in Computer Application (BCA)', ['Software', 'Python'], limit=1)
+    assert len(jobs) == 1
+    assert jobs[0]['title'] == 'Software Intern'
+    assert jobs[0]['is_internship'] is True
+    assert jobs[0]['source'] == 'lever'

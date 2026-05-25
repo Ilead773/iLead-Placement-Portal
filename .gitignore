@@ -1,0 +1,55 @@
+# Virtual environments
+backend/venv/
+venv/
+ENV/
+
+# Environment files
+.env
+.env.*
+backend/.env
+frontend/.env
+!.env.example
+!frontend/.env.example
+
+# Python cache and artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+backend/.coverage
+
+# Local databases
+db.sqlite3
+backend/db.sqlite3
+
+# Django static/media outputs
+backend/staticfiles/
+backend/static/
+backend/media/
+media/
+static/
+
+# Node / frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.eslintcache
+
+# Logs and editor files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Project-local generated output
+graphify-out/
+
+# Large local binaries/files
+Antigravity.exe

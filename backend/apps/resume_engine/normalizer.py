@@ -1,0 +1,232 @@
+# apps/resume_engine/normalizer.py
+"""
+Layer 1: Resume Normalization to Canonical JSON Format
+
+Converts ANY resume source into a unified canonical format:
+- Profile data → canonical JSON
+- Uploaded PDF text → canonical JSON
+- Template data → canonical JSON
+
+This is THE single source of truth for all resume operations.
+"""
+
+import logging
+import re
+from datetime import date
+
+logger = logging.getLogger(__name__)
+
+# Canonical schema definition
+CANONICAL_SCHEMA = {
+    "personal": {
+        "name": "", "email": "", "phone": "", "location": "",
+        "linkedin": "", "github": "", "portfolio": "",
+    },
+    "professional_summary": "",
+    "skills": [],        # [{"category": str, "items": [str]}]
+    "experience": [],    # [{"company","position","duration","description","achievements"}]
+    "projects": [],      # [{"title","description","technologies","link","date"}]
+    "education": [],     # [{"institution","degree","field","graduation_date","gpa","honors"}]
+    "certifications": [], # [{"name","issuer","date","credential_url"}]
+    "achievements": [],
+    "metadata": {
+        "source_type": "profile",
+        "version": 1,
+        "normalized_at": None,
+    },
+}
+
+class ResumeNormalizer:
+    """Convert any resume source to canonical JSON format."""
+
+    def normalize(self, data, source_type='profile'):
+        if source_type == 'profile':
+            return self.normalize_from_profile(data)
+        elif source_type == 'uploaded':
+            return self._normalize_uploaded_text(data)
+        elif source_type == 'file':
+            return self.normalize_from_file(data)
+        else:
+            raise ValueError(f"Unknown source type: {source_type}")
+
+    def normalize_from_file(self, file_path):
+        """Extract text from PDF and normalize it."""
+        text = ""
+        try:
+            import PyPDF2
+            with open(file_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                for page in reader.pages:
+                    text += page.extract_text() + "\n"
+            
+            logger.info(f"Extracted {len(text)} characters from {file_path}")
+            return self._normalize_uploaded_text(text)
+        except Exception as e:
+            logger.error(f"Failed to extract text from {file_path}: {e}")
+            raise
+
+    def normalize_from_profile(self, profile):
+        from apps.profiles.models import StudentProfile
+        canonical = self._empty_canonical()
+        canonical['personal'] = {
+            'name': profile.student.name,
+            'email': profile.student.email,
+            'phone': profile.phone or '',
+            'location': profile.location or '',
+            'linkedin': profile.linkedin or '',
+            'github': profile.github or '',
+            'portfolio': profile.portfolio or '',
+        }
+        canonical['professional_summary'] = profile.professional_summary or ''
+        
+        skills_by_category = {}
+        for skill in profile.skills.all():
+            cat = skill.category
+            if cat not in skills_by_category: skills_by_category[cat] = []
+            skills_by_category[cat].append(skill.name)
+
+        canonical['skills'] = [{'category': cat, 'items': items} for cat, items in skills_by_category.items()]
+        
+        canonical['experience'] = [
+            {
+                'company': exp.company,
+                'position': exp.position,
+                'duration': {
+                    'start': exp.start_date.isoformat() if exp.start_date else None,
+                    'end': exp.end_date.isoformat() if exp.end_date else None,
+                    'current': exp.is_current,
+                },
+                'description': exp.description,
+                'achievements': exp.achievements or [],
+            }
+            for exp in profile.experiences.all()
+        ]
+        
+        canonical['projects'] = [
+            {
+                'title': proj.title,
+                'description': proj.description,
+                'technologies': proj.technologies or [],
+                'link': proj.link or '',
+                'date': proj.date.isoformat() if proj.date else None,
+            }
+            for proj in profile.projects.all()
+        ]
+
+        canonical['education'] = [
+            {
+                'institution': edu.institution,
+                'degree': edu.degree,
+                'field': edu.field or '',
+                'graduation_date': edu.graduation_date.isoformat() if edu.graduation_date else None,
+                'gpa': edu.gpa,
+                'honors': edu.honors or '',
+            }
+            for edu in profile.education_entries.all()
+        ]
+
+        canonical['certifications'] = [
+            {
+                'name': cert.name,
+                'issuer': cert.issuer,
+                'date': cert.date.isoformat() if cert.date else None,
+                'credential_url': cert.credential_url or '',
+            }
+            for cert in profile.certifications.all()
+        ]
+
+        canonical['achievements'] = [
+            {
+                'title': ach.title,
+                'issuer': ach.issuer or '',
+                'date': ach.date.isoformat() if ach.date else None,
+                'description': ach.description or '',
+            }
+            for ach in profile.achievements.all()
+        ]
+
+        from django.utils import timezone
+        canonical['metadata'] = {
+            'source_type': 'profile',
+            'version': 1,
+            'normalized_at': timezone.now().isoformat(),
+        }
+        return canonical
+
+    def _normalize_uploaded_text(self, text):
+        """Advanced Fuzzy Parser for unstructured resume text."""
+        if not text: return self._empty_canonical()
+        
+        canonical = self._empty_canonical()
+        text_clean = re.sub(r'\s+', ' ', text) # Collapse whitespace for easier regex
+        
+        # 1. Personal Info Extraction
+        email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+        if email_match: canonical['personal']['email'] = email_match.group(0)
+        
+        phone_match = re.search(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
+        if phone_match: canonical['personal']['phone'] = phone_match.group(0)
+
+        # 2. Section Segmentation using Fuzzy Markers
+        sections = {
+            'summary': ['summary', 'profile', 'objective', 'about me'],
+            'experience': ['experience', 'work history', 'employment', 'background'],
+            'education': ['education', 'academic', 'qualifications'],
+            'skills': ['skills', 'technical skills', 'expertise', 'capabilities'],
+            'projects': ['projects', 'key projects', 'featured work']
+        }
+        
+        content = {}
+        found_markers = []
+        
+        # Find start positions of all sections
+        for sec, markers in sections.items():
+            for m in markers:
+                match = re.search(rf'\b{m}\b', text_clean, re.IGNORECASE)
+                if match:
+                    found_markers.append((match.start(), sec))
+                    break
+        
+        found_markers.sort()
+        
+        # Split text into sections based on markers
+        for i in range(len(found_markers)):
+            start, sec = found_markers[i]
+            end = found_markers[i+1][0] if i+1 < len(found_markers) else len(text_clean)
+            content[sec] = text_clean[start:end].strip()
+
+        # 3. Clean up the Summary (remove the header word)
+        if 'summary' in content:
+            raw = content['summary']
+            canonical['professional_summary'] = re.sub(rf'^({"|".join(sections["summary"])})\s*', '', raw, flags=re.IGNORECASE)
+        
+        # 4. Clean up Skills
+        if 'skills' in content:
+            raw = content['skills']
+            skills_text = re.sub(rf'^({"|".join(sections["skills"])})\s*', '', raw, flags=re.IGNORECASE)
+            # Split by dots, commas, or bullets
+            items = [s.strip() for s in re.split(r'[•,·|]|\s{2,}', skills_text) if s.strip()]
+            canonical['skills'] = [{'category': 'Technical Skills', 'items': items[:20]}]
+
+        # 5. Experience (Rough splitting)
+        if 'experience' in content:
+            raw = content['experience']
+            exp_text = re.sub(rf'^({"|".join(sections["experience"])})\s*', '', raw, flags=re.IGNORECASE)
+            # Simple heuristic: Split by years
+            entries = re.split(r'(\d{4})', exp_text)
+            if len(entries) > 1:
+                # Basic reconstruct
+                canonical['experience'] = [{
+                    'company': 'Experience Entry',
+                    'position': entries[0][:50].strip(),
+                    'description': " ".join(entries[1:5]).strip(),
+                    'duration': {'start': entries[1] if len(entries)>1 else None, 'current': True}
+                }]
+            else:
+                canonical['experience'] = [{'company': 'Extracted Experience', 'description': exp_text[:500]}]
+
+        return canonical
+
+    def _empty_canonical(self):
+        import copy
+        return copy.deepcopy(CANONICAL_SCHEMA)
