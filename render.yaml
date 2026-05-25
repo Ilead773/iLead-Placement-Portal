@@ -102,7 +102,7 @@ services:
   - type: web
     name: ilead-frontend
     env: static
-    plan: free
+    plan: starter
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
