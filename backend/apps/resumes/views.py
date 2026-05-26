@@ -226,7 +226,7 @@ class ResumeViewSet(viewsets.ViewSet):
         
         def run_task():
             print(f"DEBUG UPDATE: Commit successful. Queueing PDF task for {resume.id}")
-            generate_resume_pdf.delay(str(resume.id), str(resume.template_id))
+            generate_resume_pdf(str(resume.id), str(resume.template_id))
             
         transaction.on_commit(run_task)
         
