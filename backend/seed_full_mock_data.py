@@ -190,9 +190,14 @@ def _create_templates_and_resume(admin, student):
         defaults={
             "description": "Simple ATS-friendly template.",
             "html_template": (
-                "<html><body><h1>{{ name }}</h1><p>{{ professional_summary }}</p></body></html>"
+                '<div class="resume">\n'
+                '    <h1>{{ personal.name|default:"Your Name" }}</h1>\n'
+                '    <p>{{ personal.email }} | {{ personal.phone }}</p>\n'
+                '    <h2>Professional Summary</h2>\n'
+                '    <p>{{ summary }}</p>\n'
+                '</div>'
             ),
-            "css_styles": "body{font-family:Arial,sans-serif;} h1{font-size:22px;}",
+            "css_styles": "body{font-family:Arial,sans-serif;} h1{font-size:24px;} h2{font-size:18px;} .resume{max-width:800px;margin:0 auto;}",
             "is_active": True,
             "created_by": admin,
         },
