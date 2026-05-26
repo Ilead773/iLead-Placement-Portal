@@ -46,9 +46,9 @@ class ResumeGenerationService:
                 is_primary=is_first,
             )
 
-            # Queue sync PDF generation only after commit (testing mode)
+            # Queue async PDF generation only after commit
             transaction.on_commit(
-                lambda: generate_resume_pdf(str(resume.id), str(template.id))
+                lambda: generate_resume_pdf.delay(str(resume.id), str(template.id))
             )
 
             # Audit log
@@ -77,9 +77,9 @@ class ResumeGenerationService:
         resume.state = 'draft'
         resume.save(update_fields=update_fields)
         
-        # Execute task synchronously after commit to avoid race conditions (testing mode)
+        # Delay task until transaction commits to avoid race conditions
         transaction.on_commit(
-            lambda: generate_resume_pdf(str(resume.id), str(resume.template_id))
+            lambda: generate_resume_pdf.delay(str(resume.id), str(resume.template_id))
         )
         # The celery_task_id update will happen outside this method now, 
         # but we return the resume immediately.
@@ -144,8 +144,8 @@ class ResumeUploadService:
             status='pending',
         )
 
-        task_result = parse_uploaded_resume(str(upload.id))
-        logger.info(f"Upload {upload.id} parsed synchronously.")
+        task = parse_uploaded_resume.delay(str(upload.id))
+        logger.info(f"Upload {upload.id} queued for parsing (task: {task.id})")
 
         return upload
 

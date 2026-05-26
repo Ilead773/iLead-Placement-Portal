@@ -222,7 +222,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
-
+CELERY_TASK_ALWAYS_EAGER = True
 # Cache backend (used by rate limiting + scraper query caching)
 CACHES = {
     'default': {
