@@ -1,0 +1,17 @@
+Company,Role,Student Name,Registration Number,Email,Phone,Course,Stream,CGPA,Status,Applied At
+hgj,jk,Demo Student,DEMO001,demo.student@ilead.edu,,BCA,Computer Science,8.5,accepted,2026-05-23
+Thoughtworks,Senior Developer,Demo Student,DEMO001,demo.student@ilead.edu,,BCA,Computer Science,8.5,selected,2026-05-23
+GoSevIT Software Development Pvt Ltd,Freshers New Graduates (React Developer),Demo Student,DEMO001,demo.student@ilead.edu,,BCA,Computer Science,8.5,accepted,2026-05-23
+Thoughtworks,Principal Developer,Demo Student,DEMO001,demo.student@ilead.edu,,BCA,Computer Science,8.5,accepted,2026-05-23
+er,fer,Demo Student,DEMO001,demo.student@ilead.edu,,BCA,Computer Science,8.5,accepted,2026-05-23
+Deloitte,Technology Analyst Consultant,Rahul Sen,STU011,rahul.sen@student.ilead.edu,+919876543210,BCA,Computer Science,9.2,accepted,2026-05-22
+Zoho Corporation,Member Technical Staff,Aditi Rao,STU012,aditi.rao@student.ilead.edu,+919876543211,BCA,Computer Science,8.5,selected,2026-05-22
+Infosys,Power Programmer,Rahul Sen,STU011,rahul.sen@student.ilead.edu,+919876543210,BCA,Computer Science,9.2,selected,2026-05-22
+Infosys,Power Programmer,Meera Nair,STU014,meera.nair@student.ilead.edu,+919876543213,BBA,Marketing,6.8,selected,2026-05-22
+Wipro,Project Engineer,Rahul Sen,STU011,rahul.sen@student.ilead.edu,+919876543210,BCA,Computer Science,9.2,selected,2026-05-22
+Wipro,Project Engineer,Rohan Joshi,STU015,rohan.joshi@student.ilead.edu,+919876543214,BBA,Finance,4.8,accepted,2026-05-22
+Wipro,Project Engineer,Aditi Rao,STU012,aditi.rao@student.ilead.edu,+919876543211,BCA,Computer Science,8.5,selected,2026-05-22
+Cognizant,Programmer Analyst,Rohan Joshi,STU015,rohan.joshi@student.ilead.edu,+919876543214,BBA,Finance,4.8,accepted,2026-05-22
+Amazon,Software Development Engineer - I,Simran Kaur,STU016,simran.kaur@student.ilead.edu,+919876543215,BCA,Data Science,5.5,accepted,2026-05-22
+Razorpay,Frontend Developer,Meera Nair,STU014,meera.nair@student.ilead.edu,+919876543213,BBA,Marketing,6.8,selected,2026-05-22
+Tata Consultancy Services (TCS),Systems Engineer,Aditi Rao,STU012,aditi.rao@student.ilead.edu,+919876543211,BCA,Computer Science,8.5,selected,2026-05-22

@@ -1,15 +1,24 @@
 # Virtual environments
 backend/venv/
+frontend/venv/
 venv/
 ENV/
+env/
 
-# Environment files
+# Environment files (keep examples)
 .env
-.env.*
+.env.local
+.env.*.local
 backend/.env
+backend/.env.local
 frontend/.env
+frontend/.env.local
 !.env.example
+!backend/.env.example
 !frontend/.env.example
+!frontend/.env.development
+!frontend/.env.production
+!frontend/.env.staging
 
 # Python cache and artifacts
 __pycache__/
@@ -23,12 +32,16 @@ __pycache__/
 htmlcov/
 .coverage
 backend/.coverage
+dist/
+build/
+*.egg-info/
 
-# Local databases
+# Local databases (SEPARATE - do not push)
 db.sqlite3
 backend/db.sqlite3
+*.db
 
-# Django static/media outputs
+# Django static/media outputs (SEPARATE - do not push)
 backend/staticfiles/
 backend/static/
 backend/media/
@@ -43,13 +56,48 @@ frontend/build/
 
 # Logs and editor files
 *.log
+logs/
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 .idea/
 .vscode/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# IDE
+.vscode
+.idea
 
 # Project-local generated output
 graphify-out/
 
 # Large local binaries/files
+*.exe
+*.bin
+*.dll
+*.iso
+*.zip
 Antigravity.exe
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.env.backup
+
+# OS
+.Python
+pip-log.txt
+pip-delete-this-directory.txt

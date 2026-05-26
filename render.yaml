@@ -41,64 +41,6 @@ services:
           type: redis
           property: connectionString
 
-  - type: worker
-    name: ilead-celery-worker
-    env: python
-    plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A config worker -l info
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: DEBUG
-        value: "False"
-      - key: SECRET_KEY
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ilead-postgres
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: ilead-redis
-          type: redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: ilead-redis
-          type: redis
-          property: connectionString
-
-  - type: worker
-    name: ilead-celery-beat
-    env: python
-    plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: celery -A config beat -l info
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: DEBUG
-        value: "False"
-      - key: SECRET_KEY
-        sync: false
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ilead-postgres
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          name: ilead-redis
-          type: redis
-          property: connectionString
-      - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: ilead-redis
-          type: redis
-          property: connectionString
-
   - type: web
     name: ilead-frontend
     env: static
@@ -112,7 +54,6 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
-
 databases:
   - name: ilead-postgres
     plan: free

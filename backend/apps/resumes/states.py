@@ -41,9 +41,9 @@ class ResumeState:
 VALID_TRANSITIONS = {
     ResumeState.DRAFT: [ResumeState.PROCESSING, ResumeState.DELETED],
     ResumeState.PROCESSING: [ResumeState.GENERATED, ResumeState.FAILED, ResumeState.DELETED],
-    ResumeState.GENERATED: [ResumeState.ACTIVE, ResumeState.ARCHIVED, ResumeState.DELETED],
-    ResumeState.ACTIVE: [ResumeState.ARCHIVED, ResumeState.DELETED],
-    ResumeState.ARCHIVED: [ResumeState.ACTIVE, ResumeState.DELETED],
+    ResumeState.GENERATED: [ResumeState.PROCESSING, ResumeState.ACTIVE, ResumeState.ARCHIVED, ResumeState.DELETED],
+    ResumeState.ACTIVE: [ResumeState.PROCESSING, ResumeState.ARCHIVED, ResumeState.DELETED],
+    ResumeState.ARCHIVED: [ResumeState.PROCESSING, ResumeState.ACTIVE, ResumeState.DELETED],
     ResumeState.FAILED: [ResumeState.PROCESSING, ResumeState.DELETED],
     ResumeState.DELETED: [],  # Terminal state
 }

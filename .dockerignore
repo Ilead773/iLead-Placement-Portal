@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+db.sqlite3
+
+# Media
+media/
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
