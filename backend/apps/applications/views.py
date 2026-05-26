@@ -274,15 +274,26 @@ class SendResumesToCompanyView(APIView):
 
         # Queue async Celery task
         from .tasks import send_resumes_to_company_task
-        task = send_resumes_to_company_task.delay(
-            application_ids=valid_ids,
-            company_email=data['company_email'],
-            subject=data['subject'],
-            body=data['body'],
-            cc_emails=data.get('cc_emails', []),
-            sent_by_user_id=request.user.id,
-            job_id=job.id,
-        )
+        try:
+            task = send_resumes_to_company_task.delay(
+                application_ids=valid_ids,
+                company_email=data['company_email'],
+                subject=data['subject'],
+                body=data['body'],
+                cc_emails=data.get('cc_emails', []),
+                sent_by_user_id=request.user.id,
+                job_id=job.id,
+            )
+        except Exception as exc:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {
+                    'error': 'email_task_failed',
+                    'message': f'Could not send email: {str(exc)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         return Response(
             {

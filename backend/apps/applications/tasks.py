@@ -151,4 +151,11 @@ def send_resumes_to_company_task(
         except Exception as log_err:
             logger.error(f"Could not log email failure: {log_err}")
 
+        if isinstance(exc, ValueError):
+            raise exc
+            
+        from django.conf import settings
+        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+            raise exc
+
         raise self.retry(exc=exc)
