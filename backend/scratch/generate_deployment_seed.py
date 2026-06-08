@@ -4,6 +4,7 @@ import csv
 import django
 import json
 from uuid import UUID
+from decimal import Decimal
 
 # Setup Django
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -29,6 +30,8 @@ def clean_dict(d):
     elif isinstance(d, list):
         return [clean_dict(x) for x in d]
     elif isinstance(d, UUID):
+        return str(d)
+    elif isinstance(d, Decimal):
         return str(d)
     elif hasattr(d, 'isoformat'):
         return d.isoformat()
