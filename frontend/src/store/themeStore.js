@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 const useThemeStore = create(
   persist(
     (set) => ({
-      isDarkMode: false,
+      isDarkMode: true,
       toggleTheme: () => set((state) => {
         const nextMode = !state.isDarkMode;
         document.documentElement.setAttribute('data-theme', nextMode ? 'dark' : 'light');
@@ -15,6 +15,8 @@ const useThemeStore = create(
         if (theme) {
           const parsed = JSON.parse(theme);
           document.documentElement.setAttribute('data-theme', parsed.state.isDarkMode ? 'dark' : 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
         }
       }
     }),

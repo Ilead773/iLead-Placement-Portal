@@ -16,6 +16,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     job_title = serializers.CharField(source='job.role', read_only=True)
     company_name = serializers.CharField(source='job.company_name', read_only=True)
     job_type = serializers.CharField(source='job.job_type', read_only=True)
+    job_status = serializers.CharField(source='job.status', read_only=True)
     current_round = serializers.SerializerMethodField()
     rounds = ApplicationRoundSerializer(many=True, read_only=True)
     resume_url = serializers.SerializerMethodField()
@@ -24,6 +25,36 @@ class ApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = '__all__'
+
+    def validate(self, attrs):
+        status = attrs.get('status')
+        if status in ['selected', 'accepted']:
+            if self.instance:
+                if self.instance.status not in ['selected', 'accepted']:
+                    job = self.instance.job
+                    already_placed_count = Application.objects.filter(
+                        job=job,
+                        status__in=['selected', 'accepted'],
+                        is_deleted=False
+                    ).exclude(id=self.instance.id).count()
+                    
+                    if already_placed_count >= job.openings_count:
+                        raise serializers.ValidationError({
+                            'status': f"Cannot select candidate. This job only has {job.openings_count} opening(s), which have already been filled."
+                        })
+            else:
+                job = attrs.get('job')
+                if job:
+                    already_placed_count = Application.objects.filter(
+                        job=job,
+                        status__in=['selected', 'accepted'],
+                        is_deleted=False
+                    ).count()
+                    if already_placed_count >= job.openings_count:
+                        raise serializers.ValidationError({
+                            'status': f"Cannot select candidate. This job only has {job.openings_count} opening(s), which have already been filled."
+                        })
+        return attrs
 
     def get_resume_url(self, obj):
         student = obj.student
@@ -56,6 +87,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
     def get_current_eligibility(self, obj):
         # Re-check eligibility against CURRENT job rules
         return check_eligibility(obj.student, obj.job)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if instance.is_deleted:
+            ret['status'] = 'rejected'
+        return ret
 
 class ApplicationStatusHistorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -92,11 +129,13 @@ class SendResumesSerializer(serializers.Serializer):
 class ResumeEmailLogSerializer(serializers.ModelSerializer):
     sent_by_name = serializers.CharField(source='sent_by.name', read_only=True)
     sent_by_email = serializers.CharField(source='sent_by.email', read_only=True)
+    job_title = serializers.CharField(source='job.role', read_only=True)
+    company_name = serializers.CharField(source='job.company_name', read_only=True)
 
     class Meta:
         model = ResumeEmailLog
         fields = [
-            'id', 'sent_by_name', 'sent_by_email', 'job',
+            'id', 'sent_by_name', 'sent_by_email', 'job', 'job_title', 'company_name',
             'company_email', 'subject', 'body', 'cc_emails', 'application_ids',
             'student_names', 'resumes_attached', 'skipped_students',
             'status', 'error_message', 'sent_at',

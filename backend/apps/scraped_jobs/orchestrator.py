@@ -178,7 +178,7 @@ class ScrapingOrchestrator:
         saved = 0
         duplicates = 0
         now = datetime.now(timezone.utc)
-        expires_at = now + timedelta(hours=48)
+        expires_at = now + timedelta(days=7)
 
         existing_hashes = preload_existing_hashes(jobs)
         company_names = [j.get('company_name', '') for j in jobs]
@@ -293,7 +293,7 @@ class ScrapingOrchestrator:
             pass
 
     def _deactivate_expired_jobs(self):
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         count = ScrapedJob.objects.filter(scraped_at__lt=cutoff, is_active=True).update(is_active=False)
         logger.info(f"[Cleanup] Deactivated {count} jobs (scraped_at < {cutoff})")
         return count
@@ -305,7 +305,7 @@ class ScrapingOrchestrator:
             logger.info(f"[Archive] Hard-deleted {deleted_count} jobs > 90 days old.")
 
     def _precompute_course_feed_caches(self, run_id):
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         for course_name in self.active_config.keys():
             try:
                 job_ids = list(

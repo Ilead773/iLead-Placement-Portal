@@ -106,8 +106,9 @@ class Student(models.Model):
         ('A', 'Category A'),
         ('B', 'Category B'),
         ('C', 'Category C'),
+        ('Own', 'Own Category'),
     ]
-    category = models.CharField(max_length=2, choices=CATEGORY_CHOICES, blank=True, null=True)
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, blank=True, null=True)
     is_category_manual = models.BooleanField(default=False)
     
     backlogs = models.BooleanField(default=False)
@@ -160,6 +161,33 @@ class Student(models.Model):
             return 'B'
         else:
             return 'C'
+
+    @property
+    def pact_score(self):
+        cgpa_val = self.cgpa if self.cgpa is not None else 0.0
+        attendance_val = self.attendance if self.attendance is not None else 0.0
+        training_val = self.training_attendance if self.training_attendance is not None else 0.0
+        backlog_count = self.backlogs_count if self.backlogs_count is not None else 0
+
+        # CGPA normalized to 0-100 (weight 35%)
+        performance_score = cgpa_val * 10.0
+        
+        # General attendance 0-100 (weight 25%)
+        attendance_score = attendance_val
+        
+        # Training attendance 0-100 (weight 25%)
+        training_score = training_val
+        
+        # Standing score: 100 - 25 per backlog, minimum 0 (weight 15%)
+        standing_score = max(0.0, 100.0 - (backlog_count * 25.0))
+
+        score = (
+            (performance_score * 0.35) +
+            (attendance_score * 0.25) +
+            (training_score * 0.25) +
+            (standing_score * 0.15)
+        )
+        return round(score, 1)
 
     def save(self, *args, **kwargs):
         if not self.is_category_manual:
@@ -287,9 +315,10 @@ class ExternalClickLog(models.Model):
     job_title = models.CharField(max_length=255, blank=True, default='')
     company_name = models.CharField(max_length=255, blank=True, default='')
     external_url = models.URLField(max_length=1000)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now=True)
     is_marked_selected = models.BooleanField(default=False)
     marked_selected_at = models.DateTimeField(null=True, blank=True)
+    click_count = models.PositiveIntegerField(default=1)
 
     class Meta:
         db_table = 'external_click_logs'

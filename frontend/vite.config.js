@@ -10,6 +10,8 @@ export default defineConfig({
     setupFiles: './vitest.setup.js',
   },
   server: {
+    host: true,
+    allowedHosts: true,
     port: 3000,
     open: true,
     proxy: {

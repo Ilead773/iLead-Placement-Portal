@@ -135,8 +135,8 @@ def start_interview(request):
             ),
             'reused_existing': True,
         }, status=200)
-
-    questions = _select_questions(interview_type)
+    num_questions = serializer.validated_data.get('num_questions')
+    questions = _select_questions(interview_type, num=num_questions)
     if not questions:
         return Response({'error': 'No questions available for this interview type.'}, status=400)
 

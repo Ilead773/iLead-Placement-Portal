@@ -11,12 +11,16 @@ export const interviewsAPI = {
     return api.get(`${INTERVIEWS_BASE}/types/`, { params });
   },
 
-  // Interview Session Flow
-  startInterview: (interviewTypeId, useVoice = true) =>
-    api.post(`${INTERVIEWS_BASE}/start/`, {
+  startInterview: (interviewTypeId, useVoice = true, numQuestions = null) => {
+    const payload = {
       interview_type_id: interviewTypeId,
       use_voice: useVoice,
-    }),
+    };
+    if (numQuestions) {
+      payload.num_questions = numQuestions;
+    }
+    return api.post(`${INTERVIEWS_BASE}/start/`, payload);
+  },
 
   submitAnswer: (sessionId, questionNumber, answerText, timeTaken = 0) =>
     api.post(`${INTERVIEWS_BASE}/submit-answer/`, {

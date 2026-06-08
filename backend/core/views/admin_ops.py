@@ -146,6 +146,18 @@ class AdminOpsViewSet(viewsets.ViewSet):
         if not student:
             return Response({'error': 'Student profile not found for this user.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Get package and listing_type parameters
+        package_val = request.data.get('package', 0.00)
+        listing_type_val = request.data.get('listing_type', 'job')
+
+        try:
+            package_val = float(package_val)
+        except (ValueError, TypeError):
+            package_val = 0.00
+
+        if not listing_type_val or listing_type_val not in ['job', 'internship']:
+            listing_type_val = 'job'
+
         # 1. Find or create matching Job
         from apps.jobs.models import Job
         from django.utils import timezone
@@ -166,20 +178,39 @@ class AdminOpsViewSet(viewsets.ViewSet):
                 job_type='external',
                 location="Remote / Off-Campus",
                 application_deadline=timezone.now() + timezone.timedelta(days=30),
-                status='active',
-                package=0.00
+                status='closed',
+                package=package_val,
+                listing_type=listing_type_val,
+                email_sent=True
             )
+        else:
+            # Update the existing job with the package and listing type
+            job.package = package_val
+            job.listing_type = listing_type_val
+            job.save(update_fields=['package', 'listing_type'])
 
         # 2. Find or create Application record and set status to 'selected'
         from apps.applications.models import Application, Notification
         
+        job_snap = {
+            'company_name': job.company_name,
+            'role': job.role,
+            'package': str(package_val),
+            'location': job.location,
+            'deadline': str(job.application_deadline),
+        }
+        
         app, created = Application.objects.get_or_create(
             student=student,
             job=job,
-            defaults={'status': 'selected'}
+            defaults={
+                'status': 'selected',
+                'job_snapshot': job_snap
+            }
         )
         if not created:
             app.status = 'selected'
+            app.job_snapshot = job_snap
             app.save()
 
         # 2b. Mark the click log as processed/selected

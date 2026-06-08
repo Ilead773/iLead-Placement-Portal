@@ -37,10 +37,18 @@ class ChangePasswordSerializer(serializers.Serializer):
 class StudentSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(source='user.is_active', read_only=True)
     profile = serializers.SerializerMethodField()
+    pact_score = serializers.ReadOnlyField()
 
     class Meta:
         model = Student
         fields = '__all__'
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and request.user and getattr(request.user, 'role', '') == 'student':
+            ret.pop('category', None)
+        return ret
 
     def get_profile(self, obj):
         try:
@@ -147,10 +155,27 @@ class ExternalClickLogSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
     student_name = serializers.CharField(source='user.student_profile.name', read_only=True, default='')
     student_reg = serializers.CharField(source='user.student_profile.registration_number', read_only=True, default='')
+    
+    package = serializers.SerializerMethodField()
+    listing_type = serializers.SerializerMethodField()
 
     class Meta:
         model = ExternalClickLog
         fields = '__all__'
+
+    def get_package(self, obj):
+        from apps.jobs.models import Job
+        job = Job.objects.filter(external_link=obj.external_url).first()
+        if not job:
+            job = Job.objects.filter(role__iexact=obj.job_title, company_name__iexact=obj.company_name).first()
+        return float(job.package) if job else 0.00
+
+    def get_listing_type(self, obj):
+        from apps.jobs.models import Job
+        job = Job.objects.filter(external_link=obj.external_url).first()
+        if not job:
+            job = Job.objects.filter(role__iexact=obj.job_title, company_name__iexact=obj.company_name).first()
+        return job.listing_type if job else 'job'
 
 class BulkAssignSerializer(serializers.Serializer):
     student_ids = serializers.ListField(child=serializers.UUIDField())

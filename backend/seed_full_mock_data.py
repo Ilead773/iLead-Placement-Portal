@@ -190,14 +190,9 @@ def _create_templates_and_resume(admin, student):
         defaults={
             "description": "Simple ATS-friendly template.",
             "html_template": (
-                '<div class="resume">\n'
-                '    <h1>{{ personal.name|default:"Your Name" }}</h1>\n'
-                '    <p>{{ personal.email }} | {{ personal.phone }}</p>\n'
-                '    <h2>Professional Summary</h2>\n'
-                '    <p>{{ summary }}</p>\n'
-                '</div>'
+                "<html><body><h1>{{ name }}</h1><p>{{ professional_summary }}</p></body></html>"
             ),
-            "css_styles": "body{font-family:Arial,sans-serif;} h1{font-size:24px;} h2{font-size:18px;} .resume{max-width:800px;margin:0 auto;}",
+            "css_styles": "body{font-family:Arial,sans-serif;} h1{font-size:22px;}",
             "is_active": True,
             "created_by": admin,
         },
@@ -395,44 +390,44 @@ def _create_interview_data(student):
         },
     )
 
-    session, _ = MockInterviewSession.objects.get_or_create(
-        student=student,
-        interview_type=i_type,
-        defaults={
-            "status": "completed",
-            "started_at": datetime.now(timezone.utc) - timedelta(minutes=20),
-            "completed_at": datetime.now(timezone.utc) - timedelta(minutes=5),
-            "questions": [{"id": str(q.id), "text": q.text, "difficulty": "intermediate"}],
-            "use_voice": False,
-        },
-    )
+    session = MockInterviewSession.objects.filter(student=student, interview_type=i_type).first()
+    if not session:
+        session = MockInterviewSession.objects.create(
+            student=student,
+            interview_type=i_type,
+            status="completed",
+            started_at=datetime.now(timezone.utc) - timedelta(minutes=20),
+            completed_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+            questions=[{"id": str(q.id), "text": q.text, "difficulty": "intermediate"}],
+            use_voice=False,
+        )
 
-    answer, _ = InterviewAnswer.objects.get_or_create(
-        session=session,
-        question=q,
-        question_number=1,
-        defaults={
-            "answer_text": "I would use DRF pagination, JWT auth, permission classes, and query optimization.",
-            "eval_status": "evaluated",
-            "score": 82,
-            "evaluation_json": {"overall_score": 82},
-            "ai_feedback": "Strong structure and practical approach.",
-            "confidence_score": 0.88,
-            "time_taken_seconds": 95,
-        },
-    )
+    answer = InterviewAnswer.objects.filter(session=session, question=q).first()
+    if not answer:
+        answer = InterviewAnswer.objects.create(
+            session=session,
+            question=q,
+            question_number=1,
+            answer_text="I would use DRF pagination, JWT auth, permission classes, and query optimization.",
+            eval_status="evaluated",
+            score=82,
+            evaluation_json={"overall_score": 82},
+            ai_feedback="Strong structure and practical approach.",
+            confidence_score=0.88,
+            time_taken_seconds=95,
+        )
 
-    InterviewFeedback.objects.get_or_create(
-        session=session,
-        defaults={
-            "total_score": answer.score or 80,
-            "competency_scores": {"API Design": 82},
-            "dimension_averages": {"technical_accuracy": {"avg": 8.2, "max": 10}},
-            "strengths": ["Clear API design fundamentals"],
-            "weaknesses": ["Could include caching details"],
-            "feedback_summary": "Good fundamentals with room for production-level depth.",
-        },
-    )
+    feedback = InterviewFeedback.objects.filter(session=session).first()
+    if not feedback:
+        InterviewFeedback.objects.create(
+            session=session,
+            total_score=answer.score or 80,
+            competency_scores={"API Design": 82},
+            dimension_averages={"technical_accuracy": {"avg": 8.2, "max": 10}},
+            strengths=["Clear API design fundamentals"],
+            weaknesses=["Could include caching details"],
+            feedback_summary="Good fundamentals with room for production-level depth.",
+        )
 
 
 def seed():

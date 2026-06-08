@@ -1,18 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Activity, Trash2, AlertTriangle } from 'lucide-react';
 import axios from '../../api/axios';
-import EmailLogPanel from '../../components/EmailLogPanel';
 import toast from 'react-hot-toast';
+import EmailLogPanel from '../../components/EmailLogPanel';
 
 const JobApplications = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [applications, setApplications] = useState([]);
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  const [selectedIds, setSelectedIds] = useState([]);
   const [showEmailLog, setShowEmailLog] = useState(false);
+  const [deletingIds, setDeletingIds] = useState(new Set());
+
+  const eligibleApplications = useMemo(() => {
+    return applications.filter(app => app.job_type === 'external' || app.current_eligibility?.eligible !== false);
+  }, [applications]);
+
+  const mismatchedApplicationsCount = useMemo(() => {
+    return applications.filter(app => app.job_type !== 'external' && app.current_eligibility?.eligible === false).length;
+  }, [applications]);
 
   const fetchJobDetails = useCallback(async () => {
     try {
@@ -38,6 +45,29 @@ const JobApplications = () => {
     }
   }, [id]);
 
+  const deleteApplication = async (appId, studentName) => {
+    if (deletingIds.has(appId)) return;
+    if (!window.confirm(`Are you sure you want to delete ${studentName || 'this student'}'s application? This action is permanent and cannot be undone.`)) {
+      return;
+    }
+    const toastId = toast.loading('Deleting application...');
+    setDeletingIds(prev => new Set(prev).add(appId));
+    try {
+      await axios.delete(`/applications/admin/applications/${appId}/`);
+      toast.success('Application deleted successfully', { id: toastId });
+      setApplications(prev => prev.filter(app => app.id !== appId));
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to delete application', { id: toastId });
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(appId);
+        return next;
+      });
+    }
+  };
+
   useEffect(() => {
     fetchJobDetails();
     fetchApplications();
@@ -54,99 +84,57 @@ const JobApplications = () => {
     return () => document.removeEventListener('visibilitychange', handleVisChange);
   }, [fetchApplications]);
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(applications.map(a => a.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectOne = (appId) => {
-    if (selectedIds.includes(appId)) {
-      setSelectedIds(selectedIds.filter(i => i !== appId));
-    } else {
-      setSelectedIds([...selectedIds, appId]);
-    }
-  };
-
   if (loading) return <div className="p-8 text-center">Loading applications...</div>;
 
-  const selectedApplicationsData = applications
-    .filter(a => selectedIds.includes(a.id))
-    .map(a => ({
-      id: a.id,
-      student_name: a.student_name,
-      student_stream: a.student_stream,
-      student_year: a.student_year,
-      student_category: a.student_category,
-      cgpa: a.student_cgpa,
-      resume_url: a.resume_url,
-    }));
-
-  const handleSendResumesNavigation = () => {
-    if (job?.job_type === 'external') {
-      toast.error('Off-campus jobs do not support bulk resume emailing.');
-      return;
-    }
-    navigate(`/jobs/${id}/send-resumes`, {
-      state: {
-        selectedApplications: selectedApplicationsData,
-        jobTitle: job?.role || job?.title || '',
-        companyName: job?.company_name || '',
-        hrEmail: job?.hr_email || ''
-      }
-    });
-  };
-
   return (
-    <div className="page-content">
-      <div className="page-header mb-6">
+    <div>
+      <div className="page-header mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold">Job Applications</h1>
-          <p className="text-secondary mt-1">{job?.title || 'Loading job...'} • {job?.company_name || ''}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+            Job Applications
+          </h1>
+          <p className="text-secondary text-sm mt-1">
+            {job ? (
+              <>
+                Managing applications for <span style={{ color: 'var(--accent-primary)', fontWeight: 800 }}>{job.role || job.title}</span> at <span className="font-bold text-primary">{job.company_name}</span>
+              </>
+            ) : (
+              'Loading recruitment campaign details...'
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Link to="/admin/pipeline" className="btn btn-secondary btn-sm flex items-center gap-2">
+            <Activity size={14} /> Job Pipeline
+          </Link>
           <button 
             onClick={() => setShowEmailLog(!showEmailLog)}
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-sm"
           >
             {showEmailLog ? 'Hide Email History' : 'View Email History'}
           </button>
-          <div className="badge badge-neutral">Total: {applications.length}</div>
+          <span className="badge badge-neutral px-3 py-1 text-xs font-bold">Total: {eligibleApplications.length}</span>
         </div>
       </div>
 
       <EmailLogPanel jobId={id} isVisible={showEmailLog} />
 
-       {selectedIds.length > 0 && (
-         <div className="card border-primary-muted bg-primary/20 p-4 mb-6 flex justify-between items-center transition-all">
-           <span className="text-primary font-medium">{selectedIds.length} students selected</span>
-           <div className="flex gap-3">
-            {job?.job_type !== 'external' && (
-              <button 
-                onClick={handleSendResumesNavigation}
-                className="btn btn-primary"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                Compose Bulk Email
-              </button>
-            )}
+      {mismatchedApplicationsCount > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-warning/5 border border-warning/20 text-warning flex items-start gap-3 animate-in">
+          <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-warning" />
+          <div>
+            <h4 className="font-bold text-sm m-0 text-warning">Mismatched Candidates Hidden</h4>
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
+              There are {mismatchedApplicationsCount} candidate(s) who no longer match the updated criteria for this job. They have been automatically filtered out of the active applications view.
+            </p>
           </div>
-         </div>
-       )}
+        </div>
+      )}
 
       <div className="table-container">
         <table>
           <thead>
             <tr>
-              <th>
-                <input 
-                  type="checkbox" 
-                  checked={selectedIds.length === applications.length && applications.length > 0}
-                  onChange={handleSelectAll}
-                />
-              </th>
               <th>Student Name</th>
               <th>Branch/Course</th>
               <th>CGPA</th>
@@ -155,21 +143,15 @@ const JobApplications = () => {
               <th>Current Round</th>
               <th>Resume</th>
               <th>Offer Letter</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {applications.map((app) => (
-              <tr key={app.id} className={selectedIds.includes(app.id) ? 'bg-card-hover' : ''}>
-                <td>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedIds.includes(app.id)}
-                    onChange={() => handleSelectOne(app.id)}
-                  />
-                </td>
-                <td className="font-medium">{app.student_name}</td>
-                <td className="text-secondary">{app.student_stream || 'N/A'}</td>
-                <td className="text-secondary">{app.student_cgpa || 'N/A'}</td>
+            {eligibleApplications.map((app) => (
+              <tr key={app.id}>
+                <td className="font-bold text-primary">{app.student_name}</td>
+                <td className="text-secondary font-medium">{app.student_stream || 'N/A'}</td>
+                <td className="font-bold text-primary">{app.student_cgpa ? app.student_cgpa.toFixed(2) : 'N/A'}</td>
                 <td>
                   {app.job_type === 'external' ? (
                     <span className="text-secondary text-[10px] font-black uppercase tracking-tighter bg-slate-500/10 px-2 py-1 rounded border border-slate-500/20 flex items-center gap-1 w-fit">
@@ -197,16 +179,16 @@ const JobApplications = () => {
                     {app.status}
                   </span>
                 </td>
-                <td className="text-secondary">
+                <td className="text-secondary font-medium">
                   {app.current_round ? app.current_round.round_name : 'N/A'}
                 </td>
                 <td>
                   {app.resume_url ? (
-                    <a href={app.resume_url} target="_blank" rel="noopener noreferrer" className="text-info hover:underline flex items-center">
+                    <a href={app.resume_url} target="_blank" rel="noopener noreferrer" className="text-info hover:underline flex items-center gap-1 font-bold">
                       📄 Resume
                     </a>
                   ) : (
-                    <span className="text-secondary">No Resume</span>
+                    <span className="text-secondary">—</span>
                   )}
                 </td>
                 <td>
@@ -215,14 +197,25 @@ const JobApplications = () => {
                       📁 Offer Letter
                     </a>
                   ) : app.status === 'selected' || app.status === 'accepted' ? (
-                    <span className="text-warning text-xs italic font-semibold">Pending upload</span>
+                    <span className="text-warning text-xs italic font-bold animate-pulse bg-warning/5 border border-warning/10 px-2 py-0.5 rounded-full inline-block">Pending upload</span>
                   ) : (
                     <span className="text-secondary">—</span>
                   )}
                 </td>
+                <td className="text-right">
+                  <button 
+                    onClick={() => deleteApplication(app.id, app.student_name)}
+                    disabled={deletingIds.has(app.id)}
+                    className={`p-1.5 text-red-500 hover:bg-red-500/10 hover:text-red-700 rounded-xl transition-all ${deletingIds.has(app.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    style={{ border: 'none', background: 'transparent', cursor: deletingIds.has(app.id) ? 'not-allowed' : 'pointer' }}
+                    title="Delete Application"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
               </tr>
             ))}
-            {applications.length === 0 && (
+            {eligibleApplications.length === 0 && (
               <tr>
                 <td colSpan="9" className="text-center text-secondary py-8">No applications found for this job.</td>
               </tr>

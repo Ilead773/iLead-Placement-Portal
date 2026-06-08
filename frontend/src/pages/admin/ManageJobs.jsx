@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from '../../api/axios';
-import { Briefcase, Users, Calendar, MapPin, Plus, Edit, Activity, ExternalLink } from 'lucide-react';
+import { Briefcase, Users, Calendar, MapPin, Plus, Edit, Activity, ExternalLink, ArrowRight, IndianRupee, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 
 const ManageJobs = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingOffCampusJob, setEditingOffCampusJob] = useState(null);
 
   useEffect(() => {
     fetchJobs();
@@ -22,6 +24,21 @@ const ManageJobs = () => {
       console.error('Failed to fetch jobs');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteJob = async (jobId, roleName) => {
+    if (!window.confirm(`Are you sure you want to delete the job drive "${roleName}"? This action is permanent and cannot be undone.`)) {
+      return;
+    }
+    const toastId = toast.loading('Deleting job...');
+    try {
+      await axios.delete(`/jobs/admin/jobs/${jobId}/`);
+      toast.success('Job deleted successfully', { id: toastId });
+      fetchJobs();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Failed to delete job', { id: toastId });
     }
   };
 
@@ -49,13 +66,17 @@ const ManageJobs = () => {
   if (loading) return <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <div className="page-content">
-      <div className="page-header mb-8">
+    <div>
+      <div className="page-header mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Manage Placement Jobs</h1>
-          <p className="text-secondary">Track all active recruitment drives and student applications.</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+            Manage Placement Jobs
+          </h1>
+          <p className="text-secondary text-sm mt-1">
+            Track all active recruitment drives and student applications.
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="flex gap-3">
           <Link to="/admin/pipeline" className="btn btn-secondary">
             <Activity size={18} /> Job Pipeline
           </Link>
@@ -67,40 +88,62 @@ const ManageJobs = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {jobs.map((job) => (
-          <div key={job.id} className="card p-6 flex flex-col hover:border-accent-primary transition">
+          <div key={job.id} className={`job-card ${job.job_type === 'external' ? 'external-card' : ''}`}>
             <div className="flex justify-between items-start mb-4">
-              <div className="bg-info/20 p-3 rounded-lg text-info">
-                <Briefcase size={24} />
+              <div className="job-card-icon-container">
+                <Briefcase size={22} />
               </div>
-              <span className={`badge ${job.status === 'active' ? 'badge-success' : job.status === 'closed' ? 'badge-danger' : 'badge-neutral'}`}>
-                {job.status}
-              </span>
+              {job.job_type !== 'external' && (
+                <span className={`job-status-badge ${job.status}`}>
+                  <span className="pulse-dot"></span>
+                  {job.status}
+                </span>
+              )}
             </div>
 
-            <h3 className="text-lg font-bold text-primary mb-1">{job.role}</h3>
-            <p className="text-info font-medium text-sm mb-4">{job.company_name}</p>
+            <h3 className="job-card-title">{job.role}</h3>
+            <p className="job-card-company">{job.company_name}</p>
 
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center text-sm text-secondary gap-2">
-                <MapPin size={16} />
-                {job.location}
+            <div className="job-meta-grid">
+              <div className="job-meta-item">
+                <MapPin size={15} className="meta-icon location" />
+                <span className="meta-text">{job.location}</span>
                 {job.job_type === 'external' && (
-                  <span className="ml-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border border-slate-500/20 bg-slate-500/10 text-secondary">
-                    <ExternalLink size={12} /> Off-Campus
+                  <span className="job-type-pill external">
+                    <ExternalLink size={10} /> Off-Campus
                   </span>
                 )}
               </div>
-              <div className="flex items-center text-sm text-secondary gap-2">
-                <Calendar size={16} />
-                Deadline: {new Date(job.application_deadline).toLocaleDateString()}
+              
+              <div className="job-meta-item">
+                <Calendar size={15} className="meta-icon deadline" />
+                <span className="meta-text">
+                  Deadline: <span className="deadline-date">{new Date(job.application_deadline).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}</span>
+                </span>
               </div>
-              <div className="flex items-center text-sm text-secondary gap-2 font-semibold">
-                <Users size={16} className="text-info" />
-                {job.applications_count} Applicants
+              
+              <div className="job-meta-item">
+                <Users size={15} className="meta-icon applicants" />
+                <span className="meta-text font-semibold">{job.applications_count} Applicants</span>
               </div>
-              <div className="flex items-center text-sm text-secondary gap-2">
-                <span className="p-0.5 px-2 rounded font-black text-xs" style={{ background: 'var(--accent-soft)', color: 'var(--accent-primary)' }}>Category {job.category || 'C'}</span>
-                <span className="text-xs font-semibold text-secondary">• {job.openings_count || 1} Openings</span>
+              
+              <div className="job-meta-item">
+                <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
+                <span className="meta-text font-bold">
+                  {job.listing_type === 'internship'
+                    ? (job.package ? `Stipend: ₹${Number(job.package).toLocaleString()}/month` : 'Stipend: Undisclosed')
+                    : (job.package ? `Salary: ${job.package} LPA` : 'Salary: Not Specified')
+                  }
+                </span>
+              </div>
+              
+              <div className="job-meta-item-pills">
+                <span className="category-badge">Category {job.category || 'C'}</span>
+                <span className="openings-badge">{job.openings_count || 1} Openings</span>
               </div>
             </div>
 
@@ -108,30 +151,45 @@ const ManageJobs = () => {
               <div className="flex gap-2">
                 <Link 
                   to={`/jobs/${job.id}/applications`}
-                  className="flex-1 text-center btn btn-secondary py-2"
+                  className="job-action-btn primary flex-1"
                 >
-                  View Applications
+                  View Applications <ArrowRight size={14} className="btn-arrow" />
                 </Link>
-                <Link 
-                  to={`/jobs/${job.id}/edit`}
-                  className="btn btn-secondary px-3 py-2 flex items-center justify-center"
-                  title="Edit Job"
+                {job.job_type === 'external' ? (
+                  <button
+                    onClick={() => setEditingOffCampusJob(job)}
+                    className="job-action-btn edit-icon"
+                    title="Edit Off-Campus Details"
+                    style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                  >
+                    <Edit size={16} />
+                  </button>
+                ) : (
+                  <Link 
+                    to={`/jobs/${job.id}/edit`}
+                    className="job-action-btn edit-icon"
+                    title="Edit Job"
+                  >
+                    <Edit size={16} />
+                  </Link>
+                )}
+                <button
+                  onClick={() => deleteJob(job.id, job.role)}
+                  className="job-action-btn edit-icon text-red-500 hover:text-red-700 hover:bg-red-500/10"
+                  title="Delete Job"
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--danger)' }}
                 >
-                  <Edit size={18} />
-                </Link>
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <button
-                onClick={() => toggleJobStatus(job)}
-                className="w-full btn py-2 text-sm font-bold transition-all duration-200"
-                style={{
-                  background: job.status === 'active' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                  color: job.status === 'active' ? '#ef4444' : '#3b82f6',
-                  border: job.status === 'active' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
-                  borderRadius: 'var(--border-radius)'
-                }}
-              >
-                {job.status === 'active' ? 'Deactivate Job' : 'Activate Job'}
-              </button>
+              {job.job_type !== 'external' && (
+                <button
+                  onClick={() => toggleJobStatus(job)}
+                  className={`job-status-toggle-btn ${job.status}`}
+                >
+                  {job.status === 'active' ? 'Deactivate Job' : 'Activate Job'}
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -140,6 +198,156 @@ const ManageJobs = () => {
       {jobs.length === 0 && (
         <div className="text-center py-20 bg-card-hover rounded-xl border-2 border-dashed border-border-color">
           <p className="text-secondary">No jobs posted yet.</p>
+        </div>
+      )}
+
+      {/* Off-Campus Job Edit Modal */}
+      {editingOffCampusJob && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Backdrop */}
+          <div 
+            onClick={() => setEditingOffCampusJob(null)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          />
+          
+          {/* Modal Card */}
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              const payload = {
+                company_name: fd.get('company_name'),
+                role: fd.get('role'),
+                package: parseFloat(fd.get('package')) || 0,
+                location: fd.get('location'),
+                external_link: fd.get('external_link'),
+                application_deadline: new Date(fd.get('application_deadline')).toISOString()
+              };
+              try {
+                await axios.patch(`/jobs/jobs/${editingOffCampusJob.id}/`, payload);
+                toast.success('Off-campus job updated successfully! 🎉');
+                setEditingOffCampusJob(null);
+                fetchJobs();
+              } catch (err) {
+                console.error(err);
+                toast.error('Failed to update off-campus job.');
+              }
+            }}
+            style={{
+              position: 'relative',
+              backgroundColor: 'var(--bg-card, #ffffff)',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '480px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05)',
+              padding: '24px',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            {/* Top visual accent */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '5px',
+                background: 'linear-gradient(to right, #2563eb, #1d4ed8)'
+              }}
+            />
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                Edit Off-Campus Opportunity
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                Update external job listing details directly.
+              </p>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="input-group">
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Company Name</label>
+                <input required type="text" name="company_name" defaultValue={editingOffCampusJob.company_name} className="input-field" style={{ width: '100%' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Role / Position</label>
+                <input required type="text" name="role" defaultValue={editingOffCampusJob.role} className="input-field" style={{ width: '100%' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="input-group">
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Package (LPA)</label>
+                  <input required type="number" step="0.1" name="package" defaultValue={editingOffCampusJob.package} className="input-field" style={{ width: '100%' }} />
+                </div>
+                <div className="input-group">
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Location</label>
+                  <input required type="text" name="location" defaultValue={editingOffCampusJob.location} className="input-field" style={{ width: '100%' }} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Apply Link (External URL)</label>
+                <input required type="url" name="external_link" defaultValue={editingOffCampusJob.external_link} className="input-field" style={{ width: '100%' }} />
+              </div>
+              <div className="input-group">
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Application Deadline</label>
+                <input required type="datetime-local" name="application_deadline" defaultValue={(() => {
+                  if (!editingOffCampusJob.application_deadline) return '';
+                  const d = new Date(editingOffCampusJob.application_deadline);
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const hours = String(d.getHours()).padStart(2, '0');
+                  const minutes = String(d.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
+                })()} className="input-field" style={{ width: '100%' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+              <button 
+                type="button" 
+                onClick={() => setEditingOffCampusJob(null)}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

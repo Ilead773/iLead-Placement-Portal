@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
+import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
@@ -510,23 +511,18 @@ export default function StudentProfile() {
           <p className="text-muted">Keep your profile updated to get better placement opportunities.</p>
         </div>
         
-        {/* Completion Ring */}
-        <div className="completion-card glass-panel p-4 flex items-center gap-4">
-          <div className="relative w-16 h-16">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-dark-300" />
-              <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
-                strokeDasharray={2 * Math.PI * 28} 
-                strokeDashoffset={2 * Math.PI * 28 * (1 - (completion?.completion_score || 0))} 
-                className="text-primary transition-all duration-1000" />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center font-bold text-sm">
-              {Math.round((completion?.completion_score || 0) * 100)}%
-            </div>
+        {/* Profile Status Card */}
+        <div className="completion-card glass-panel p-4 flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${completion?.suggestions?.length === 0 ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+            {completion?.suggestions?.length === 0 ? '✓' : '⚠️'}
           </div>
           <div>
-            <div className="text-sm font-semibold">Profile Completion</div>
-            <div className="text-xs text-muted">{completion?.can_generate_resume ? '✅ Ready for Resumes' : '❌ Needs more info'}</div>
+            <div className="text-sm font-semibold">Profile Status</div>
+            <div className="text-xs text-muted">
+              {completion?.suggestions?.length === 0 
+                ? '✅ All details filled' 
+                : '❌ Pending details to fill'}
+            </div>
           </div>
         </div>
       </div>
@@ -592,58 +588,116 @@ export default function StudentProfile() {
               )}
             </div>
 
-            <div className="space-y-4">
-              <div className="info-item">
-                <label className="contact-label">Location</label>
-                <div className="contact-value">{profile?.location || 'Not set'}</div>
-              </div>
-              <div className="info-item">
-                <label className="contact-label">Phone</label>
-                <div className="contact-value">{profile?.student_phone || 'Not set'}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="info-item">
-                  <label className="contact-label">Year</label>
-                  <div className="contact-value">{profile?.student_year || '—'}</div>
+            <div className="profile-info-list mt-6">
+              {/* Location */}
+              <div className="profile-info-item location">
+                <div className="profile-info-icon-wrapper">
+                  <MapPin size={18} />
                 </div>
-                <div className="info-item">
-                  <label className="contact-label">Category</label>
-                  <div className="contact-value">{profile?.student_category || '—'}</div>
+                <div className="profile-info-content">
+                  <span className="profile-info-label">Location</span>
+                  <span className="profile-info-value">{profile?.location || 'Not set'}</span>
                 </div>
               </div>
-              <div className="info-item">
-                <label className="text-xs text-muted uppercase">Backlogs</label>
-                <div className="font-medium">
-                  <span className={`badge ${profile?.student_backlogs ? 'badge-danger' : 'badge-success'}`}>
-                    {profile?.student_backlogs ? 'Yes' : 'No'}
-                  </span>
+
+              {/* Phone */}
+              <div className="profile-info-item phone">
+                <div className="profile-info-icon-wrapper">
+                  <Phone size={18} />
+                </div>
+                <div className="profile-info-content">
+                  <span className="profile-info-label">Phone</span>
+                  <span className="profile-info-value">{profile?.student_phone || 'Not set'}</span>
                 </div>
               </div>
-              <div className="info-item">
-                <label className="text-xs text-muted uppercase">Professional Summary</label>
-                <div className="text-sm text-muted italic line-clamp-3">{profile?.professional_summary || 'No summary added...'}</div>
+
+              {/* Year */}
+              <div className="profile-info-item year">
+                <div className="profile-info-icon-wrapper">
+                  <GraduationCap size={18} />
+                </div>
+                <div className="profile-info-content">
+                  <span className="profile-info-label">Year</span>
+                  <span className="profile-info-value">{profile?.student_year ? `${profile.student_year} Year` : '—'}</span>
+                </div>
               </div>
+
+              {/* Backlogs */}
+              <div className={`profile-info-item backlogs ${profile?.student_backlogs ? 'has-backlogs' : ''}`}>
+                <div className="profile-info-icon-wrapper">
+                  {profile?.student_backlogs ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+                </div>
+                <div className="profile-info-content">
+                  <span className="profile-info-label">Backlogs</span>
+                  <div>
+                    <span className={`backlog-pill-badge ${profile?.student_backlogs ? 'has-backlogs' : 'no-backlogs'}`}>
+                      <span className="backlog-dot"></span>
+                      {profile?.student_backlogs ? 'Active Backlogs' : 'No Backlogs'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Professional Summary Quote Card */}
+              <div className="profile-summary-card">
+                <div className="profile-summary-header">
+                  <Quote size={12} className="text-primary opacity-80" />
+                  <span>Professional Summary</span>
+                </div>
+                <p className="profile-summary-text">{profile?.professional_summary || 'No summary added yet. Introduce yourself to prospective employers...'}</p>
+              </div>
+
+              {/* Social Buttons */}
               <div className="flex gap-4 pt-2">
-                {profile?.linkedin && <a href={profile.linkedin} target="_blank" rel="noreferrer" className="contact-link linkedin">LinkedIn</a>}
-                {profile?.github && <a href={profile.github} target="_blank" rel="noreferrer" className="contact-link github">GitHub</a>}
+                {profile?.linkedin && (
+                  <a 
+                    href={profile.linkedin} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                  >
+                    <Linkedin size={14} />
+                    LinkedIn
+                  </a>
+                )}
+                {profile?.github && (
+                  <a 
+                    href={profile.github} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
+                  >
+                    <Github size={14} />
+                    GitHub
+                  </a>
+                )}
               </div>
             </div>
           </section>
 
-          {completion?.suggestions?.length > 0 && (
-            <section className="glass-panel p-6 border-l-4 border-warning bg-warning/5">
-              <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                <span>💡</span> Improvement Tips
-              </h3>
-              <ul className="space-y-2">
-                {completion.suggestions.map((s, idx) => (
-                  <li key={idx} className="text-xs text-warning-muted flex gap-2">
-                    <span className="bullet">•</span> {s}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
+            <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-primary">
+              <span>📋</span> Profile Status: {completion?.suggestions?.length > 0 ? 'Fill All Data' : 'All Data Filled'}
+            </h3>
+            {completion?.suggestions?.length > 0 ? (
+              <>
+                <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
+                <ul className="space-y-2.5">
+                  {completion.suggestions.map((s, idx) => (
+                    <li key={idx} className="text-xs text-warning-muted flex items-start gap-2">
+                      <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
+                      <span className="leading-relaxed">{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-success font-bold">
+                <span>🎉</span>
+                <span>You have successfully filled all your profile data details!</span>
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Right Column */}
@@ -729,7 +783,7 @@ export default function StudentProfile() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {profile?.projects?.length > 0 ? profile.projects.map(proj => (
-                <div key={proj.id} className="project-card bg-dark-100 rounded-xl group">
+                <div key={proj.id} className="project-card group">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold">{proj.title}</h4>
                     <div className="item-actions">
@@ -819,31 +873,34 @@ export default function StudentProfile() {
             <div className="modal-header"><h2>Edit Basic Info</h2><button className="modal-close" onClick={() => setShowBasicModal(false)}>&times;</button></div>
             <form onSubmit={handleUpdateBasic}>
               <div className="grid grid-cols-2 gap-4">
-                <div className="input-group"><label>Phone Number</label><input className="input-field" value={basicInfo.phone_number} onChange={e => setBasicInfo({...basicInfo, phone_number: e.target.value})} /></div>
-                <div className="input-group"><label>Location</label><input className="input-field" value={basicInfo.location} onChange={e => setBasicInfo({...basicInfo, location: e.target.value})} /></div>
+                <div className="input-group">
+                  <label>Location</label>
+                  <input className="input-field" value={basicInfo.location} onChange={e => setBasicInfo({...basicInfo, location: e.target.value})} />
+                </div>
+                <div className="input-group">
+                  <label>Phone Number</label>
+                  <input className="input-field cursor-not-allowed bg-dark-200 opacity-60" disabled value={basicInfo.phone_number} />
+                  <span className="text-[10px] text-muted block mt-1">Synced from academic records (read-only)</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="input-group">
                   <label>Year</label>
-                  <select className="input-field" value={basicInfo.year} onChange={e => setBasicInfo({...basicInfo, year: e.target.value})}>
+                  <select className="input-field cursor-not-allowed bg-dark-200 opacity-60" disabled value={basicInfo.year}>
                     <option value="">Select Year</option>
+                    <option value="1st">1st Year</option>
+                    <option value="2nd">2nd Year</option>
                     <option value="3rd">3rd Year</option>
                     <option value="4th">4th Year</option>
                   </select>
+                  <span className="text-[10px] text-muted block mt-1">Synced from academic records (read-only)</span>
                 </div>
-                <div className="input-group">
-                  <label>Category</label>
-                  <select className="input-field" value={basicInfo.category} onChange={e => setBasicInfo({...basicInfo, category: e.target.value})}>
-                    <option value="">Select Category</option>
-                    <option value="A">Category A</option>
-                    <option value="B">Category B</option>
-                    <option value="C">Category C</option>
-                  </select>
+                <div className="input-group flex flex-col justify-center">
+                  <div className="flex items-center gap-2 cursor-not-allowed opacity-60 mt-4">
+                    <input type="checkbox" id="backlogs-checkbox" disabled checked={basicInfo.backlogs} />
+                    <label htmlFor="backlogs-checkbox" className="text-sm font-semibold select-none cursor-not-allowed">Active Backlogs (Read-only)</label>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 mb-4">
-                <input type="checkbox" checked={basicInfo.backlogs} onChange={e => setBasicInfo({...basicInfo, backlogs: e.target.checked})} />
-                <label className="text-sm">I have active backlogs</label>
               </div>
               <div className="input-group"><label>Professional Summary</label><textarea className="input-field" rows="3" value={basicInfo.professional_summary} onChange={e => setBasicInfo({...basicInfo, professional_summary: e.target.value})} /></div>
               <div className="grid grid-cols-2 gap-4">

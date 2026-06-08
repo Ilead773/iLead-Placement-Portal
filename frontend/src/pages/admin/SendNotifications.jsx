@@ -45,17 +45,31 @@ export default function SendNotifications() {
     const fetchStudentsData = async () => {
       setLoadingStudents(true);
       try {
+        // Fetch students and extract their unique courses
         const response = await axios.get('/students/?limit=1000');
         const data = response.data.results || response.data || [];
         setStudents(data);
         
-        // Extract unique courses from students
-        const uniqueCourses = Array.from(
+        // Extract unique courses from enrolled students
+        const studentCourses = Array.from(
           new Set(data.map(s => s.course).filter(Boolean))
-        ).sort();
-        setCourses(uniqueCourses);
-        if (uniqueCourses.length > 0) {
-          setSelectedCourse(uniqueCourses[0]);
+        );
+
+        // Also fetch the full 19-course list from career_os
+        let allCourseNames = [...studentCourses];
+        try {
+          const courseRes = await axios.get('/career-os/courses/');
+          const careerCourses = (courseRes.data.courses || []).map(c => c.name);
+          // Merge both lists, deduplicate, sort
+          allCourseNames = Array.from(new Set([...studentCourses, ...careerCourses])).sort();
+        } catch (courseErr) {
+          console.warn('Could not fetch career-os courses:', courseErr);
+          allCourseNames = studentCourses.sort();
+        }
+
+        setCourses(allCourseNames);
+        if (allCourseNames.length > 0) {
+          setSelectedCourse(allCourseNames[0]);
         }
       } catch (err) {
         console.error(err);
@@ -159,6 +173,7 @@ export default function SendNotifications() {
     return `Send to ${selectedStudentIds.length} selected student(s)`;
   };
 
+
   return (
     <div className="dash-page max-w-5xl mx-auto p-4 md:p-6" style={{ paddingBottom: 80 }}>
       {/* Decorative Blur Backdrops */}
@@ -227,17 +242,17 @@ export default function SendNotifications() {
 
               <div>
                 <label className="text-xs font-black uppercase text-secondary tracking-widest block mb-2">
-                  Priority / Color Indicator
+                  Importance / Priority Level
                 </label>
                 <select 
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   className="input-field py-3 px-4 bg-card border-border-color/80 rounded-2xl w-full text-sm font-bold focus:border-[#2563eb] shadow-sm cursor-pointer"
                 >
-                  <option value="low">☕ Low (Slate Theme)</option>
-                  <option value="medium">🔵 Medium (Blue Theme)</option>
-                  <option value="high">🔥 High (Brand Blend Theme)</option>
-                  <option value="critical">🚨 Critical (Red Pulsing Theme)</option>
+                  <option value="low">☕ Low Importance</option>
+                  <option value="medium">🔵 Medium Importance</option>
+                  <option value="high">🔥 High Importance</option>
+                  <option value="critical">🚨 Critical Importance</option>
                 </select>
               </div>
 
@@ -263,6 +278,8 @@ export default function SendNotifications() {
 
             </form>
           </motion.div>
+
+
         </div>
 
         {/* Right Target Audience Panel */}
@@ -317,7 +334,7 @@ export default function SendNotifications() {
                     <Globe size={18} />
                   </div>
                   <div>
-                    <span className="text-sm font-extrabold text-primary block text-left">Broadcast Broadcast</span>
+                    <span className="text-sm font-extrabold text-primary block text-left">Broadcast (All Students)</span>
                     <span className="text-[10px] text-secondary font-medium mt-1 block leading-relaxed text-left">Broadcast to all active student accounts</span>
                   </div>
                 </button>

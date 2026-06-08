@@ -25,7 +25,12 @@ class JobViewSet(viewsets.ModelViewSet):
         if self.request.user and (self.request.user.role == 'admin' or (self.request.user.role == 'coordinator' and getattr(self.request.user, 'can_manage_placements', False))):
             qs = Job.objects.all().order_by('-updated_at')
         else:
-            qs = Job.objects.filter(status='active').order_by('-updated_at')
+            qs = Job.objects.filter(status='active', job_type='internal').order_by('-updated_at')
+            student_profile = getattr(self.request.user, 'student_profile', None)
+            if student_profile:
+                from apps.applications.models import Application
+                deleted_job_ids = Application.objects.filter(student=student_profile, is_deleted=True).values_list('job_id', flat=True)
+                qs = qs.exclude(id__in=deleted_job_ids)
         # Filter by listing_type if provided (e.g. ?listing_type=internship)
         listing_type = self.request.query_params.get('listing_type')
         if listing_type in ('job', 'internship'):
@@ -64,9 +69,9 @@ class JobViewSet(viewsets.ModelViewSet):
         for job in jobs:
             data = JobSerializer(job).data
             if student_profile:
-                eligibility = check_eligibility(student_profile, job)
+                eligibility = check_eligibility(student_profile, job, ignore_profile_resume=True)
                 data['eligibility'] = eligibility
-                data['has_applied'] = job.applications.filter(student=student_profile).exists()
+                data['has_applied'] = job.applications.filter(student=student_profile, is_deleted=False).exists()
             results.append(data)
         
         response = Response(results)
@@ -81,9 +86,9 @@ class JobViewSet(viewsets.ModelViewSet):
         data = JobSerializer(instance).data
         student_profile = getattr(request.user, 'student_profile', None)
         if student_profile:
-            eligibility = check_eligibility(student_profile, instance)
+            eligibility = check_eligibility(student_profile, instance, ignore_profile_resume=True)
             data['eligibility'] = eligibility
-            data['has_applied'] = instance.applications.filter(student=student_profile).exists()
+            data['has_applied'] = instance.applications.filter(student=student_profile, is_deleted=False).exists()
         response = Response(data)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response['Pragma'] = 'no-cache'
@@ -140,7 +145,7 @@ class JobViewSet(viewsets.ModelViewSet):
         if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_placements', False))):
             return Response({'error': 'Only admins or authorized coordinators can view applications'}, status=status.HTTP_403_FORBIDDEN)
         job = self.get_object()
-        apps = job.applications.all()
+        apps = job.applications.filter(is_deleted=False)
         serializer = ApplicationSerializer(apps, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -163,7 +168,7 @@ class JobViewSet(viewsets.ModelViewSet):
 
         apps = (
             job.applications
-            .filter(status__in=statuses)
+            .filter(status__in=statuses, is_deleted=False)
             .select_related('student', 'job')
             .order_by('student__registration_number', 'student__name')
         )

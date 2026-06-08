@@ -23,6 +23,7 @@ export default function MockInterview() {
   });
   const [loading, setLoading] = useState(false);
 
+
   // Interview state
   // Note: 'history' and 'instructions' are view-only phases, do not restore them on reload
   const [phase, setPhase] = useState(() => {
@@ -209,6 +210,9 @@ export default function MockInterview() {
       setSelectedType('');
     }
   }, [selectedDomain]);
+
+
+
 
   // Timer
   useEffect(() => {
@@ -575,7 +579,7 @@ export default function MockInterview() {
                   >
                     <span className="domain-icon" style={{ transform: selectedDomain === d.id ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.3s' }}>{d.icon}</span>
                     <span className="domain-name" style={{ marginTop: '4px' }}>{d.name}</span>
-                    <span className="domain-meta">{d.interview_type_count} templates · {d.question_count} questions</span>
+                    <span className="domain-meta">{d.interview_type_count} templates</span>
                     {selectedDomain === d.id && (
                       <span style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', background: 'var(--accent-primary)', borderRadius: '50%' }} />
                     )}
@@ -610,14 +614,8 @@ export default function MockInterview() {
                       >
                         <div className="type-info">
                           <strong style={{ fontSize: '1.05rem', fontWeight: '800' }}>{t.name}</strong>
-                          <span className="type-meta" style={{ marginTop: '2px', display: 'block' }}>
-                            ⏱️ {t.duration_minutes} Minutes Limit &bull; 📋 {t.questions_per_session} Interview Questions
-                          </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '800', background: 'var(--border-light)', color: 'var(--text-secondary)', padding: '4px 10px', borderRadius: '12px', textTransform: 'uppercase' }}>
-                            {t.duration_minutes >= 30 ? 'Comprehensive' : 'Standard'}
-                          </span>
                           {selectedType === t.id && <span className="type-check" style={{ width: '24px', height: '24px', fontSize: '0.75rem' }}>✓</span>}
                         </div>
                       </button>
@@ -635,6 +633,7 @@ export default function MockInterview() {
                   <h3 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '1.15rem', fontWeight: '800' }}>Configure Preferences</h3>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
                   <label className="voice-toggle-label" style={{ borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'row', alignItems: 'start', gap: '16px' }}>
                     <input
                       type="checkbox"

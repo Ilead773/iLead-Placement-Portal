@@ -13,7 +13,7 @@ In your **first terminal**, start the Django backend server:
 cd backend
 
 # Activate your virtual environment (if you are using one)
-.\venv\Scripts\Activate
+venv\Scripts\Activate
 
 # Install dependencies (if not already installed)
 pip install -r requirements.txt

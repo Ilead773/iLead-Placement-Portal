@@ -29,7 +29,7 @@ def test_job_feed_api(api_client, student_user):
     # Create a job and map it to BSc in Data Science
     job = ScrapedJob.objects.create(
         external_job_id='api_test', source='test', title='Data Scientist',
-        company_name='TestCo', dedup_hash='apihash', is_active=True
+        company_name='TestCo', dedup_hash='apihash', is_active=True, is_approved=True
     )
     CourseJobMapping.objects.create(course_name='BSc in Data Science', scraped_job=job, relevance_score=1.0)
     
@@ -45,13 +45,13 @@ def test_job_feed_filtering(api_client, student_user):
     # Create jobs for two different courses
     ds_job = ScrapedJob.objects.create(
         external_job_id='ds', source='test', title='DS Job',
-        company_name='TestCo', dedup_hash='dshash', is_active=True
+        company_name='TestCo', dedup_hash='dshash', is_active=True, is_approved=True
     )
     CourseJobMapping.objects.create(course_name='BSc in Data Science', scraped_job=ds_job, relevance_score=1.0)
     
     dm_job = ScrapedJob.objects.create(
         external_job_id='dm', source='test', title='DM Job',
-        company_name='TestCo', dedup_hash='dmhash', is_active=True
+        company_name='TestCo', dedup_hash='dmhash', is_active=True, is_approved=True
     )
     CourseJobMapping.objects.create(course_name='BBA in Digital Marketing (BBA DM)', scraped_job=dm_job, relevance_score=1.0)
     

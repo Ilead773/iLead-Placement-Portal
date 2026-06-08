@@ -54,7 +54,7 @@ class StudentJobFeedView(APIView):
         if sort not in allowed_sorts:
             sort = '-quality_score'
 
-        cutoff = timezone.now() - timedelta(hours=48)
+        cutoff = timezone.now() - timedelta(days=7)
 
         from apps.scraped_jobs.course_config import normalize_course_name
         norm_course = normalize_course_name(student_course)
@@ -132,7 +132,7 @@ class StudentJobFeedView(APIView):
 
         return Response({
             'course': student_course,
-            'feed_window': '48 hours',
+            'feed_window': '7 days',
             'cache_fresh': cache_is_fresh,
             'jobs': {'count': total_jobs, 'results': jobs_data},
             'internships': {'count': total_internships, 'results': internships_data},
@@ -236,9 +236,20 @@ class AdminTriggerScrapeView(APIView):
         from django.core.cache import cache
         if cache.get('nightly_scrape_lock') or ScrapingRun.objects.filter(status='running').exists():
             return Response({'error': 'already_running', 'message': 'A run is already in progress.'}, status=409)
-        from .tasks import run_nightly_scrape
-        task = run_nightly_scrape.delay()
-        return Response({'message': 'Scraping queued.', 'task_id': task.id}, status=202)
+        try:
+            # Run scrape directly (no broker/worker needed — works for S3/serverless)
+            from .orchestrator import ScrapingOrchestrator
+            orchestrator = ScrapingOrchestrator()
+            run = orchestrator.run_full_scrape()
+            return Response({
+                'message': 'Scraping completed.',
+                'run_id': run.id,
+                'status': run.status,
+                'total_saved': run.total_saved,
+                'courses_failed': run.courses_failed,
+            }, status=200)
+        except Exception as exc:
+            return Response({'error': 'scrape_failed', 'message': str(exc)}, status=500)
 
 
 class AdminScrapedJobsListView(APIView):

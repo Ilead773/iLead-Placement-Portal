@@ -2,21 +2,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from apps.profiles.models import StudentProfile
 
-def check_eligibility(student, job):
+def check_eligibility(student, job, ignore_profile_resume=False):
     """
     Evaluates a student against a job's eligibility rules.
     Takes a core.Student instance.
     
     Returns: { 'eligible': bool, 'failing_checks': [], 'passing_checks': [], 'match_score': float }
     """
-    # 0. Bypass all eligibility checks for off-campus/external jobs
-    if getattr(job, 'job_type', None) == 'external':
-        return {
-            'eligible': True,
-            'failing_checks': [],
-            'passing_checks': ['profile_complete', 'active_resume', 'cgpa', 'branch', 'category', 'skills'],
-            'match_score': 100.0
-        }
+
 
     failing_checks = []
     passing_checks = []
@@ -30,19 +23,21 @@ def check_eligibility(student, job):
         completion_score = profile.completion_score
         
         if completion_score < 0.6: # Assume 60% is "complete enough"
-             failing_checks.append({
-                'check_name': 'profile_complete',
-                'reason': f'Your resume profile is only {completion_score:.0%} complete.',
-                'how_to_fix': 'Complete your professional summary, skills, and experience in your profile.'
-            })
+            if not ignore_profile_resume:
+                 failing_checks.append({
+                    'check_name': 'profile_complete',
+                    'reason': f'Your resume profile is only {completion_score:.0%} complete.',
+                    'how_to_fix': 'Complete your professional summary, skills, and experience in your profile.'
+                })
         else:
             passing_checks.append('profile_complete')
     except StudentProfile.DoesNotExist:
-        failing_checks.append({
-            'check_name': 'profile_complete',
-            'reason': 'You have not created a professional resume profile.',
-            'how_to_fix': 'Go to My Profile to set up your resume data.'
-        })
+        if not ignore_profile_resume:
+            failing_checks.append({
+                'check_name': 'profile_complete',
+                'reason': 'You have not created a professional resume profile.',
+                'how_to_fix': 'Go to My Profile to set up your resume data.'
+            })
         profile = None
 
     # 1.5 Active/Primary Resume Check
@@ -50,16 +45,22 @@ def check_eligibility(student, job):
     has_primary_built = BuiltResume.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
     has_primary_uploaded = ResumeUpload.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
     if not (has_primary_built or has_primary_uploaded):
-        failing_checks.append({
-            'check_name': 'active_resume',
-            'reason': 'You do not have an active resume.',
-            'how_to_fix': 'Go to My Resumes to generate a resume or upload a PDF, and set it as active.'
-        })
+        if not ignore_profile_resume:
+            failing_checks.append({
+                'check_name': 'active_resume',
+                'reason': 'You do not have an active resume.',
+                'how_to_fix': 'Go to My Resumes to generate a resume or upload a PDF, and set it as active.'
+            })
     else:
         passing_checks.append('active_resume')
 
     # 2. CGPA Check
-    min_cgpa = rules.get('min_cgpa', 0)
+    raw_min_cgpa = rules.get('min_cgpa', 0)
+    try:
+        min_cgpa = float(raw_min_cgpa) if raw_min_cgpa not in (None, "") else 0.0
+    except (ValueError, TypeError):
+        min_cgpa = 0.0
+
     if student.cgpa is None or float(student.cgpa) < min_cgpa:
         failing_checks.append({
             'check_name': 'cgpa',
@@ -69,15 +70,73 @@ def check_eligibility(student, job):
     else:
         passing_checks.append('cgpa')
 
-    # 3. Branch/Stream Check (All branches allowed by default)
-    passing_checks.append('branch')
+    # 2.5 Attendance Check
+    raw_min_attendance = rules.get('min_attendance', 0)
+    try:
+        min_attendance = float(raw_min_attendance) if raw_min_attendance not in (None, "") else 0.0
+    except (ValueError, TypeError):
+        min_attendance = 0.0
+
+    if min_attendance > 0:
+        student_attendance = float(student.attendance or 0)
+        if student_attendance < min_attendance:
+            failing_checks.append({
+                'check_name': 'attendance',
+                'reason': f'Your Attendance ({student_attendance}%) is below the required minimum ({min_attendance}%).',
+                'how_to_fix': f'Attend classes to improve your attendance above {min_attendance}%.'
+            })
+        else:
+            passing_checks.append('attendance')
+    else:
+        passing_checks.append('attendance')
+
+    # 2.6 Backlogs Check
+    raw_max_backlogs = rules.get('max_backlogs', None)
+    if raw_max_backlogs not in (None, ""):
+        try:
+            max_backlogs = int(raw_max_backlogs)
+        except (ValueError, TypeError):
+            max_backlogs = None
+    else:
+        max_backlogs = None
+
+    if max_backlogs is not None:
+        student_backlogs = int(student.backlogs_count or 0)
+        if student_backlogs > max_backlogs:
+            failing_checks.append({
+                'check_name': 'backlogs',
+                'reason': f'Your active backlogs count ({student_backlogs}) is above the allowed maximum ({max_backlogs}).',
+                'how_to_fix': f'Clear your backlogs to meet the maximum limit of {max_backlogs}.'
+            })
+        else:
+            passing_checks.append('backlogs')
+    else:
+        passing_checks.append('backlogs')
+
+    # 3. Branch/Stream Check (Course eligibility verification)
+    allowed_branches = rules.get('allowed_branches', [])
+    if allowed_branches:
+        student_course = (student.course or '').strip().lower()
+        allowed_branches_lower = [b.strip().lower() for b in allowed_branches if b]
+        if student_course not in allowed_branches_lower:
+            failing_checks.append({
+                'check_name': 'branch',
+                'reason': f'Your course ({student.course or "Not specified"}) is not eligible for this role.',
+                'how_to_fix': f'This job is only open to students in: {", ".join(allowed_branches)}.'
+            })
+        else:
+            passing_checks.append('branch')
+    else:
+        passing_checks.append('branch')
 
     # 3.5 Category Check
     student_cat = student.category or 'C'
     job_cat = getattr(job, 'category', 'C') or 'C'
     
     is_cat_eligible = False
-    if student_cat == 'A':
+    if job_cat == 'Own':
+        is_cat_eligible = True
+    elif student_cat == 'A':
         is_cat_eligible = True
     elif student_cat == 'B':
         if job_cat in ['B', 'C']:

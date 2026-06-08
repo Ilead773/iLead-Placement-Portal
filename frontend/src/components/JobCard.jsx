@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, MapPin, Briefcase, IndianRupee, Clock, ExternalLink } from 'lucide-react';
+import { Building2, MapPin, Briefcase, IndianRupee, Clock, ExternalLink, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 const JobCard = ({ job, eligibility, onApply }) => {
@@ -7,76 +7,80 @@ const JobCard = ({ job, eligibility, onApply }) => {
   const hasApplied = job.has_applied;
   const matchScore = (eligibility?.match_score * 100) || 0;
   
-  const scoreColor = matchScore >= 80 ? 'text-green-600' : matchScore >= 50 ? 'text-yellow-600' : 'text-red-500';
-
   return (
-    <div className="card p-6 flex flex-col hover:border-accent-primary transition-colors">
+    <div className="job-card card-tilt-perspective premium-3d-tilt-card">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-xl font-bold text-primary">{job.role}</h3>
-          <div className="flex items-center text-secondary mt-1">
-            <Building2 size={16} className="mr-1.5" />
+          <h3 className="job-card-title">{job.role}</h3>
+          <div className="flex items-center text-sm font-semibold mt-1">
+            <Building2 size={16} className="mr-1.5 text-info" style={{ color: '#3b82f6' }} />
             {job.company_website ? (
               <a
                 href={job.company_website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium hover:underline"
-                style={{ color: 'var(--accent-primary)' }}
+                className="hover:underline font-bold"
+                style={{ color: '#3b82f6' }}
                 onClick={e => e.stopPropagation()}
               >
                 {job.company_name} <ExternalLink size={12} style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 2 }} />
               </a>
             ) : (
-              <span className="font-medium">{job.company_name}</span>
+              <span className="text-secondary font-bold">{job.company_name}</span>
             )}
           </div>
         </div>
-        <div className="flex flex-col items-end">
-          <span className={`text-lg font-bold ${scoreColor}`}>{matchScore.toFixed(0)}% Match</span>
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="flex items-center text-sm text-secondary">
-          <MapPin size={14} className="mr-2 text-muted" />
-          {job.location}
+      <div className="job-meta-grid">
+        <div className="job-meta-item">
+          <MapPin size={15} className="meta-icon location" />
+          <span className="meta-text">{job.location}</span>
         </div>
-        <div className="flex items-center text-sm text-secondary">
-          <IndianRupee size={14} className="mr-2 text-muted" />
-          {job.package} LPA
+        
+        <div className="job-meta-item">
+          <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
+          <span className="meta-text font-bold">{job.package} LPA</span>
         </div>
-        <div className="flex items-center text-sm text-secondary">
-          <Briefcase size={14} className="mr-2 text-muted" />
-          {job.job_type}
+        
+        <div className="job-meta-item">
+          <Briefcase size={15} className="meta-icon jobtype text-blue-500" style={{ color: '#3b82f6' }} />
+          <span className="meta-text">{job.job_type}</span>
         </div>
-        <div className="flex items-center text-sm text-secondary">
-          <Clock size={14} className="mr-2 text-muted" />
-          {job.application_deadline ? format(new Date(job.application_deadline), 'MMM dd, yyyy') : 'No Deadline'}
+        
+        <div className="job-meta-item">
+          <Clock size={15} className="meta-icon deadline text-amber-500" style={{ color: '#fbbf24' }} />
+          <span className="meta-text">
+            Deadline: <span className="deadline-date">{job.application_deadline ? format(new Date(job.application_deadline), 'MMM dd, yyyy') : 'No Deadline'}</span>
+          </span>
         </div>
       </div>
       
       {!hasApplied && !isEligible && eligibility?.failing_checks?.length > 0 && (
-        <div className="mb-4 text-xs alert alert-error py-2">
-          <strong>Not Eligible: </strong>
+        <div className="mb-4 text-xs p-3 rounded-lg border bg-red-500/5 text-red-400 border-red-500/10">
+          <strong className="text-red-500 font-bold">Not Eligible: </strong>
           {eligibility.failing_checks[0].reason}
         </div>
       )}
 
-      <button 
-        onClick={() => onApply(job.id)}
-        disabled={hasApplied || !isEligible}
-        className={`w-full btn mt-auto ${
-          hasApplied 
-            ? 'btn-secondary text-success font-semibold opacity-80 cursor-not-allowed'
-            : isEligible 
-              ? 'btn-primary' 
-              : 'btn-secondary opacity-50 cursor-not-allowed'
-        }`}
-      >
-        {hasApplied ? 'Applied ✓' : isEligible ? 'Apply Now' : 'Not Eligible'}
-      </button>
+      {hasApplied ? (
+        <div className="w-full text-center py-2.5 rounded-xl font-bold text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider mt-auto cursor-default">
+          Applied ✓
+        </div>
+      ) : isEligible ? (
+        <button 
+          onClick={() => onApply(job.id)}
+          className="job-action-btn primary w-full text-center mt-auto btn-sweep-glow"
+        >
+          Apply Now <ArrowRight size={14} className="btn-arrow" />
+        </button>
+      ) : (
+        <div className="w-full text-center py-2.5 rounded-xl font-bold text-xs bg-slate-500/5 text-secondary border border-slate-500/10 uppercase tracking-wider mt-auto cursor-not-allowed">
+          Not Eligible
+        </div>
+      )}
     </div>
   );
 };
+
 export default JobCard;

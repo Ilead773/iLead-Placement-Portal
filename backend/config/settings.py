@@ -90,8 +90,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database - SQLite for local dev, Postgres in Render via DATABASE_URL
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and dj_database_url:
+    ssl_require = 'postgres' in DATABASE_URL or 'postgresql' in DATABASE_URL
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True),
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=ssl_require),
     }
 else:
     DATABASES = {
@@ -183,13 +184,20 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'core.email_backends.ResendEmailBackend')
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+
+# Resend test mode: when True, ALL emails are redirected to RESEND_TEST_REDIRECT_EMAIL.
+# Use this when your Resend account has no verified domain (free/testing tier).
+# Set to False once you have a verified domain on resend.com/domains.
+RESEND_TEST_MODE = os.environ.get('RESEND_TEST_MODE', 'True') == 'True'
+RESEND_TEST_REDIRECT_EMAIL = os.environ.get('RESEND_TEST_REDIRECT_EMAIL', '')
 
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
@@ -216,13 +224,14 @@ LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5
 LOGIN_RATE_LIMIT_LOCKOUT_MINUTES = 1
 
 # ─── Resume Engine: Celery / Async (Layer 2) ────────────────────
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = False
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
-CELERY_TASK_ALWAYS_EAGER = True
 # Cache backend (used by rate limiting + scraper query caching)
 CACHES = {
     'default': {
@@ -232,6 +241,10 @@ CACHES = {
         # 'LOCATION': 'redis://localhost:6379/1',
     }
 }
+
+# ─── OneSignal Configuration ──────────────────────────────────────
+ONESIGNAL_APP_ID = os.environ.get('ONESIGNAL_APP_ID', '97a17b7a-8d2b-4daf-bba5-a0b16d31a1bb')
+ONESIGNAL_REST_API_KEY = os.environ.get('ONESIGNAL_REST_API_KEY', '')
 
 # ─── Scraped Jobs: External API Keys ─────────────────────────────
 JSEARCH_API_KEY = os.environ.get('JSEARCH_API_KEY', '')

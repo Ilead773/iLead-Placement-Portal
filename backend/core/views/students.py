@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
-from ..models import Student, CSVUploadLog
+from ..models import User, Student, CSVUploadLog
 from ..serializers import StudentSerializer, CSVUploadLogSerializer
 from ..permissions import IsAdminOrCoordinator
 from ..csv_processor import process_csv
@@ -216,3 +216,112 @@ class StudentViewSet(viewsets.ViewSet):
             'category': student.category,
             'is_category_manual': student.is_category_manual
         })
+
+    def update_student(self, request, pk=None):
+        """Update a student's basic details, keeping their User in sync, while keeping registration number read-only."""
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_students', False))):
+            return Response({'error': 'Only admins or authorized coordinators can modify student details.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            student = Student.objects.select_related('user').get(pk=pk)
+        except Student.DoesNotExist:
+            return Response({'error': 'Student not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        user = student.user
+
+        # Validation phase:
+        email = data.get('email')
+        if email:
+            email = email.lower().strip()
+            # Check unique constraint in User model
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response({'error': f"Email '{email}' is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            # Check unique constraint in Student model
+            if Student.objects.filter(email=email).exclude(id=student.id).exists():
+                return Response({'error': f"Email '{email}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update User fields if provided
+        if 'name' in data:
+            user.name = data['name'].strip()
+        if email:
+            user.email = email
+        user.save()
+
+        # Update Student fields
+        if 'name' in data:
+            student.name = data['name'].strip()
+        if email:
+            student.email = email
+        
+        if 'phone_number' in data:
+            student.phone_number = data['phone_number'].strip()
+        if 'course' in data:
+            student.course = data['course'].strip()
+        if 'stream' in data:
+            student.stream = data['stream'].strip() if data['stream'] else None
+        
+        if 'semester' in data:
+            try:
+                student.semester = int(data['semester']) if data['semester'] is not None and data['semester'] != '' else None
+            except ValueError:
+                return Response({'error': 'Semester must be a valid integer.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        if 'year' in data:
+            student.year = data['year'] if data['year'] else None
+            
+        if 'passing_year' in data:
+            try:
+                student.passing_year = int(data['passing_year']) if data['passing_year'] is not None and data['passing_year'] != '' else None
+            except ValueError:
+                return Response({'error': 'Passing year must be a valid integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'cgpa' in data:
+            try:
+                student.cgpa = float(data['cgpa']) if data['cgpa'] is not None and data['cgpa'] != '' else None
+            except ValueError:
+                return Response({'error': 'CGPA must be a valid decimal number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'attendance' in data:
+            try:
+                student.attendance = float(data['attendance']) if data['attendance'] is not None and data['attendance'] != '' else None
+            except ValueError:
+                return Response({'error': 'Attendance must be a valid decimal number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'training_attendance' in data:
+            try:
+                student.training_attendance = float(data['training_attendance']) if data['training_attendance'] is not None and data['training_attendance'] != '' else 100.0
+            except ValueError:
+                return Response({'error': 'Training attendance must be a valid decimal number.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'backlogs_count' in data:
+            try:
+                student.backlogs_count = int(data['backlogs_count']) if data['backlogs_count'] is not None and data['backlogs_count'] != '' else 0
+                student.backlogs = student.backlogs_count > 0
+            except ValueError:
+                return Response({'error': 'Backlogs count must be a valid integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'category' in data:
+            cat = data['category']
+            if cat in ['A', 'B', 'C', 'Own']:
+                student.category = cat
+                student.is_category_manual = True
+            elif cat == 'auto' or not cat:
+                student.is_category_manual = False
+                student.category = student.calculate_category()
+            else:
+                return Response({'error': 'Invalid category choice.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            student.full_clean()
+            student.save()
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        log_audit(request.user, 'student_updated', f"Updated details for student {student.registration_number}", request)
+        
+        return Response({
+            'message': 'Student details updated successfully.',
+            'student': StudentSerializer(student, context={'request': request}).data
+        })
+

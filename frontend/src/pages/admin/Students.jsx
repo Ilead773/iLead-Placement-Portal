@@ -23,6 +23,7 @@ export default function Students() {
   const [toast, setToast] = useState(null);
   const [uploadHistory, setUploadHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const { user } = useAuthStore();
 
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -34,6 +35,58 @@ export default function Students() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [selectedSessionDetail, setSelectedSessionDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    name: '',
+    registration_number: '',
+    email: '',
+    phone_number: '',
+    course: '',
+    stream: '',
+    semester: '',
+    year: '',
+    passing_year: '',
+    cgpa: '',
+    attendance: '',
+    training_attendance: '',
+    backlogs_count: '',
+    category: ''
+  });
+
+  useEffect(() => {
+    if (selectedStudent) {
+      setEditForm({
+        name: selectedStudent.name || '',
+        registration_number: selectedStudent.registration_number || '',
+        email: selectedStudent.email || '',
+        phone_number: selectedStudent.phone_number || '',
+        course: selectedStudent.course || '',
+        stream: selectedStudent.stream || '',
+        semester: selectedStudent.semester ?? '',
+        year: selectedStudent.year || '',
+        passing_year: selectedStudent.passing_year ?? '',
+        cgpa: selectedStudent.cgpa ?? '',
+        attendance: selectedStudent.attendance ?? '',
+        training_attendance: selectedStudent.training_attendance ?? '',
+        backlogs_count: selectedStudent.backlogs_count ?? '',
+        category: selectedStudent.is_category_manual ? selectedStudent.category : 'auto'
+      });
+    }
+  }, [selectedStudent, activeModalTab]);
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await api.put(`/students/${selectedStudent.id}/`, editForm);
+      showToast('Student details updated successfully!');
+      setSelectedStudent(data.student);
+      setActiveModalTab('academics');
+      fetchStudents(page);
+    } catch (err) {
+      const errMsg = err.response?.data?.error || 'Failed to update student details.';
+      showToast(errMsg, 'error');
+    }
+  };
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
@@ -244,145 +297,172 @@ export default function Students() {
         </div>
       )}
 
-      <div className="search-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input 
-          className="input-field" 
-          placeholder="Search by name, reg no, or email..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          style={{ flex: 1, minWidth: 250 }}
-        />
+      <div className="search-and-filter-header" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: showAdvancedFilters ? 16 : 24, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 250, maxWidth: 500 }}>
+          <input 
+            className="input-field" 
+            placeholder="Search by name, reg no, or email..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            style={{ width: '100%', paddingLeft: 40 }}
+          />
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+        </div>
         
-        <select 
-          className="input-field" 
-          value={filters.course} 
-          onChange={(e) => setFilters({...filters, course: e.target.value})}
-          style={{ width: 125 }}
+        <button 
+          className="btn btn-secondary"
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, height: 42 }}
         >
-          <option value="">All Courses</option>
-          <option value="BCA">BCA</option>
-          <option value="BBA">BBA</option>
-          <option value="MCA">MCA</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.stream} 
-          onChange={(e) => setFilters({...filters, stream: e.target.value})}
-          style={{ width: 145 }}
-        >
-          <option value="">All Streams</option>
-          <option value="Computer Science">Comp Science</option>
-          <option value="Data Science">Data Science</option>
-          <option value="Marketing">Marketing</option>
-          <option value="Finance">Finance</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.semester} 
-          onChange={(e) => setFilters({...filters, semester: e.target.value})}
-          style={{ width: 110 }}
-        >
-          <option value="">All Sems</option>
-          <option value="4">Sem 4</option>
-          <option value="6">Sem 6</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.year} 
-          onChange={(e) => setFilters({...filters, year: e.target.value})}
-          style={{ width: 115 }}
-        >
-          <option value="">All Years</option>
-          <option value="3rd">3rd Year</option>
-          <option value="4th">4th Year</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.category} 
-          onChange={(e) => setFilters({...filters, category: e.target.value})}
-          style={{ width: 135 }}
-        >
-          <option value="">All Categories</option>
-          <option value="A">Category A</option>
-          <option value="B">Category B</option>
-          <option value="C">Category C</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.cgpaRange} 
-          onChange={(e) => setFilters({...filters, cgpaRange: e.target.value})}
-          style={{ width: 145 }}
-        >
-          <option value="">CGPA: All</option>
-          <option value="high">Excellent (≥ 8.0)</option>
-          <option value="medium">Average (≥ 6.5)</option>
-          <option value="low">{"Needs Imp (< 5.0)"}</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.trainingRange} 
-          onChange={(e) => setFilters({...filters, trainingRange: e.target.value})}
-          style={{ width: 165 }}
-        >
-          <option value="">Training Attd: All</option>
-          <option value="perfect">Perfect (100%)</option>
-          <option value="good">Good (≥ 80%)</option>
-          <option value="shortage">{"Warning (< 80%)"}</option>
-          <option value="critical">Critical (≤ 65%)</option>
-        </select>
-
-        <select 
-          className="input-field" 
-          value={filters.backlogs} 
-          onChange={(e) => setFilters({...filters, backlogs: e.target.value})}
-          style={{ width: 125 }}
-        >
-          <option value="">Backlogs: All</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
+          {showAdvancedFilters ? '✕ Hide Filters' : '⚙️ Advanced Filters'}
+          {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange) && !showAdvancedFilters && (
+            <span style={{ 
+              background: 'var(--accent-primary)', color: 'white', borderRadius: '50%', 
+              width: 20, height: 20, fontSize: '0.7rem', display: 'inline-flex', 
+              alignItems: 'center', justifyContent: 'center'
+            }}>
+              !
+            </span>
+          )}
+        </button>
 
         {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange || search) && (
           <button 
             className="btn btn-secondary btn-sm"
             onClick={() => {
               setSearch('');
-              setFilters({
-                year: '', 
-                category: '', 
-                backlogs: '', 
-                course: '', 
-                stream: '', 
-                semester: '', 
-                cgpaRange: '', 
-                trainingRange: ''
-              });
+              setFilters({ year: '', category: '', backlogs: '', course: '', stream: '', semester: '', cgpaRange: '', trainingRange: '' });
             }}
             style={{ 
-              padding: '6px 12px', 
-              fontSize: '0.8rem', 
-              height: '38px', 
-              borderRadius: '6px', 
-              backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-              color: '#ef4444', 
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              cursor: 'pointer',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4
+              padding: '0 16px', fontSize: '0.85rem', height: '42px', borderRadius: '8px', 
+              backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+              cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6
             }}
           >
-            ✕ Reset Filters
+            ✕ Reset
           </button>
         )}
       </div>
+
+      {showAdvancedFilters && (
+        <div 
+          className="advanced-filters-panel animate-in" 
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', 
+            gap: 20, 
+            background: 'var(--bg-card)', 
+            padding: 24, 
+            borderRadius: 16, 
+            border: '1px solid var(--border-color)',
+            marginBottom: 24,
+            boxShadow: 'var(--shadow-md)'
+          }}
+        >
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Course</label>
+            <select className="input-field" value={filters.course} onChange={(e) => setFilters({...filters, course: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Courses</option>
+              <option value="BBA">BBA</option>
+              <option value="BBA in Digital Marketing (BBA DM)">BBA in Digital Marketing (BBA DM)</option>
+              <option value="BBA in Travel & Tourism Management (BBA TTM)">BBA in Travel & Tourism (BBA TTM)</option>
+              <option value="BBA in Entrepreneurship (BBA ENT)">BBA in Entrepreneurship (BBA ENT)</option>
+              <option value="BBA in Sports Management (BBA SM)">BBA in Sports Management (BBA SM)</option>
+              <option value="BBA in Hospital Management (BBA HM)">BBA in Hospital Management (BBA HM)</option>
+              <option value="BSc in Media Science (BMS)">BSc in Media Science (BMS)</option>
+              <option value="MSc in Media Science">MSc in Media Science</option>
+              <option value="BSc in Multimedia, Animation, Graphic Design (BMAGD)">BSc in Multimedia & Animation (BMAGD)</option>
+              <option value="MSc in Multimedia, Animation, Graphic Design (MMAGD)">MSc in Multimedia & Animation (MMAGD)</option>
+              <option value="BSc in Film and Television Production (FTP)">BSc in Film & TV Production (FTP)</option>
+              <option value="BSc in Interior Design">BSc in Interior Design</option>
+              <option value="BSc in Sustainable Fashion Design & Management">BSc in Sustainable Fashion</option>
+              <option value="Bachelor in Optometry">Bachelor in Optometry</option>
+              <option value="BSc in Critical Care Technology (CCT)">BSc in Critical Care Tech (CCT)</option>
+              <option value="BSc in Medical Laboratory Technology (BMLT)">BSc in Medical Lab Tech (BMLT)</option>
+              <option value="BSc in Data Science">BSc in Data Science</option>
+              <option value="BSc in Cyber Security">BSc in Cyber Security</option>
+              <option value="BSc in Computer Application (BCA)">BSc in Computer Application (BCA)</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Stream / Specialization</label>
+            <select className="input-field" value={filters.stream} onChange={(e) => setFilters({...filters, stream: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Streams</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Data Science">Data Science</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Semester</label>
+            <select className="input-field" value={filters.semester} onChange={(e) => setFilters({...filters, semester: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Sems</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+              <option value="7">Semester 7</option>
+              <option value="8">Semester 8</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Year</label>
+            <select className="input-field" value={filters.year} onChange={(e) => setFilters({...filters, year: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Years</option>
+              <option value="1st">1st Year</option>
+              <option value="2nd">2nd Year</option>
+              <option value="3rd">3rd Year</option>
+              <option value="4th">4th Year</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category</label>
+            <select className="input-field" value={filters.category} onChange={(e) => setFilters({...filters, category: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Categories</option>
+              <option value="A">Category A</option>
+              <option value="B">Category B</option>
+              <option value="C">Category C</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>CGPA Range</label>
+            <select className="input-field" value={filters.cgpaRange} onChange={(e) => setFilters({...filters, cgpaRange: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All CGPAs</option>
+              <option value="high">Excellent (≥ 8.0)</option>
+              <option value="medium">Average (≥ 6.5)</option>
+              <option value="low">Needs Improvement (&lt; 5.0)</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Training Attendance</label>
+            <select className="input-field" value={filters.trainingRange} onChange={(e) => setFilters({...filters, trainingRange: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Attendance</option>
+              <option value="perfect">Perfect (100%)</option>
+              <option value="good">Good (≥ 80%)</option>
+              <option value="shortage">Warning (&lt; 80%)</option>
+              <option value="critical">Critical (≤ 65%)</option>
+            </select>
+          </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Active Backlogs</label>
+            <select className="input-field" value={filters.backlogs} onChange={(e) => setFilters({...filters, backlogs: e.target.value})} style={{ width: '100%' }}>
+              <option value="">Any</option>
+              <option value="true">Has Backlogs (Yes)</option>
+              <option value="false">Clear (No Backlogs)</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {loading ? <div className="loading-screen" style={{ minHeight: 200 }}><div className="spinner" /></div> : (
         <>
@@ -395,6 +475,38 @@ export default function Students() {
                   <th>Course & Stream</th>
                   <th>Year / Sem</th>
                   <th>Cat</th>
+                  <th style={{ whiteSpace: 'nowrap' }} className="pact-header-cell">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      PACT Score
+                      <span style={{ 
+                        background: 'rgba(255,255,255,0.15)', 
+                        borderRadius: '50%', 
+                        width: '15px', 
+                        height: '15px', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontSize: '0.65rem',
+                        fontWeight: 'bold',
+                        cursor: 'help'
+                      }}>?</span>
+                    </span>
+                    <div className="pact-tooltip-box">
+                      <div style={{ fontWeight: 800, marginBottom: 8, fontSize: '0.82rem', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 4 }}>
+                        🎯 PACT Score Weightages
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', fontWeight: 500 }}>
+                        <div><strong>P</strong>erformance (CGPA): <strong>35%</strong></div>
+                        <div><strong>A</strong>ttendance (General): <strong>25%</strong></div>
+                        <div><strong>C</strong>onduct (Training): <strong>25%</strong></div>
+                        <div><strong>T</strong>echnical (No Backlogs): <strong>15%</strong></div>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', marginTop: 8, opacity: 0.8, fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6 }}>
+                        * Standing: Penalty of 25% per backlog.
+                      </div>
+                      <div className="pact-tooltip-arrow"></div>
+                    </div>
+                  </th>
                   <th>Backlogs</th>
                   <th>CGPA</th>
                   <th>General Attd</th>
@@ -407,13 +519,15 @@ export default function Students() {
                 {students.map((s) => (
                   <tr key={s.id}>
                     <td style={{ verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <span 
                           style={{ 
-                            fontWeight: 600, 
+                            fontWeight: 700, 
+                            fontSize: '0.95rem',
                             color: 'var(--accent-primary)', 
                             cursor: 'pointer',
-                            transition: 'opacity 0.2s'
+                            transition: 'opacity 0.2s',
+                            whiteSpace: 'nowrap'
                           }}
                           onClick={() => fetchStudentProfile(s.id)}
                           title="Click to view full student profile"
@@ -426,22 +540,23 @@ export default function Students() {
                             e.currentTarget.style.opacity = '1';
                           }}
                         >
-                          👤 {s.name}
+                          {s.name}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '4px 8px' }}>
-                          <span>📧 {s.email}</span>
-                          {s.phone_number && <span>• 📞 {s.phone_number}</span>}
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexWrap: 'wrap', gap: '4px 8px', whiteSpace: 'nowrap' }}>
+                          <span>{s.email}</span>
+                          {s.phone_number && <span style={{ opacity: 0.6 }}>•</span>}
+                          {s.phone_number && <span>{s.phone_number}</span>}
                         </span>
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'middle', fontWeight: 500 }}>{s.registration_number}</td>
+                    <td style={{ verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{s.registration_number}</td>
                     <td style={{ verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{s.course || '—'}</span>
-                        {s.stream && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.stream}</span>}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{s.course || '—'}</span>
+                        {s.stream && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>{s.stream}</span>}
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'middle', fontSize: '0.85rem' }}>
+                    <td style={{ verticalAlign: 'middle', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                       {s.year ? `${s.year} Year` : '—'}
                       {s.semester ? ` / Sem ${s.semester}` : ''}
                     </td>
@@ -450,25 +565,69 @@ export default function Students() {
                         <span 
                           className="badge" 
                           style={{ 
-                            background: s.category === 'A' ? 'rgba(16, 185, 129, 0.15)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
+                            background: s.category === 'A' ? 'rgba(16, 185, 129, 0.08)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)',
                             color: s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444',
-                            border: `1px solid ${s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444'}`,
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            borderRadius: '4px'
+                            border: `1px solid ${s.category === 'A' ? 'rgba(16, 185, 129, 0.2)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                            fontWeight: 800,
+                            padding: '4px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.02em',
+                            textTransform: 'uppercase'
                           }}
                         >
+                          <span style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444',
+                            display: 'inline-block'
+                          }} />
                           Cat {s.category}
                         </span>
                       ) : '—'}
                     </td>
                     <td style={{ verticalAlign: 'middle' }}>
-                      <span className={`badge ${s.backlogs_count > 0 ? 'badge-danger' : 'badge-success'}`}>
+                      {s.pact_score != null ? (
+                        <span 
+                          className="badge" 
+                          style={{ 
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            whiteSpace: 'nowrap',
+                            background: s.pact_score >= 80 ? 'rgba(16, 185, 129, 0.08)' : s.pact_score >= 60 ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                            color: s.pact_score >= 80 ? '#10b981' : s.pact_score >= 60 ? '#f59e0b' : '#ef4444',
+                            border: `1px solid ${s.pact_score >= 80 ? 'rgba(16, 185, 129, 0.2)' : s.pact_score >= 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                            fontWeight: 800,
+                            padding: '4px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '0.72rem',
+                            letterSpacing: '0.02em'
+                          }}
+                        >
+                          <span style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: s.pact_score >= 80 ? '#10b981' : s.pact_score >= 60 ? '#f59e0b' : '#ef4444',
+                            display: 'inline-block'
+                          }} />
+                          {s.pact_score.toFixed(1)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span className={`badge ${s.backlogs_count > 0 ? 'badge-danger' : 'badge-success'}`} style={{ whiteSpace: 'nowrap' }}>
                         {s.backlogs_count > 0 ? `${s.backlogs_count} Active` : 'No'}
                       </span>
                     </td>
-                    <td style={{ verticalAlign: 'middle', fontWeight: 600 }}>{s.cgpa != null ? s.cgpa.toFixed(2) : '—'}</td>
-                    <td style={{ verticalAlign: 'middle' }}>
+                    <td style={{ verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{s.cgpa != null ? s.cgpa.toFixed(2) : '—'}</td>
+                    <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                       <span style={{ 
                         fontWeight: 600,
                         color: s.attendance >= 75 ? '#10b981' : s.attendance >= 50 ? '#f59e0b' : '#ef4444'
@@ -476,7 +635,7 @@ export default function Students() {
                         {s.attendance != null ? `${s.attendance}%` : '—'}
                       </span>
                     </td>
-                    <td style={{ verticalAlign: 'middle' }}>
+                    <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                       <span style={{ 
                         fontWeight: 600,
                         color: s.training_attendance >= 100.0 ? '#10b981' : s.training_attendance >= 80.0 ? '#f59e0b' : '#ef4444'
@@ -484,7 +643,7 @@ export default function Students() {
                         {s.training_attendance != null ? `${s.training_attendance}%` : '—'}
                       </span>
                     </td>
-                    <td style={{ verticalAlign: 'middle' }}>
+                    <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                       <span className={`badge ${s.is_active !== false ? 'badge-success' : 'badge-danger'}`}>
                         {s.is_active !== false ? 'Active' : 'Disabled'}
                       </span>
@@ -516,7 +675,7 @@ export default function Students() {
                     </td>
                   </tr>
                 ))}
-                {students.length === 0 && <tr><td colSpan={11} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No students found. Upload a CSV to get started.</td></tr>}
+                {students.length === 0 && <tr><td colSpan={12} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No students found. Upload a CSV to get started.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -724,16 +883,29 @@ export default function Students() {
                   {selectedStudent.category && (
                     <span 
                       style={{ 
-                        background: 'rgba(255,255,255,0.25)', 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        whiteSpace: 'nowrap',
+                        background: 'rgba(255, 255, 255, 0.15)', 
+                        backdropFilter: 'blur(4px)',
                         color: 'white', 
-                        padding: '2px 8px', 
-                        borderRadius: 20, 
-                        fontSize: '0.65rem', 
+                        padding: '4px 10px', 
+                        borderRadius: '9999px', 
+                        fontSize: '0.68rem', 
                         fontWeight: 800,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.02em',
+                        border: '1px solid rgba(255, 255, 255, 0.25)'
                       }}
                     >
+                      <span style={{
+                        width: '5px',
+                        height: '5px',
+                        borderRadius: '50%',
+                        background: selectedStudent.category === 'A' ? '#10b981' : selectedStudent.category === 'B' ? '#f59e0b' : '#ef4444',
+                        display: 'inline-block'
+                      }} />
                       Cat {selectedStudent.category}
                     </span>
                   )}
@@ -777,7 +949,8 @@ export default function Students() {
                     textAlign: 'center',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-card)',
-                    borderRadius: 'var(--radius-md)'
+                    borderRadius: 'var(--radius-md)',
+                    flexShrink: 0
                   }}
                 >
                   <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>CGPA</span>
@@ -803,7 +976,8 @@ export default function Students() {
                     textAlign: 'center',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-card)',
-                    borderRadius: 'var(--radius-md)'
+                    borderRadius: 'var(--radius-md)',
+                    flexShrink: 0
                   }}
                 >
                   <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Attendance</span>
@@ -831,7 +1005,8 @@ export default function Students() {
                     textAlign: 'center',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-card)',
-                    borderRadius: 'var(--radius-md)'
+                    borderRadius: 'var(--radius-md)',
+                    flexShrink: 0
                   }}
                 >
                   <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Training Attendance</span>
@@ -859,7 +1034,8 @@ export default function Students() {
                     textAlign: 'center',
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-card)',
-                    borderRadius: 'var(--radius-md)'
+                    borderRadius: 'var(--radius-md)',
+                    flexShrink: 0
                   }}
                 >
                   <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Backlogs</span>
@@ -880,7 +1056,7 @@ export default function Students() {
                 </div>
 
                 {/* Contact Information */}
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16, flexShrink: 0 }}>
                   <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Contact Details</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <a 
@@ -979,7 +1155,7 @@ export default function Students() {
                 </div>
 
                 {/* Quick Links */}
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16, flexShrink: 0 }}>
                   <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Socials & Portfolio</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {selectedStudent.profile?.linkedin && (
@@ -1081,7 +1257,7 @@ export default function Students() {
                 </div>
 
                 {/* Account details */}
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
                   <div>
                     <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Portal Access</div>
                     <span className={`badge ${selectedStudent.is_active !== false ? 'badge-success' : 'badge-danger'}`} style={{ padding: '3px 8px', fontSize: '0.65rem' }}>
@@ -1127,7 +1303,8 @@ export default function Students() {
                     { id: 'academics', label: '🎓 Academics' },
                     { id: 'skills', label: '🛠️ Skills & Bio' },
                     { id: 'experience', label: '💼 Projects & Exp' },
-                    { id: 'mock_interviews', label: '🎯 Mock Interviews' }
+                    { id: 'mock_interviews', label: '🎯 Mock Interviews' },
+                    ...((user?.role === 'admin' || user?.can_manage_students) ? [{ id: 'edit', label: '✏️ Edit Info' }] : [])
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1274,6 +1451,127 @@ export default function Students() {
                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{selectedStudent.email}</div>
                           </div>
                         </div>
+
+                        {/* PACT Score Dashboard */}
+                        {(() => {
+                          const pactScoreVal = selectedStudent.pact_score ?? 0.0;
+                          const cgpaScore = cgpaVal * 10.0;
+                          const standingScore = Math.max(0.0, 100.0 - (backlogCountVal * 25.0));
+
+                          const performanceContrib = cgpaScore * 0.35;
+                          const attendanceContrib = attendanceVal * 0.25;
+                          const trainingContrib = trainingVal * 0.25;
+                          const standingContrib = standingScore * 0.15;
+
+                          let pactColor = '#ef4444'; // Red
+                          if (pactScoreVal >= 80) pactColor = '#10b981'; // Green
+                          else if (pactScoreVal >= 60) pactColor = '#f59e0b'; // Orange/Yellow
+
+                          return (
+                            <div 
+                              style={{ 
+                                border: '1px solid var(--border-color)', 
+                                borderRadius: '12px',
+                                background: 'var(--bg-card-hover)',
+                                padding: '20px 24px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 16
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+                                  📊 PACT Placement Readiness Dashboard
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                                  Unified readiness score computed on Academic, Attendance, Training, and Standing KPIs.
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+                                {/* Conic Gradient Gauge */}
+                                <div style={{
+                                  width: '124px',
+                                  height: '124px',
+                                  borderRadius: '50%',
+                                  background: `conic-gradient(${pactColor} ${pactScoreVal * 3.6}deg, var(--border-light) 0deg)`,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  position: 'relative',
+                                  boxShadow: 'var(--shadow-sm)',
+                                  flexShrink: 0
+                                }}>
+                                  <div style={{
+                                    width: '102px',
+                                    height: '102px',
+                                    borderRadius: '50%',
+                                    background: 'var(--bg-card)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: 'inset var(--shadow-sm)'
+                                  }}>
+                                    <span style={{ fontSize: '1.8rem', fontWeight: 900, color: pactColor, fontFamily: 'var(--font-heading)' }}>
+                                      {pactScoreVal.toFixed(1)}
+                                    </span>
+                                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                      PACT Score
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Breakdown Grid */}
+                                <div style={{ flex: 1, minWidth: '250px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                  {/* 1. CGPA */}
+                                  <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                                      <span>Performance (CGPA: {cgpaVal.toFixed(2)} / 10)</span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{performanceContrib.toFixed(1)} / 35.0 pts (35%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${cgpaScore}%`, height: '100%', background: '#3b82f6', borderRadius: '3px' }} />
+                                    </div>
+                                  </div>
+
+                                  {/* 2. General Attendance */}
+                                  <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                                      <span>General Attendance ({attendanceVal.toFixed(1)}%)</span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{attendanceContrib.toFixed(1)} / 25.0 pts (25%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${attendanceVal}%`, height: '100%', background: '#10b981', borderRadius: '3px' }} />
+                                    </div>
+                                  </div>
+
+                                  {/* 3. Training Attendance */}
+                                  <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                                      <span>Training Attendance ({trainingVal.toFixed(1)}%)</span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{trainingContrib.toFixed(1)} / 25.0 pts (25%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${trainingVal}%`, height: '100%', background: '#8b5cf6', borderRadius: '3px' }} />
+                                    </div>
+                                  </div>
+
+                                  {/* 4. Standing / Backlogs */}
+                                  <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                                      <span>Standing ({backlogCountVal} Backlogs, Score: {standingScore.toFixed(0)}%)</span>
+                                      <span style={{ color: 'var(--text-secondary)' }}>{standingContrib.toFixed(1)} / 15.0 pts (15%)</span>
+                                    </div>
+                                    <div style={{ height: '6px', background: 'var(--border-light)', borderRadius: '3px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${standingScore}%`, height: '100%', background: '#f59e0b', borderRadius: '3px' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* Category and KPI Scorecard */}
                         <div 
@@ -2050,6 +2348,223 @@ export default function Students() {
                       </div>
                     );
                   })()}
+
+                  {activeModalTab === 'edit' && (
+                    <form onSubmit={handleEditSubmit} className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '4px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 24px' }}>
+                        {/* Name */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name *</label>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            required 
+                            value={editForm.name} 
+                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Registration Number (READ-ONLY) */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registration Number (Read-Only)</label>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            disabled 
+                            value={editForm.registration_number} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40, backgroundColor: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', cursor: 'not-allowed', border: '1px solid rgba(255,255,255,0.05)' }}
+                          />
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address *</label>
+                          <input 
+                            type="email" 
+                            className="input-field" 
+                            required 
+                            value={editForm.email} 
+                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Phone Number */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone Number</label>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            value={editForm.phone_number} 
+                            onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Course */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</label>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            value={editForm.course} 
+                            onChange={(e) => setEditForm({ ...editForm, course: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Stream */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stream</label>
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            value={editForm.stream} 
+                            onChange={(e) => setEditForm({ ...editForm, stream: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Year */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Year</label>
+                          <select 
+                            className="input-field" 
+                            value={editForm.year} 
+                            onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          >
+                            <option value="">Select Year</option>
+                            <option value="1st">1st Year</option>
+                            <option value="2nd">2nd Year</option>
+                            <option value="3rd">3rd Year</option>
+                            <option value="4th">4th Year</option>
+                          </select>
+                        </div>
+
+                        {/* Semester */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Semester</label>
+                          <input 
+                            type="number" 
+                            className="input-field" 
+                            min="1" 
+                            max="12" 
+                            value={editForm.semester} 
+                            onChange={(e) => setEditForm({ ...editForm, semester: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Passing Year */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Passing Year</label>
+                          <input 
+                            type="number" 
+                            className="input-field" 
+                            min="2000" 
+                            max="2100" 
+                            value={editForm.passing_year} 
+                            onChange={(e) => setEditForm({ ...editForm, passing_year: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* CGPA */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>CGPA (0 - 10.0)</label>
+                          <input 
+                            type="number" 
+                            step="0.01" 
+                            min="0" 
+                            max="10" 
+                            className="input-field" 
+                            value={editForm.cgpa} 
+                            onChange={(e) => setEditForm({ ...editForm, cgpa: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* General Attendance */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>General Attendance %</label>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            min="0" 
+                            max="100" 
+                            className="input-field" 
+                            value={editForm.attendance} 
+                            onChange={(e) => setEditForm({ ...editForm, attendance: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Training Attendance */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Training Attendance %</label>
+                          <input 
+                            type="number" 
+                            step="0.1" 
+                            min="0" 
+                            max="100" 
+                            className="input-field" 
+                            value={editForm.training_attendance} 
+                            onChange={(e) => setEditForm({ ...editForm, training_attendance: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Backlogs Count */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Backlogs Count</label>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            className="input-field" 
+                            value={editForm.backlogs_count} 
+                            onChange={(e) => setEditForm({ ...editForm, backlogs_count: e.target.value })} 
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          />
+                        </div>
+
+                        {/* Category */}
+                        <div>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Placement Category</label>
+                          <select 
+                            className="input-field" 
+                            value={editForm.category} 
+                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                            style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                          >
+                            <option value="auto">🔄 Auto-Calculate</option>
+                            <option value="A">Category A</option>
+                            <option value="B">Category B</option>
+                            <option value="C">Category C</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => setActiveModalTab('academics')}
+                          style={{ minWidth: 100, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          className="btn btn-primary" 
+                          style={{ minWidth: 140, background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
 
                 {/* Pinned Action Buttons */}

@@ -49,7 +49,7 @@ export default function Login() {
         <div className="auth-header">
           <img src={logo} alt="iLEAD Logo" className="auth-logo-img" />
           <h1 className="branded-title">
-            <span className="portal-text">Placement Portal</span>
+            <span className="portal-text">iLEAD Placement Portal</span>
           </h1>
           <p>Sign in with your Login ID</p>
         </div>

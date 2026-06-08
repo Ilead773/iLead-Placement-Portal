@@ -15,70 +15,98 @@ def build_resume_email(
     applications: list,  # list of Application objects
     from_email: str = None,
     cc_emails: list = None,
+    log_id: str = None,
 ) -> EmailMessage:
     """
-    Builds an EmailMessage with all selected students' resumes attached.
-    
-    Each attachment filename: {StudentName}_{Department}_{Year}Year_CGPA{cgpa}.pdf
+    Builds an HTML EmailMessage with links to all selected students' resumes in a table
+    along with an optional Master Link to view all resumes in a neat online table.
     Returns EmailMessage object ready to send.
     Raises ValueError if no valid resume files found.
     """
     from_email = from_email or settings.DEFAULT_FROM_EMAIL
     cc_emails = cc_emails or []
 
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=from_email,
-        to=[to_email],
-        cc=cc_emails,
-    )
-
     attached_count = 0
     skipped = []
 
+    backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000').rstrip('/')
+
+    html_table_rows = []
+
     for app in applications:
         student = app.student
-        file_path = None
+        file_url = None
         
         # Check built resumes first
         primary_built = student.built_resumes.filter(is_primary=True, state__in=['active', 'generated']).first()
         if primary_built and primary_built.generated_pdf:
-            file_path = primary_built.generated_pdf.path
+            file_url = f"{backend_url}{primary_built.generated_pdf.url}"
         else:
             # Check uploaded resumes
             primary_upload = student.resume_uploads.filter(is_primary=True, status='parsed').first()
             if primary_upload and primary_upload.file:
-                file_path = primary_upload.file.path
+                file_url = f"{backend_url}{primary_upload.file.url}"
 
-        if not file_path:
+        if not file_url:
             skipped.append(f"{student.name} (no primary resume found)")
             continue
 
-        if not os.path.exists(file_path):
-            skipped.append(f"{student.name} (file not found on disk)")
-            logger.warning(f"Resume file not found: {file_path} for application {app.id}")
-            continue
-
-        # Build descriptive filename
-        student_name = student.name.replace(' ', '_')
         department = student.stream or 'Unknown'
         year = student.year or 'Unknown'
-        cgpa = str(student.cgpa or '0').replace('.', '_')
-        filename = f"{student_name}_{department}_{year}Year_CGPA{cgpa}.pdf"
+        cgpa = str(student.cgpa or 'N/A')
 
-        try:
-            with open(file_path, 'rb') as f:
-                email.attach(filename, f.read(), 'application/pdf')
-            attached_count += 1
-        except (IOError, OSError) as e:
-            skipped.append(f"{student.name} (read error: {str(e)})")
-            logger.error(f"Could not read resume file {file_path}: {e}")
+        html_table_rows.append(f"""
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;">{student.name}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{department}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{year}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{cgpa}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">
+                    <a href="{file_url}" style="color: #2563eb; text-decoration: none; font-weight: bold;">Download Resume</a>
+                </td>
+            </tr>
+        """)
+        attached_count += 1
 
     if attached_count == 0:
         raise ValueError(
-            f"No valid resume files found. Skipped: {', '.join(skipped) if skipped else 'all files missing'}"
+            f"No valid resumes found. Skipped: {', '.join(skipped) if skipped else 'all files missing'}"
         )
+
+    body_html = body.replace('\n', '<br>')
+    
+    master_link_html = ""
+    if log_id:
+        master_url = f"{settings.FRONTEND_URL}/shared-resumes/{log_id}"
+        master_link_html = f"""
+        <div style="margin-top: 28px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <a href="{master_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 99px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.2s;">
+                View Master Resume Workspace →
+            </a>
+        </div>
+        """
+
+    full_html_content = f"""
+    <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #334155; line-height: 1.6; padding: 24px; max-width: 650px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="font-size: 15px; color: #1e293b; font-family: inherit; whitespace: pre-line;">
+                {body_html}
+            </div>
+            {master_link_html}
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin-top: 32px; margin-bottom: 16px;" />
+            <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">Sent securely via iLEAD Placement Portal</p>
+        </body>
+    </html>
+    """
+
+    email = EmailMessage(
+        subject=subject,
+        body=full_html_content,
+        from_email=from_email,
+        to=[to_email],
+        cc=cc_emails,
+    )
+    email.content_subtype = "html"
 
     return email, attached_count, skipped
 

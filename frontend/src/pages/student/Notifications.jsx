@@ -18,8 +18,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Notifications() {
-  const { notifications, fetchNotifications, markRead, markAllRead, unreadCount } = useNotificationStore();
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'unread'
+  const { notifications, fetchNotifications, markRead, markAllRead, deleteNotification, unreadCount } = useNotificationStore();
+  const [activeFilter, setActiveFilter] = useState('all'); 
+  const [expandedId, setExpandedId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,34 +62,44 @@ export default function Notifications() {
     const lowerTitle = title.toLowerCase();
     if (lowerTitle.includes('shortlist') || title.includes('🎉')) {
       return {
-        icon: <Sparkles size={18} className="animate-pulse" />,
+        icon: <Sparkles size={18} className="animate-pulse text-emerald-500" />,
         classType: 'shortlist',
         text: 'Shortlisted'
       };
     }
     if (lowerTitle.includes('interview') || title.includes('📅')) {
       return {
-        icon: <Calendar size={18} />,
+        icon: <Calendar size={18} className="text-blue-500" />,
         classType: 'interview',
         text: 'Interview Invite'
       };
     }
     if (lowerTitle.includes('placed') || lowerTitle.includes('select') || title.includes('🏆')) {
       return {
-        icon: <Award size={18} className="animate-bounce" style={{ animationDuration: '3s' }} />,
+        icon: <Award size={18} className="animate-bounce text-amber-500" style={{ animationDuration: '3s' }} />,
         classType: 'placed',
         text: 'Offer / Placed'
       };
     }
     return {
-      icon: <Bell size={18} />,
+      icon: <Bell size={18} className="text-slate-500" />,
       classType: 'default',
       text: 'Update'
     };
   };
 
   const filteredNotifications = notifications.filter(note => {
-    if (activeFilter === 'unread') return !note.is_read;
+    const isUnread = !note.is_read;
+    const lowerTitle = note.title.toLowerCase();
+    const isOffer = lowerTitle.includes('placed') || lowerTitle.includes('select') || note.title.includes('🏆');
+    const isInterview = lowerTitle.includes('interview') || note.title.includes('📅');
+    const isShortlist = lowerTitle.includes('shortlist') || note.title.includes('🎉');
+    
+    if (activeFilter === 'unread') return isUnread;
+    if (activeFilter === 'offers') return isOffer;
+    if (activeFilter === 'interviews') return isInterview;
+    if (activeFilter === 'shortlists') return isShortlist;
+    if (activeFilter === 'updates') return !isOffer && !isInterview && !isShortlist;
     return true;
   });
 
@@ -96,9 +107,7 @@ export default function Notifications() {
     if (!note.is_read) {
       await markRead(note.id);
     }
-    if (note.action_url) {
-      navigate(note.action_url);
-    }
+    setExpandedId(expandedId === note.id ? null : note.id);
   };
 
   const containerVariants = {
@@ -106,15 +115,15 @@ export default function Notifications() {
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05
+        staggerChildren: 0.04
       }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
-    exit: { opacity: 0, x: -50, transition: { duration: 0.2 } }
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 350, damping: 26 } },
+    exit: { opacity: 0, x: -30, transition: { duration: 0.2 } }
   };
 
   return (
@@ -163,18 +172,25 @@ export default function Notifications() {
       {/* Filter and Control Bar */}
       <div className="notifications-control-bar">
         <div className="notifications-filter-group">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`notifications-filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-          >
-            All ({notifications.length})
-          </button>
-          <button
-            onClick={() => setActiveFilter('unread')}
-            className={`notifications-filter-btn ${activeFilter === 'unread' ? 'active' : ''}`}
-          >
-            Unread ({unreadCount})
-          </button>
+          {[
+            { id: 'all', label: 'All', count: notifications.length },
+            { id: 'unread', label: 'Unread', count: unreadCount },
+            { id: 'offers', label: 'Offers 🏆', count: notifications.filter(n => n.title.toLowerCase().match(/placed|select/) || n.title.includes('🏆')).length },
+            { id: 'interviews', label: 'Interviews 📅', count: notifications.filter(n => n.title.toLowerCase().includes('interview') || n.title.includes('📅')).length },
+            { id: 'shortlists', label: 'Shortlists 🎉', count: notifications.filter(n => n.title.toLowerCase().includes('shortlist') || n.title.includes('🎉')).length },
+            { id: 'updates', label: 'Updates 📢', count: notifications.filter(n => {
+              const lt = n.title.toLowerCase();
+              return !lt.match(/shortlist|interview|placed|select/) && !n.title.match(/[🏆📅🎉]/);
+            }).length }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveFilter(tab.id); setExpandedId(null); }}
+              className={`notifications-filter-btn ${activeFilter === tab.id ? 'active' : ''}`}
+            >
+              {tab.label} <span className="filter-count">({tab.count})</span>
+            </button>
+          ))}
         </div>
         <div className="notifications-count-indicator">
           <Filter size={14} className="text-orange-500" /> 
@@ -205,7 +221,7 @@ export default function Notifications() {
               <p className="notifications-empty-desc">
                 {activeFilter === 'unread' 
                   ? 'You do not have any unread notifications at the moment.' 
-                  : 'You do not have any notifications at the moment.'}
+                  : 'You do not have any notifications in this section.'}
               </p>
             </motion.div>
           ) : (
@@ -213,6 +229,7 @@ export default function Notifications() {
               const badge = getBadgeDetails(note.title, note.notification_type);
               const priority = priorityConfig[note.priority] || priorityConfig.medium;
               const isUnread = !note.is_read;
+              const isExpanded = expandedId === note.id;
 
               return (
                 <motion.div
@@ -221,7 +238,7 @@ export default function Notifications() {
                   layoutId={note.id}
                   exit="exit"
                   whileHover={{ y: -2, boxShadow: 'var(--shadow-md)' }}
-                  className={`notification-item-card ${isUnread ? 'unread' : ''}`}
+                  className={`notification-item-card ${isUnread ? 'unread' : ''} ${note.priority || 'medium'} ${isExpanded ? 'expanded' : ''}`}
                   onClick={() => handleNotificationClick(note)}
                 >
                   {/* Left priority color stripe */}
@@ -261,17 +278,44 @@ export default function Notifications() {
                       </h3>
                       
                       {/* Notification Body */}
-                      <p className="notification-item-message">
+                      <p className={`notification-item-message ${isExpanded ? 'expanded' : 'truncated'}`}>
                         {note.message}
                       </p>
+
+                      {/* Accordion Expand Action Links */}
+                      <AnimatePresence>
+                        {isExpanded && note.action_url && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => navigate(note.action_url)}
+                              className="notification-action-btn"
+                            >
+                              Go to Action Page <ChevronRight size={14} />
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
-                    {/* Navigation Chevron */}
-                    {note.action_url && (
+                    {/* Action sidebar: delete icon and chevron */}
+                    <div className="notification-actions-sidebar" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => deleteNotification(note.id)}
+                        className="notification-action-icon-btn delete-btn"
+                        title="Delete notification"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      
                       <div className="notification-chevron-wrapper">
-                        <ChevronRight size={18} />
+                        <ChevronRight size={18} className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Mark as read inline trigger footer */}

@@ -112,6 +112,23 @@ const useNotificationStore = create((set, get) => ({
     }
   },
 
+  deleteNotification: async (id) => {
+    try {
+      await axios.delete(`/applications/notifications/${id}/`);
+      set(state => {
+        const updated = state.notifications.filter(n => n.id !== id);
+        return {
+          notifications: updated,
+          unreadCount: updated.filter(n => !n.is_read).length
+        };
+      });
+      toast.success('Notification cleared successfully');
+    } catch (error) {
+      console.error('Failed to delete notification', error);
+      toast.error('Failed to clear notification');
+    }
+  },
+
   poll: () => {
     if (get().pollingActive) return;
     set({ pollingActive: true });

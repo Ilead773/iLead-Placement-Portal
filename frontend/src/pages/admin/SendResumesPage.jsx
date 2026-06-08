@@ -18,6 +18,8 @@ const SendResumesPage = () => {
   const [result, setResult] = useState(null);
   const [errors, setErrors] = useState({});
   const [jobType, setJobType] = useState(null);
+  const [jobStatus, setJobStatus] = useState(null);
+
 
   const appsWithResume = selectedApplications.filter(a => a.resume_url);
   const appsWithoutResume = selectedApplications.filter(a => !a.resume_url);
@@ -27,8 +29,10 @@ const SendResumesPage = () => {
       try {
         const res = await axios.get(`/jobs/admin/jobs/${jobId}/`, { params: { _t: Date.now() } });
         setJobType(res.data?.job_type ?? null);
+        setJobStatus(res.data?.status ?? null);
       } catch (e) {
         setJobType(null);
+        setJobStatus(null);
       }
     };
     fetchJob();
@@ -52,6 +56,19 @@ const SendResumesPage = () => {
         </div>
         <Link to={`/jobs/${jobId}/applications`} className="text-blue-600 hover:underline">
           &larr; Go back to Job Applications and select students
+        </Link>
+      </div>
+    );
+  }
+
+  if (jobStatus === 'closed') {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <div className="bg-red-50 text-red-800 p-6 rounded-lg mb-4 text-lg border border-red-200">
+          This opportunity is closed. Sending resumes is no longer active.
+        </div>
+        <Link to={`/jobs/${jobId}/applications`} className="text-blue-600 hover:underline">
+          &larr; Back to Job Applications
         </Link>
       </div>
     );
@@ -94,6 +111,16 @@ const SendResumesPage = () => {
     setCcEmails(ccEmails.filter(e => e !== emailToRemove));
   };
 
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyLink = () => {
+    if (result?.shared_link) {
+      navigator.clipboard.writeText(result.shared_link);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   const handleSend = async () => {
     if (jobType === 'external') {
       setErrors({ general: 'Off-campus jobs do not support bulk resume emailing.' });
@@ -117,6 +144,7 @@ const SendResumesPage = () => {
         success: true,
         message: response.data.message,
         summary: response.data.summary,
+        shared_link: response.data.shared_link,
       });
     } catch (err) {
       if (err.response?.status === 400 && err.response?.data?.details) {
@@ -131,21 +159,44 @@ const SendResumesPage = () => {
 
   if (result?.success) {
     return (
-      <div className="page-content flex items-center justify-center min-h-[70vh]">
-        <div className="card text-center max-w-2xl w-full p-10">
-          <div className="text-success text-7xl mb-6">✓</div>
-          <h2 className="text-3xl font-bold mb-4">Email Sent Successfully!</h2>
+      <div className="flex items-center justify-center min-h-[70vh]" style={{ width: '100%' }}>
+        <div className="card text-center max-w-2xl w-full p-10 shadow-2xl rounded-3xl border border-emerald-500/10">
+          <div className="text-emerald-500 bg-emerald-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-4xl border border-emerald-500/20 mb-6">✓</div>
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Email Sent Successfully!</h2>
+          <p className="text-slate-500 dark:text-slate-400">The candidate resumes workspace has been generated and emailed.</p>
           
-          <div className="bg-input border border-border-color rounded-lg p-6 my-8 text-left">
-            <p className="mb-3 text-lg"><strong className="text-secondary">To:</strong> {result.summary.company_email}</p>
-            <p className="text-lg"><strong className="text-secondary">Resumes attached:</strong> {result.summary.selected_students}</p>
+          <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 my-6 text-left space-y-3">
+            <p className="text-sm"><strong className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs">Employer Email:</strong> <span className="font-semibold text-slate-800 dark:text-slate-200">{result.summary.company_email}</span></p>
+            <p className="text-sm"><strong className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs">Selected Candidates:</strong> <span className="font-semibold text-slate-800 dark:text-slate-200">{result.summary.selected_students}</span></p>
+            
+            {result.shared_link && (
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80">
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-2">Master Candidate Link</p>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={result.shared_link} 
+                    className="input-field flex-1 text-xs bg-slate-100 dark:bg-slate-950 font-mono select-all border border-slate-200 dark:border-slate-800"
+                  />
+                  <button 
+                    onClick={handleCopyLink} 
+                    className={`btn text-xs font-bold px-4 py-2 rounded-xl transition-all duration-200 ${
+                      copiedLink ? 'btn-success bg-emerald-500 text-white' : 'btn-secondary border border-slate-300 dark:border-slate-700'
+                    }`}
+                  >
+                    {copiedLink ? 'Copied!' : 'Copy Link'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-center space-x-6">
-            <Link to={`/jobs/${jobId}/applications`} className="btn btn-secondary px-8 py-3">
+          <div className="flex justify-center space-x-4">
+            <Link to={`/jobs/${jobId}/applications`} className="btn btn-secondary px-8 py-3 rounded-xl font-bold">
               Back to Applications
             </Link>
-            <Link to="/admin/jobs" className="btn btn-primary px-8 py-3">
+            <Link to="/admin/jobs" className="btn btn-primary px-8 py-3 rounded-xl font-bold">
               Go to Jobs
             </Link>
           </div>
@@ -155,8 +206,8 @@ const SendResumesPage = () => {
   }
 
   return (
-    <div className="page-content">
-      <div className="page-header mb-8">
+    <div style={{ width: '100%' }}>
+      <div className="page-header mb-8 flex justify-between items-center flex-wrap gap-4">
         <div>
           <Link to={`/jobs/${jobId}/applications`} className="action-link mb-2 inline-block">
             &larr; Back to Applications
@@ -165,6 +216,16 @@ const SendResumesPage = () => {
           <p className="text-secondary mt-2 text-lg">
             Sending <span className="text-primary">{appsWithResume.length}</span> resumes for <strong className="text-primary">{jobTitle}</strong> at <strong className="text-primary">{companyName}</strong>.
           </p>
+        </div>
+        <div>
+          <button 
+            type="button"
+            onClick={() => navigate(`/admin/email-history?job_id=${jobId}`)}
+            className="btn btn-secondary flex items-center gap-2"
+            style={{ fontWeight: '800' }}
+          >
+            📧 View History
+          </button>
         </div>
       </div>
 
@@ -281,8 +342,19 @@ const SendResumesPage = () => {
                       <strong className="text-primary">{i+1}. {app.student_name}</strong>
                       {!app.resume_url && <span className="badge badge-danger ml-2">No Resume</span>}
                     </div>
-                    <div className="text-secondary mt-1">
-                      {app.student_stream || 'Unknown Branch'} • CGPA {app.cgpa || 'N/A'}
+                    <div className="text-secondary mt-1 flex justify-between items-center">
+                      <span>{app.student_stream || 'Unknown Branch'} • CGPA {app.cgpa || 'N/A'}</span>
+                      {app.resume_url && (
+                        <a 
+                          href={app.resume_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-bold"
+                          style={{ marginLeft: '12px' }}
+                        >
+                          View Resume ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}

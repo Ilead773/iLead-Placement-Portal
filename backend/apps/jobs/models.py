@@ -33,8 +33,9 @@ class Job(models.Model):
         ('A', 'Category A'),
         ('B', 'Category B'),
         ('C', 'Category C'),
+        ('Own', 'Own Category'),
     ]
-    category = models.CharField(max_length=2, choices=CATEGORY_CHOICES, default='C')
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='C')
     openings_count = models.IntegerField(default=1)
     hr_email = models.EmailField(blank=True, null=True)
 
@@ -43,6 +44,7 @@ class Job(models.Model):
     
     application_deadline = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    email_sent = models.BooleanField(default=False)
     
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_jobs')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -74,3 +76,25 @@ class JobRound(models.Model):
 
     def __str__(self):
         return f"{self.job.company_name} - Round {self.round_number}: {self.round_name}"
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Job)
+def trigger_job_alert_email(sender, instance, created, **kwargs):
+    # Trigger when status becomes active and emails haven't been sent yet
+    if instance.status == 'active' and not instance.email_sent:
+        instance.email_sent = True
+        # Save only the email_sent field to avoid re-triggering signal recursively
+        instance.save(update_fields=['email_sent'])
+        
+        # Trigger background enqueuing of the email alert task
+        from apps.applications.tasks import send_job_alert_task
+        try:
+            send_job_alert_task.delay(instance.id)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not queue job alert email for job {instance.id} (is Redis/Celery running?): {e}")
+

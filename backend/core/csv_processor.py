@@ -263,6 +263,10 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                 if email_owner and (not existing_user or email_owner.id != existing_user.id):
                     raise ValueError(f"Row {total}: Email '{email}' is already registered to another user.")
 
+                # Check for duplicate registration number conflicts (different student/email)
+                if existing_user and existing_user.email != email:
+                    raise ValueError(f"Row {total}: Duplicate registration number: '{reg_no}' is already registered to another user.")
+
                 if existing_user:
                     # Update existing user and their student profile
                     existing_user.email = email

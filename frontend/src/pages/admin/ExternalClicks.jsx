@@ -21,6 +21,12 @@ export default function ExternalClicks() {
   const [confirmType, setConfirmType] = useState('danger');
   const [onConfirmAction, setOnConfirmAction] = useState(null);
 
+  // Off-Campus Selection Form Modal State
+  const [selectionModalOpen, setSelectionModalOpen] = useState(false);
+  const [selectedClickLog, setSelectedClickLog] = useState(null);
+  const [selectionListingType, setSelectionListingType] = useState('job');
+  const [selectionPackage, setSelectionPackage] = useState('');
+
   const triggerConfirm = (title, message, action, type = 'danger') => {
     setConfirmTitle(title);
     setConfirmMessage(message);
@@ -49,30 +55,46 @@ export default function ExternalClicks() {
       setActiveTab('selected');
       return;
     }
-    const studentName = click.student_name || click.user_login;
-    const confirmMsg = `Are you sure you want to mark student "${studentName}" as SELECTED for the off-campus job "${click.job_title || 'Off-Campus Role'}" at "${click.company_name || 'External Company'}"?\n\nThis will automatically create a placement record, send a high-priority placement notification to the student, and ask them to upload their official offer letter.`;
-    
-    triggerConfirm(
-      'Mark Selected Off-Campus',
-      confirmMsg,
-      async () => {
-        const toastId = toast.loading('Marking student as selected...');
-        try {
-          const response = await api.post(`/admin-ops/external-clicks/${click.id}/mark-selected/`);
-          toast.success(response.data.message || 'Student successfully placed off-campus! 🏆', { id: toastId });
+    setSelectedClickLog(click);
+    setSelectionListingType('job');
+    setSelectionPackage('');
+    setSelectionModalOpen(true);
+  };
 
-          setClicks(prev =>
-            prev.map(c => (c.id === click.id ? { ...c, is_marked_selected: true, marked_selected_at: response.data.marked_selected_at || new Date().toISOString() } : c))
-          );
-          setActiveTab('selected');
-        } catch (error) {
-          console.error(error);
-          const errorMsg = error.response?.data?.error || 'Failed to complete off-campus selection.';
-          toast.error(errorMsg, { id: toastId });
-        }
-      },
-      'warning'
-    );
+  const handleConfirmSelection = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedClickLog) return;
+    
+    if (!selectionPackage || isNaN(parseFloat(selectionPackage)) || parseFloat(selectionPackage) < 0) {
+      toast.error('Please enter a valid numeric compensation amount.');
+      return;
+    }
+
+    const toastId = toast.loading('Marking student as selected...');
+    try {
+      const response = await api.post(`/admin-ops/external-clicks/${selectedClickLog.id}/mark-selected/`, {
+        listing_type: selectionListingType,
+        package: parseFloat(selectionPackage)
+      });
+      toast.success(response.data.message || 'Student successfully placed off-campus! 🏆', { id: toastId });
+
+      setClicks(prev =>
+        prev.map(c => (c.id === selectedClickLog.id ? { 
+          ...c, 
+          is_marked_selected: true, 
+          marked_selected_at: response.data.marked_selected_at || new Date().toISOString(),
+          package: parseFloat(selectionPackage),
+          listing_type: selectionListingType
+        } : c))
+      );
+      setSelectionModalOpen(false);
+      setSelectedClickLog(null);
+      setActiveTab('selected');
+    } catch (error) {
+      console.error(error);
+      const errorMsg = error.response?.data?.error || 'Failed to complete off-campus selection.';
+      toast.error(errorMsg, { id: toastId });
+    }
   };
 
   useEffect(() => {
@@ -242,6 +264,8 @@ export default function ExternalClicks() {
                   <th>Job Title</th>
                   <th>Company</th>
                   <th>Link</th>
+                  {activeTab === 'selected' && <th>Compensation</th>}
+                  <th style={{ textAlign: 'center' }}>Clicks</th>
                   <th>Timestamp</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
@@ -262,6 +286,18 @@ export default function ExternalClicks() {
                       >
                         Visit Site <ExternalLink size={12} />
                       </a>
+                    </td>
+                    {activeTab === 'selected' && (
+                      <td style={{ fontWeight: 600, color: 'var(--success)' }}>
+                        {click.package ? (
+                          click.listing_type === 'internship' 
+                            ? `₹${Number(click.package).toLocaleString()}/month` 
+                            : `${click.package} LPA`
+                        ) : '—'}
+                      </td>
+                    )}
+                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
+                      {click.click_count || 1}
                     </td>
                     <td style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -290,14 +326,38 @@ export default function ExternalClicks() {
                         🏅 Mark Selected
                       </button>
                       ) : (
-                        <span className="badge badge-success">Selected</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                          <span className="badge badge-success">Selected</span>
+                          <button
+                            onClick={() => {
+                              setSelectedClickLog(click);
+                              setSelectionListingType(click.listing_type || 'job');
+                              setSelectionPackage(click.package ? String(click.package) : '');
+                              setSelectionModalOpen(true);
+                            }}
+                            className="btn btn-secondary"
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '0.7rem',
+                              borderRadius: '4px',
+                              fontWeight: '700',
+                              textTransform: 'uppercase',
+                              lineHeight: 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                          >
+                            ✏️ Edit Info
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
                 ))}
                 {shownClicks.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center" style={{ padding: 40, color: 'var(--text-muted)' }}>
+                    <td colSpan={activeTab === 'selected' ? 9 : 8} className="text-center" style={{ padding: 40, color: 'var(--text-muted)' }}>
                       {activeTab === 'selected' ? 'No clicks have been marked selected yet.' : 'No click records found matching search filters.'}
                     </td>
                   </tr>
@@ -307,6 +367,228 @@ export default function ExternalClicks() {
           </div>
         )}
       </div>
+
+      {/* Off-Campus Selection Form Modal */}
+      {selectionModalOpen && selectedClickLog && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            boxSizing: 'border-box',
+            fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)'
+          }}
+        >
+          {/* Backdrop */}
+          <div 
+            onClick={() => setSelectionModalOpen(false)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.6)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          />
+          
+          {/* Modal Card */}
+          <form 
+            onSubmit={handleConfirmSelection}
+            style={{
+              position: 'relative',
+              backgroundColor: 'var(--bg-card, #ffffff)',
+              border: '1px solid var(--border-color, #e2e8f0)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '460px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.05)',
+              padding: '24px',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            {/* Top visual accent */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '5px',
+                background: 'linear-gradient(to right, #2563eb, #1d4ed8)'
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginTop: '8px' }}>
+              <div 
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                  color: 'var(--accent-primary, #2563eb)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <TrendingUp size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                  Mark Off-Campus Selection
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  Record placement details for {selectedClickLog.student_name || selectedClickLog.student_reg || selectedClickLog.user_login}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <div className="input-group" style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  Selection Type
+                </label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectionListingType('job')}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid ' + (selectionListingType === 'job' ? 'var(--accent-primary)' : 'var(--border-color)'),
+                      backgroundColor: selectionListingType === 'job' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      color: selectionListingType === 'job' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    💼 Job / Full-Time
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectionListingType('internship')}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid ' + (selectionListingType === 'internship' ? 'var(--accent-primary)' : 'var(--border-color)'),
+                      backgroundColor: selectionListingType === 'internship' ? 'rgba(37, 99, 235, 0.08)' : 'transparent',
+                      color: selectionListingType === 'internship' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    🎓 Internship
+                  </button>
+                </div>
+              </div>
+
+              <div className="input-group" style={{ marginBottom: '8px' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>
+                  {selectionListingType === 'job' ? 'Annual CTC Package (LPA)' : 'Monthly Stipend Amount (₹)'}
+                </label>
+                <input
+                  required
+                  type="number"
+                  step="any"
+                  min="0"
+                  className="input-field"
+                  placeholder={selectionListingType === 'job' ? 'E.g. 6.5 (for 6.5 LPA)' : 'E.g. 25000 (for 25k/mo)'}
+                  value={selectionPackage}
+                  onChange={(e) => setSelectionPackage(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+
+            {/* Warning Message */}
+            <div 
+              style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.2)',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '0.78rem',
+                color: '#d97706',
+                lineHeight: 1.4
+              }}
+            >
+              <strong>Important:</strong> This will create a shadow off-campus placement record with the specified compensation and send a placement congratulatory notification to the student.
+            </div>
+
+            {/* Action Buttons */}
+            <div 
+              style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                marginTop: '12px',
+                paddingTop: '12px',
+                borderTop: '1px solid var(--border-color)'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectionModalOpen(false)}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontWeight: '700',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'linear-gradient(to right, #2563eb, #1d4ed8)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.2px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Confirm Placement
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={confirmOpen}
         title={confirmTitle}

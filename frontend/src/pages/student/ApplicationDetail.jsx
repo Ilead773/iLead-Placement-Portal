@@ -211,14 +211,21 @@ const ApplicationDetail = () => {
               )}
             </div>
           </div>
-          {application.status !== 'withdrawn' && application.status !== 'rejected' && (
-            <button onClick={handleWithdraw} className="app-detail-withdraw-btn">
-              Withdraw Application
-            </button>
-          )}
         </div>
 
         <div className="app-detail-body">
+          {application.job_status === 'closed' && !['selected', 'accepted'].includes(application.status) && (
+            <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/25 text-danger flex items-start gap-3">
+              <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-bold text-sm m-0 text-danger" style={{ color: 'var(--danger)' }}>Recruitment Drive Closed</h4>
+                <p className="text-xs text-secondary mt-1 leading-relaxed">
+                  This job opportunity has been closed by the placement cell. No further round updates or selections will take place for this position.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Offer Acceptance Flow (Selected or Accepted) */}
           {(application.status === 'selected' || application.status === 'accepted') && (
             <div className={`app-offer-card ${application.status === 'accepted' ? 'accepted' : 'selected'}`}>
@@ -238,10 +245,7 @@ const ApplicationDetail = () => {
                     </div>
                   </div>
                   <p className="app-offer-desc">
-                    Great news! The recruitment team has offered you the role of <strong>{application.job_title}</strong> at <strong>{application.company_name}</strong>. 
-                    {isOffCampus
-                      ? <> This is an <strong>off-campus</strong> placement. Please upload your official offer letter to finalize your records.</>
-                      : <> Please review and accept your offer below, and upload your official offer letter to finalize your records.</>}
+                    Great news! The recruitment team has offered you the role of <strong>{application.job_title}</strong> at <strong>{application.company_name}</strong>. Please upload your official offer letter to finalize your records.
                   </p>
 
                   {uploadError && (
@@ -252,32 +256,6 @@ const ApplicationDetail = () => {
                   )}
 
                   <div className="app-offer-actions-row">
-                    {!isOffCampus && (
-                      <div className="app-offer-decision-block">
-                        <div className="app-offer-buttons">
-                          <button
-                            onClick={() => handleAccept(null)}
-                            disabled={uploading}
-                            className="btn btn-success flex-1"
-                          >
-                            <Check size={16} strokeWidth={3} />
-                            Accept Offer
-                          </button>
-                          <button
-                            onClick={handleDecline}
-                            disabled={uploading}
-                            className="btn btn-danger-outline flex-1"
-                          >
-                            <XCircle size={16} />
-                            Decline Offer
-                          </button>
-                        </div>
-                        <div className="app-offer-tip">
-                          Tip: You can drag and drop your offer letter onto the right side to accept and upload in one click.
-                        </div>
-                      </div>
-                    )}
-
                     {/* Drag and Drop Zone */}
                     <div 
                       onDragEnter={handleDrag}
@@ -285,6 +263,7 @@ const ApplicationDetail = () => {
                       onDragLeave={handleDrag}
                       onDrop={handleDrop}
                       className={`app-offer-dropzone ${dragActive ? 'active' : ''}`}
+                      style={{ flex: '1 1 100%' }}
                     >
                       <input 
                         type="file" 
@@ -386,10 +365,31 @@ const ApplicationDetail = () => {
             </div>
           )}
 
-          <h2 className="text-xl font-bold text-primary mb-6">Recruitment Pipeline</h2>
-          <RoundPipeline rounds={application.rounds} currentRound={application.current_round} />
+          {application.status === 'applied' ? (
+            <div className="p-6 rounded-2xl border border-border-color bg-card-hover/20 flex items-start gap-4 my-8">
+              <div className="p-3 bg-info/10 text-info rounded-xl">
+                <Clock size={20} className="animate-pulse" style={{ color: 'var(--accent-primary)' }} />
+              </div>
+              <div>
+                <h4 className="font-bold text-primary mb-1">Application Received</h4>
+                <p className="text-xs text-secondary leading-relaxed">
+                  Your application for this role has been submitted. The placement cell is currently reviewing candidate profiles. Once you are shortlisted or scheduled for rounds, your recruitment tracking pipeline will appear here.
+                </p>
+              </div>
+            </div>
+          ) : !isOffCampus ? (
+            <>
+              <h2 className="text-xl font-bold text-primary mb-6">Recruitment Pipeline</h2>
+              <RoundPipeline 
+                rounds={application.rounds} 
+                currentRound={application.current_round} 
+                status={application.status}
+                appliedAt={application.applied_at}
+              />
+            </>
+          ) : null}
           
-          {application.current_round && application.current_round.status === 'scheduled' && (
+          {!isOffCampus && application.current_round && application.current_round.status === 'scheduled' && (
             <div className="mt-8 border rounded-lg p-6 flex items-start" style={{ background: 'var(--bg-card-hover)', borderColor: 'var(--border-color)' }}>
               <div className="p-3 rounded-full mr-4" style={{ background: 'var(--bg-input)', color: 'var(--info)' }}>
                 <Calendar size={24} />

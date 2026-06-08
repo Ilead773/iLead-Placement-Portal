@@ -92,6 +92,14 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     student_category = serializers.CharField(source='student.category', read_only=True)
     student_backlogs = serializers.BooleanField(source='student.backlogs', read_only=True)
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and request.user and getattr(request.user, 'role', '') == 'student':
+            ret.pop('student_category', None)
+        return ret
+
+
 
 class ProfileSummarySerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing profiles."""
@@ -104,39 +112,14 @@ class ProfileSummarySerializer(serializers.ModelSerializer):
 
 class StudentProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for partial profile updates including core student data."""
-    phone_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    year = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    category = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    backlogs = serializers.BooleanField(write_only=True, required=False)
 
     class Meta:
         model = StudentProfile
         fields = [
             'phone', 'location', 'professional_summary',
-            'linkedin', 'github', 'portfolio',
-            'phone_number', 'year', 'category', 'backlogs'
+            'linkedin', 'github', 'portfolio'
         ]
 
-    def update(self, instance, validated_data):
-        # Extract student fields
-        student_data = {}
-        if 'phone_number' in validated_data:
-            student_data['phone_number'] = validated_data.pop('phone_number')
-        if 'year' in validated_data:
-            student_data['year'] = validated_data.pop('year')
-        if 'category' in validated_data:
-            student_data['category'] = validated_data.pop('category')
-        if 'backlogs' in validated_data:
-            student_data['backlogs'] = validated_data.pop('backlogs')
-
-        # Update student record if needed
-        if student_data:
-            student = instance.student
-            for attr, value in student_data.items():
-                setattr(student, attr, value)
-            student.save()
-
-        return super().update(instance, validated_data)
 
 
 class SkillCreateSerializer(serializers.ModelSerializer):

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
@@ -29,7 +29,8 @@ import {
   Mic,
   MousePointerClick,
   Workflow,
-  Bell
+  Bell,
+  HelpCircle
 } from 'lucide-react';
 import useThemeStore from '../store/themeStore';
 import logo from '../logo.png';
@@ -39,9 +40,10 @@ const ADMIN_NAV = [
     { to: '/dashboard', icon: <LayoutDashboard size={18} strokeWidth={2} />, label: 'Dashboard' },
     { to: '/students', icon: <Users size={18} strokeWidth={2} />, label: 'Students' },
     { to: '/placements', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Placements' },
+    { to: '/assignments', icon: <GraduationCap size={18} strokeWidth={2} />, label: 'Assignments' },
   ]},
   { section: 'Operations', items: [
-    { to: '/admin/pipeline', icon: <Workflow size={18} strokeWidth={2} />, label: 'Job Pipeline' },
+    { to: '/admin/pipeline', icon: <Workflow size={18} strokeWidth={2} />, label: 'Job Tracking' },
     { to: '/admin/jobs', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'Manage Jobs' },
     { to: '/admin/internships', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'Manage Internships' },
     { to: '/admin/send-resumes', icon: <Send size={18} strokeWidth={2} />, label: 'Send Resumes' },
@@ -51,6 +53,7 @@ const ADMIN_NAV = [
   ]},
   { section: 'Support', items: [
     { to: '/coordinators', icon: <UserCircle size={18} strokeWidth={2} />, label: 'Coordinators' },
+    { to: '/admin/faq', icon: <HelpCircle size={18} strokeWidth={2} />, label: 'FAQ & Policy' },
   ]},
   { section: 'Scraping', items: [
     { to: '/admin/scraping', icon: <Activity size={18} strokeWidth={2} />, label: 'Scraping Dashboard' },
@@ -66,6 +69,7 @@ const STUDENT_NAV = [
   ]},
   { section: 'Career', items: [
     { to: '/student/resumes', icon: <FileText size={18} strokeWidth={2} />, label: 'My Resumes' },
+    { to: '/student/applications', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'My Applications' },
     { to: '/student/jobs', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Jobs' },
     { to: '/student/internships', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Internships' },
     { to: '/student/job-feed', icon: <Rss size={18} strokeWidth={2} />, label: 'Job Feed', badge: 'NEW' },
@@ -73,8 +77,52 @@ const STUDENT_NAV = [
   ]},
   { section: 'Preparation', items: [
     { to: '/student/mock-interview', icon: <Mic size={18} strokeWidth={2} />, label: 'Mock Interview', badge: 'NEW' },
+  ]},
+  { section: 'Support', items: [
+    { to: '/student/faq', icon: <HelpCircle size={18} strokeWidth={2} />, label: 'FAQ & Policy' },
   ]}
 ];
+
+// Premium Magnetic Hover component using Framer Motion
+function MagneticItem({ children }) {
+  const ref = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    if (!ref.current) return;
+    const { clientX, clientY } = e;
+    const { left, top, width, height } = ref.current.getBoundingClientRect();
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+
+    // Subtle magnetic attraction pull capped at 6px
+    const cap = 6;
+    const pullX = (dx / (width / 2)) * cap;
+    const pullY = (dy / (height / 2)) * cap;
+
+    setPosition({ x: pullX, y: pullY });
+  };
+
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: position.x, y: position.y }}
+      transition={{ type: "spring", stiffness: 220, damping: 15, mass: 0.1 }}
+      style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', position: 'relative', zIndex: 1 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function Layout() {
   const { user, logout } = useAuthStore();
@@ -83,6 +131,17 @@ export default function Layout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hoveredPath, setHoveredPath] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  // Track window resize to toggle between mobile and desktop styles dynamically
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -151,29 +210,13 @@ export default function Layout() {
       <motion.aside 
         initial={false}
         animate={{ 
-          width: collapsed ? 80 : 280,
-          x: mobileOpen ? 0 : (window.innerWidth < 1024 ? -280 : 0)
+          width: isMobile ? (isStudent ? 280 : 260) : (collapsed ? 72 : (isStudent ? 280 : 260)),
+          x: isMobile ? (mobileOpen ? 0 : -300) : 0
         }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
         className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
       >
-        <motion.div 
-          className="sidebar-brand" 
-          onClick={() => navigate('/')}
-          whileHover={{ x: 5 }}
-        >
-          <div className="brand-logo-container">
-            <img src={logo} alt="iLEAD Logo" className="brand-logo-img" />
-            {!collapsed && (
-              <div className="brand-subtext">
-                <span>Placement</span>
-                <span>Portal</span>
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" onMouseLeave={() => setHoveredPath(null)}>
           {NAV_ITEMS.map((section, idx) => (
             <div key={idx} className="nav-section">
               {!collapsed && <h4 className="nav-section-title">{section.section}</h4>}
@@ -184,13 +227,42 @@ export default function Layout() {
                   end={item.to === '/dashboard' || item.to === '/student'}
                   className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} 
                   title={collapsed ? item.label : ''}
+                  onMouseEnter={() => setHoveredPath(item.to)}
                 >
-                  <div className="nav-icon">{item.icon}</div>
-                  {!collapsed && (
-                    <span className="nav-label">
-                      {item.label}
-                      {item.badge && <span className="nav-badge-new">{item.badge}</span>}
-                    </span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeNavPill"
+                          className="sidebar-active-pill"
+                          transition={{
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 24
+                          }}
+                        />
+                      )}
+                      {hoveredPath === item.to && !isActive && (
+                        <motion.div
+                          layoutId="hoverNavPill"
+                          className="sidebar-hover-pill"
+                          transition={{
+                            type: "spring",
+                            stiffness: 350,
+                            damping: 25
+                          }}
+                        />
+                      )}
+                      <MagneticItem>
+                        <div className="nav-icon">{item.icon}</div>
+                        {!collapsed && (
+                          <span className="nav-label">
+                            {item.label}
+                            {item.badge && <span className="nav-badge-new">{item.badge}</span>}
+                          </span>
+                        )}
+                      </MagneticItem>
+                    </>
                   )}
                 </NavLink>
               ))}
@@ -223,6 +295,20 @@ export default function Layout() {
               {isDarkMode ? <Sun size={20} className="text-orange-500" /> : <Moon size={20} />}
             </button>
           </div>
+
+          {/* Ultra-Premium Centered Brand Pill */}
+          <div
+            className="topbar-brand-center"
+            onClick={() => navigate(isStudent ? '/student' : '/dashboard')}
+            title="Go to Dashboard"
+          >
+            <img src={logo} alt="iLEAD Logo" className="topbar-brand-logo" />
+            <div className="topbar-brand-text">
+              <span className="topbar-brand-title">iLEAD</span>
+              <span className="topbar-brand-subtitle">Placement Portal</span>
+            </div>
+          </div>
+
           <div className="topbar-right">
             <div className="flex items-center gap-2">
                 <NotificationBell />
@@ -236,15 +322,20 @@ export default function Layout() {
           </div>
         </header>
         
-        <motion.div 
-          key={location.pathname}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="page-content"
-        >
-          <Outlet />
-        </motion.div>
+        <div className="main-content-body">
+          <AnimatePresence>
+            <motion.div 
+              key={location.pathname}
+              initial={{ opacity: 0, scale: 0.97, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="page-content"
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </main>
     </div>
   );

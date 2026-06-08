@@ -7,7 +7,8 @@ import {
   CheckCircle, AlertCircle, XCircle, Clock, BarChart2, PieChart,
   Calendar, MapPin, Star, ArrowUp, ArrowDown, Filter, Download,
   RefreshCw, Target, Zap, Activity, GraduationCap, BookOpen,
-  UserCheck, UserX, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Info
+  UserCheck, UserX, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Info,
+  Maximize2, Minimize2
 } from 'lucide-react';
 
 // ─── Colour Palette ───────────────────────────────────────────────
@@ -27,34 +28,92 @@ const PALETTE = Object.values(COLORS);
 // ─── Mini Reusable Components ─────────────────────────────────────
 
 function KPICard({ title, value, subtitle, icon: Icon, color = COLORS.accent, trend, small }) {
+  const valueStr = String(value || '');
+  const isVeryLong = valueStr.length > 22;
+  const isLongText = valueStr.length > 15;
+  
+  const fontSize = isVeryLong
+    ? (small ? '0.8rem' : '0.85rem')
+    : isLongText
+      ? (small ? '0.88rem' : '0.95rem')
+      : '1.25rem';
+
+  const fontWeight = isLongText ? 700 : 800;
+  const lineHeight = isLongText ? 1.35 : 1.2;
+
   return (
-    <div className="card group hover-lift" style={{
-      padding: small ? '16px' : '20px',
+    <div className="card group hover-lift animate-in" style={{
+      padding: small ? '16px 20px' : '20px 24px',
       borderRadius: 'var(--radius-lg)',
       border: '1px solid var(--border-color)',
+      background: 'var(--bg-card)',
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-      gap: '12px', transition: 'all 0.3s',
+      gap: '12px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      position: 'relative',
+      overflow: 'hidden',
+      height: '100%',
+      minHeight: small ? '115px' : '135px',
+      boxShadow: 'var(--shadow-sm)'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+      {/* Dynamic top highlight strip for premium dashboard card uniformity */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '4px',
+        background: color,
+        opacity: 0.85
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+        <span style={{ 
+          fontSize: '0.78rem', 
+          fontWeight: 800, 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.06em', 
+          color: 'var(--text-muted)',
+          lineHeight: '1.3'
+        }}>
           {title}
         </span>
-        <span style={{ background: color + '18', color, padding: '6px', borderRadius: 'var(--radius-sm)', display: 'flex' }}>
+        <span style={{ 
+          background: color + '14', 
+          color, 
+          padding: '6px', 
+          borderRadius: '8px', 
+          display: 'flex',
+          flexShrink: 0
+        }}>
           {Icon && <Icon size={16} />}
         </span>
       </div>
-      <div>
-        <div style={{ fontSize: small ? '1.6rem' : '2rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>
+
+      <div style={{ marginTop: 'auto' }}>
+        <div style={{ 
+          fontSize, 
+          fontWeight, 
+          color: color, 
+          lineHeight, 
+          wordBreak: 'break-word',
+          letterSpacing: '-0.02em'
+        }}>
           {value}
         </div>
         {subtitle && (
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: 4, fontWeight: 600 }}>
+          <div style={{ 
+            fontSize: '0.72rem', 
+            color: 'var(--text-muted)', 
+            fontWeight: 600, 
+            marginTop: 4 
+          }}>
             {subtitle}
           </div>
         )}
       </div>
+
       {trend != null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, marginTop: 4 }}>
           {trend >= 0
             ? <ArrowUp size={12} color={COLORS.success} />
             : <ArrowDown size={12} color={COLORS.danger} />}
@@ -172,13 +231,13 @@ function DonutChart({ data, size = 140 }) {
 function ProgressBar({ label, value, max, color, suffix = '' }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{label}</span>
-        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)' }}>{value}{suffix}</span>
+    <div style={{ marginBottom: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--text-primary)' }}>{value}{suffix}</span>
       </div>
-      <div style={{ height: 6, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: color, transition: 'width 1s ease' }} />
+      <div style={{ height: 5, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 99, background: color, transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)' }} />
       </div>
     </div>
   );
@@ -238,7 +297,20 @@ function StatRow({ label, value, color, badge }) {
   );
 }
 
-function DetailMiniCard({ title, value, icon: Icon, color = COLORS.accent, percentage, percentageColor }) {
+function DetailMiniCard({ title, value, subtitle, icon: Icon, color = COLORS.accent, percentage, percentageColor }) {
+  const valueStr = String(value || '');
+  const isVeryLong = valueStr.length > 22;
+  const isLongText = valueStr.length > 15;
+
+  const fontSize = isVeryLong
+    ? '0.85rem'
+    : isLongText
+      ? '0.95rem'
+      : '1.25rem';
+
+  const fontWeight = isLongText ? 700 : 800;
+  const lineHeight = isLongText ? 1.35 : 1.2;
+
   return (
     <div className="card group hover-lift animate-in" style={{
       padding: '16px 20px',
@@ -248,12 +320,13 @@ function DetailMiniCard({ title, value, icon: Icon, color = COLORS.accent, perce
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      gap: '12px',
+      gap: '8px',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       position: 'relative',
       overflow: 'hidden',
       height: '100%',
-      minHeight: 110,
+      minHeight: 130,
+      boxShadow: 'var(--shadow-sm)'
     }}>
       {/* Dynamic top highlight strip */}
       <div style={{
@@ -266,41 +339,56 @@ function DetailMiniCard({ title, value, icon: Icon, color = COLORS.accent, perce
         opacity: 0.85
       }} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <span style={{
-          fontSize: '0.68rem',
-          fontWeight: 800,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.3
-        }}>
-          {title}
-        </span>
-        <span style={{
-          background: color + '14',
-          color: color,
-          padding: '6px',
-          borderRadius: '8px',
-          display: 'flex',
-          flexShrink: 0
-        }}>
-          {Icon && <Icon size={14} />}
-        </span>
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <span style={{
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.3
+          }}>
+            {title}
+          </span>
+          <span style={{
+            background: color + '14',
+            color: color,
+            padding: '6px',
+            borderRadius: '8px',
+            display: 'flex',
+            flexShrink: 0
+          }}>
+            {Icon && <Icon size={14} />}
+          </span>
+        </div>
+        {subtitle && (
+          <div style={{
+            fontSize: '0.66rem',
+            color: 'var(--text-muted)',
+            fontWeight: 500,
+            marginTop: 4,
+            lineHeight: 1.25
+          }}>
+            {subtitle}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 'auto' }}>
         <div style={{
-          fontSize: '1.4rem',
-          fontWeight: 900,
-          color: 'var(--text-primary)',
-          lineHeight: 1.1
+          fontSize,
+          fontWeight,
+          color: color,
+          lineHeight,
+          wordBreak: 'break-word',
+          letterSpacing: '-0.02em'
         }}>
           {value}
         </div>
 
         {percentage !== undefined && percentage !== null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <div style={{
               flex: 1,
               height: 5,
@@ -318,7 +406,7 @@ function DetailMiniCard({ title, value, icon: Icon, color = COLORS.accent, perce
               }} />
             </div>
             <span style={{
-              fontSize: '0.68rem',
+              fontSize: '0.75rem',
               fontWeight: 800,
               color: percentageColor || color,
               minWidth: 32,
@@ -358,6 +446,7 @@ export default function Dashboard() {
     eligibility: false
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedListingType, setSelectedListingType] = useState('job'); // 'job', 'internship'
 
   const toggleSection = (id) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
@@ -365,7 +454,11 @@ export default function Dashboard() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const { data } = await api.get('/dashboard/stats/', { params: { _t: Date.now() } });
+      const params = { _t: Date.now() };
+      if (selectedListingType !== 'all') {
+        params.listing_type = selectedListingType;
+      }
+      const { data } = await api.get('/dashboard/stats/', { params });
       setStats(data);
     } catch (e) {
       console.error(e);
@@ -373,7 +466,7 @@ export default function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedListingType]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -397,6 +490,8 @@ export default function Dashboard() {
   );
 
   const s = stats || {};
+  const fb = s.funnel_breakdown || {};
+  const placedCount = (fb.offered ?? 0) + (fb.joined ?? 0);
   const ov = s.overview || {};
   const sal = s.salary_analysis || {};
   const status = s.status_metrics || {};
@@ -407,6 +502,61 @@ export default function Dashboard() {
   const dem = s.student_demographics || {};
   const jd = s.job_distribution || {};
   const cp = s.course_performance || [];
+  const pm = s.participation_metrics || {};
+  const po = s.placement_overview || {};
+
+  // ── Context-aware terminology: adapts to Jobs vs Internships ──
+  const isInternship = selectedListingType === 'internship';
+  const T = {
+    viewLabel:         isInternship ? 'Internship Analytics' : 'Placement Analytics',
+    listingLabel:      isInternship ? 'Internship' : 'Job',
+    listingsLabel:     isInternship ? 'Internships' : 'Jobs',
+    overviewTitle:     isInternship ? 'Internship Overview' : 'Placement Overview',
+    overviewDetail:    isInternship ? 'Internship Overview Detail' : 'Placement Overview Detail',
+    totalListings:     isInternship ? 'Total Internships' : 'Total Jobs',
+    listingPostings:   isInternship ? 'Internship postings' : 'Job postings',
+    totalPlaced:       isInternship ? 'Total Converted' : 'Total Placed',
+    placedSubtitle:    isInternship ? 'conversion rate' : 'placement rate',
+    placedRate:        isInternship ? 'Conversion Rate' : 'Placement Rate',
+    placedRateGauge:   isInternship ? 'CONVERTED' : 'PLACED',
+    placedLearners:    isInternship ? 'Interns Converted' : 'Placed Learners',
+    notPlaced:         isInternship ? 'Not Converted' : 'Not Placed',
+    onCampus:          isInternship ? 'On-Campus Converted' : 'On-Campus Placed',
+    offCampus:         isInternship ? 'Off-Campus Converted' : 'Off-Campus Placed',
+    compLabel:         isInternship ? 'Stipend' : 'Package',
+    compUnit:          isInternship ? '₹/month' : 'LPA',
+    compSuffix:        isInternship ? '/month' : ' LPA',
+    highestComp:       isInternship ? 'Highest Stipend' : 'Highest Package',
+    avgComp:           isInternship ? 'Avg Stipend' : 'Avg Package',
+    medianComp:        isInternship ? 'Median Stipend' : 'Median Package',
+    lowestComp:        isInternship ? 'Min Stipend' : 'Lowest Package',
+    mostCommonComp:    isInternship ? 'Most Common Stipend' : 'Most Common Salary',
+    highestPaidRole:   isInternship ? 'Highest Stipend Role' : 'Highest Paid Role',
+    salarySection:     isInternship ? 'Stipend Analysis' : 'Salary Analysis',
+    salarySectionOv:   isInternship ? 'Stipend Overview (Monthly ₹)' : 'Salary Overview (Learner CTC)',
+    avgCompOffered:    isInternship ? 'Avg Monthly Stipend' : 'Avg CTC Offered',
+    medianCompOffered: isInternship ? 'Median Monthly Stipend' : 'Median CTC Offered',
+    minCompOffered:    isInternship ? 'Min Monthly Stipend' : 'Min CTC Offered',
+    maxCompOffered:    isInternship ? 'Max Monthly Stipend' : 'Max CTC Offered',
+    monthlyTrend:      isInternship ? 'Monthly Internship Trend' : 'Monthly Placements Trend',
+    salaryBands:       isInternship ? 'Stipend Bands' : 'Salary Bands (Spec-Defined)',
+    salaryDist:        isInternship ? 'Stipend Distribution' : 'Salary Distribution',
+    salaryGrowth:      isInternship ? 'Monthly Internship Volume' : 'Salary Growth Rate — Monthly Volume',
+    avgSalaryByComp:   isInternship ? 'Avg Stipend by Company (Top 10)' : 'Avg Salary by Company (Top 10)',
+    compTableHeaders:  isInternship
+      ? ['#', 'Company', 'Avg Stipend (₹/mo)', 'Max Stipend (₹/mo)', 'Students Converted', 'Roles']
+      : ['#', 'Company', 'Avg Salary (LPA)', 'Max Package (LPA)', 'Students Placed', 'Roles'],
+    formatComp: (val) => {
+      if (val == null || isNaN(val) || parseFloat(val) === 0) return '—';
+      const n = parseFloat(val);
+      if (isInternship) return `₹${n.toLocaleString()}/mo`;
+      return n < 0.1 ? `${Math.round(n * 100)}k` : `${n} LPA`;
+    },
+    statusDistTitle:   isInternship ? 'Status Distribution (Internships)' : 'Status Distribution (Jobs)',
+    jobStatusSplit:    isInternship ? 'Internship Status Split' : 'Job Status Split',
+    oppSplitJob:       isInternship ? 'Placement Jobs' : 'Placement Jobs',
+    oppSplitIntern:    isInternship ? 'Internships' : 'Internships',
+  };
 
   return (
     <div className="dash-page animate-in" style={{ paddingBottom: 48 }}>
@@ -429,16 +579,11 @@ export default function Dashboard() {
             Placement Analytics Dashboard
           </h1>
           <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Real-time KPIs • 10 metric categories • {ov.total_students || 0} students tracked
+            {T.viewLabel} • 10 metric categories • {ov.total_students || 0} students tracked
+            {isInternship && <span style={{ marginLeft: 8, fontSize: '0.7rem', background: '#10b98120', color: '#10b981', padding: '2px 8px', borderRadius: 99, fontWeight: 800 }}>🎓 INTERNSHIP MODE</span>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleRefresh} disabled={refreshing}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10 }}>
-            <RefreshCw size={13} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-            Refresh
-          </button>
           <button onClick={handleExport}
             className="btn btn-primary btn-sm"
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10 }}>
@@ -447,71 +592,189 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <style>{`
+        .premium-toggle-container {
+          display: inline-flex;
+          gap: 4px;
+          padding: 5px;
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border-color, #e2e8f0);
+          border-radius: 100px;
+          box-shadow: var(--shadow-sm), inset 0 2px 4px rgba(0, 0, 0, 0.02);
+          margin-bottom: 24px;
+          align-items: center;
+          transition: all 0.3s ease;
+        }
+        
+        .premium-toggle-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 18px;
+          border-radius: 100px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          border: none;
+          background: transparent;
+          color: var(--text-secondary, #64748b);
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          outline: none;
+        }
+        
+        .premium-toggle-button:hover {
+          color: var(--text-primary, #0f172a);
+          background: var(--bg-card-hover, rgba(0, 0, 0, 0.03));
+        }
+        
+        .premium-toggle-button.active {
+          background: linear-gradient(135deg, var(--accent-primary, #2563eb) 0%, var(--info, #3b82f6) 100%);
+          color: #ffffff !important;
+          font-weight: 800;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+
+        .premium-toggle-button.active svg {
+          stroke: #ffffff !important;
+        }
+
+        .pipeline-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 8px;
+        }
+        
+        @media (max-width: 1024px) {
+          .pipeline-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        
+        @media (max-width: 640px) {
+          .pipeline-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        .pipeline-stage-col {
+          padding: 10px 14px;
+          border-radius: 16px;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid transparent;
+        }
+
+        .pipeline-stage-col:hover {
+          background: var(--bg-card-hover, #f8fafc);
+          border-color: var(--border-color);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .participation-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+        
+        @media (max-width: 768px) {
+          .participation-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .dashboard-section-premium-toggle {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 99px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border: 1px solid var(--border-color, #e2e8f0);
+          background: var(--bg-card, #ffffff);
+          color: var(--text-secondary, #64748b);
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: var(--shadow-sm);
+        }
+        
+        .dashboard-section-premium-toggle:hover {
+          color: var(--accent-primary, #2563eb);
+          border-color: var(--accent-primary, #2563eb);
+          background: rgba(37, 99, 235, 0.03);
+          transform: translateY(-1px);
+        }
+        
+        .dashboard-section-premium-toggle.active {
+          background: var(--accent-primary, #2563eb);
+          border-color: var(--accent-primary, #2563eb);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        }
+      `}</style>
+
+      {/* Dynamic Switcher (Jobs / Internships) */}
+      <div className="premium-toggle-container animate-in">
+        <button
+          onClick={() => setSelectedListingType('job')}
+          className={`premium-toggle-button ${selectedListingType === 'job' ? 'active' : ''}`}
+        >
+          <Briefcase size={14} />
+          Placement Jobs
+        </button>
+        <button
+          onClick={() => setSelectedListingType('internship')}
+          className={`premium-toggle-button ${selectedListingType === 'internship' ? 'active' : ''}`}
+        >
+          <Award size={14} />
+          Internships
+        </button>
+      </div>
+
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SECTION: OVERVIEW                                          */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 24,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <BarChart2 size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('overview')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <BarChart2 size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-            Placement Overview
+          <h2 className="dashboard-section-title">
+            {T.overviewTitle}
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('overview')}
+          className={`dashboard-section-premium-toggle ${expanded.overview ? 'active' : ''}`}
           title={expanded.overview ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.overview ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.overview ? 'none' : '1px solid var(--border-color)',
-            color: expanded.overview ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.overview ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('overview'); }}
         >
-          {expanded.overview ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.overview ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
       {/* First Row Statistics (Always Visible) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-        <KPICard title="Total Students" value={ov.total_students ?? 0} icon={Users} color={COLORS.info} subtitle="Registered" />
-        <KPICard title="Total Placed" value={ov.placed_students ?? 0} icon={CheckCircle} color={COLORS.success} subtitle={`${ov.placement_rate ?? 0}% placement rate`} />
-        <KPICard title="Avg Package" value={`₹${sal.avg_package ?? 0}`} icon={DollarSign} color={COLORS.warning} subtitle="LPA" />
-        <KPICard title="Highest Package" value={`₹${sal.highest_package ?? 0}`} icon={Award} color={COLORS.purple} subtitle="LPA" />
+        <KPICard title="Total Students" value={ov.total_students ?? 0} icon={Users} color={COLORS.info} />
+        <KPICard title={T.totalPlaced} value={ov.placed_students ?? 0} icon={CheckCircle} color={COLORS.success} subtitle={`${ov.placement_rate ?? 0}% ${T.placedSubtitle}`} />
+        <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal drives" />
+        <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External links" />
+        <KPICard title={T.avgComp} value={T.formatComp(sal.avg_package)} icon={DollarSign} color={COLORS.warning} subtitle={isInternship ? "Monthly average" : "Average CTC"} />
+        <KPICard title={T.highestComp} value={T.formatComp(sal.highest_package)} icon={Award} color={COLORS.purple} subtitle={isInternship ? "Peak monthly rate" : "Max CTC package"} />
         <KPICard title="Companies" value={ca.total_companies ?? ov.total_companies ?? 0} icon={Building} color={COLORS.teal} subtitle="Active recruiters" />
-        <KPICard title="Applications" value={ov.total_applications ?? 0} icon={Briefcase} color={COLORS.pink} subtitle="Total submitted" />
       </div>
 
       {/* Overview Expanded Details */}
@@ -524,24 +787,23 @@ export default function Dashboard() {
                 <Activity size={15} />
               </span>
               <h3 style={{ margin: 0, fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-primary)' }}>
-                Institute Activity & Performance At A Glance (Historical Data)
+                {isInternship ? 'Internship Activity & Performance At A Glance' : 'Institute Activity & Performance At A Glance (Historical Data)'}
               </h3>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
               <KPICard title="Total Companies" value={ov.total_companies ?? 0} icon={Building} color={COLORS.info} subtitle="Recruiting" small />
-              <KPICard title="Total Jobs" value={ov.total_jobs ?? 0} icon={Briefcase} color={COLORS.purple} subtitle="Job postings" small />
               <KPICard title="Total Openings" value={ov.total_openings ?? 0} icon={Target} color={COLORS.pink} subtitle="Available roles" small />
-              <KPICard title="Placed Candidates" value={ov.placed_students ?? 0} icon={UserCheck} color={COLORS.success} subtitle="Unique learners" small />
-              <KPICard title="On-Campus Placed" value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal drives" small />
-              <KPICard title="Off-Campus Placed" value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External links" small />
-              <KPICard title="Total Not Placed" value={ov.total_not_placed ?? 0} icon={UserX} color={COLORS.danger} subtitle="Eligible & pending" small />
+              <KPICard title={T.placedLearners} value={ov.placed_students ?? 0} icon={UserCheck} color={COLORS.success} subtitle="Unique learners" small />
+              <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal drives" small />
+              <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External links" small />
+              <KPICard title={T.notPlaced} value={ov.total_not_placed ?? 0} icon={UserX} color={COLORS.danger} subtitle="Eligible & pending" small />
               
               <div className="card" style={{
                 padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)',
                 display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', background: 'var(--bg-card-light)'
               }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-                  Job Status Split
+                  {T.jobStatusSplit}
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
@@ -558,213 +820,143 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              <div className="card" style={{
+                padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)',
+                display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px', background: 'var(--bg-card-light)'
+              }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+                  Opportunities Split
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span style={{ color: COLORS.info }}>Placement Jobs:</span>
+                    <span style={{ fontWeight: 800 }}>{jd.by_listing_type?.job ?? 0}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span style={{ color: COLORS.purple }}>Internships:</span>
+                    <span style={{ fontWeight: 800 }}>{jd.by_listing_type?.internship ?? 0}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span style={{ color: COLORS.teal }}>Total Postings:</span>
+                    <span style={{ fontWeight: 800 }}>{(jd.by_listing_type?.job ?? 0) + (jd.by_listing_type?.internship ?? 0)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 2. Placement Overview & Recruitment Funnel */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.1fr', gap: 20 }}>
-            {/* Detailed Placement KPIs Grid */}
-            <div className="card" style={{ padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-              <SectionHeader icon={TrendingUp} title="Placement Overview Detail" color={COLORS.accent} />
-              {(() => {
-                const po = s.placement_overview || {};
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-                    <DetailMiniCard title="Total Students" value={po.total_students ?? 0} icon={Users} color={COLORS.info} />
-                    <DetailMiniCard 
-                      title="Unique Learners Applying" 
-                      value={po.unique_learners_applying ?? 0} 
-                      icon={UserCheck} 
-                      color={COLORS.accent} 
-                      percentage={po.total_students ? ((po.unique_learners_applying / po.total_students) * 100) : 0}
-                    />
-                    <DetailMiniCard 
-                      title="Learners Not Applying" 
-                      value={po.learners_not_applying ?? 0} 
-                      icon={UserX} 
-                      color={COLORS.warning} 
-                      percentage={po.total_students ? ((po.learners_not_applying / po.total_students) * 100) : 0}
-                    />
-                    <DetailMiniCard 
-                      title="Placed Learners" 
-                      value={po.placed_learners ?? 0} 
-                      icon={CheckCircle} 
-                      color={COLORS.success} 
-                      percentage={po.placed_learners_pct}
-                    />
-                    <DetailMiniCard 
-                      title="Total On-Campus Placed" 
-                      value={po.placed_on_campus ?? 0} 
-                      icon={Building} 
-                      color={COLORS.teal} 
-                      percentage={po.placed_on_campus_pct}
-                    />
-                    <DetailMiniCard 
-                      title="Total Off-Campus Placed" 
-                      value={po.placed_off_campus ?? 0} 
-                      icon={TrendingUp} 
-                      color={COLORS.purple} 
-                      percentage={po.placed_off_campus_pct}
-                    />
-                    <DetailMiniCard 
-                      title="Learners Not Placed" 
-                      value={po.learners_not_placed ?? 0} 
-                      icon={AlertCircle} 
-                      color={COLORS.danger} 
-                      percentage={po.learners_not_placed_pct}
-                    />
-                    <DetailMiniCard 
-                      title="Placement Rate" 
-                      value={`${po.placed_learners_pct ?? 0}%`} 
-                      icon={Award} 
-                      color={COLORS.success} 
-                      percentage={po.placed_learners_pct}
-                    />
-                    <DetailMiniCard title="Total Offers Received" value={po.total_offers_received ?? 0} icon={Briefcase} color={COLORS.purple} />
-                    <DetailMiniCard 
-                      title="Offer Letters Uploaded" 
-                      value={po.offer_letters_uploaded ?? 0} 
-                      icon={Download} 
-                      color={COLORS.success} 
-                      percentage={po.total_offers_received ? ((po.offer_letters_uploaded / po.total_offers_received) * 100) : 0}
-                    />
-                    <DetailMiniCard 
-                      title="Offer Letters Not Uploaded" 
-                      value={po.offer_letters_not_uploaded ?? 0} 
-                      icon={Clock} 
-                      color={COLORS.danger} 
-                      percentage={po.total_offers_received ? ((po.offer_letters_not_uploaded / po.total_offers_received) * 100) : 0}
-                    />
-                  </div>
-                );
-              })()}
-            </div>
-
+          {/* 2. Recruitment Funnel & Overall Performance Status */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
             {/* Recruitment Pipeline Funnel */}
             <ChartCard title="Recruitment Status Funnel" icon={PieChart} color={COLORS.info}>
               {(() => {
                 const fb = s.funnel_breakdown || {};
-                const totalApps = fb.total_applications || 1;
+                const placedCount = (fb.offered ?? 0) + (fb.joined ?? 0);
+                const totalApps = (fb.applied ?? 0) + (fb.shortlist ?? 0) + (fb.in_interview ?? 0) + placedCount + (fb.rejected ?? 0);
+                const maxVal = totalApps || 1;
+                
+                const getAppSuffix = (v) => v === 1 ? " Application" : " Applications";
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <ProgressBar label="Shortlisted" value={fb.shortlist ?? 0} max={totalApps} color={COLORS.info} suffix=" Apps" />
-                    <ProgressBar label="In Interview" value={fb.in_interview ?? 0} max={totalApps} color={COLORS.warning} suffix=" Apps" />
-                    <ProgressBar label="Offered" value={fb.offered ?? 0} max={totalApps} color={COLORS.purple} suffix=" Apps" />
-                    <ProgressBar label="Joined" value={fb.joined ?? 0} max={totalApps} color={COLORS.success} suffix=" Apps" />
-                    <ProgressBar label="On Hold" value={fb.on_hold ?? 0} max={totalApps} color={COLORS.slate} suffix=" Apps" />
-                    <ProgressBar label="Rejected" value={fb.rejected ?? 0} max={totalApps} color={COLORS.danger} suffix=" Apps" />
+                    <ProgressBar label="Applied" value={fb.applied ?? 0} max={maxVal} color={COLORS.info} suffix={getAppSuffix(fb.applied ?? 0)} />
+                    <ProgressBar label="Shortlisted" value={fb.shortlist ?? 0} max={maxVal} color={COLORS.warning} suffix={getAppSuffix(fb.shortlist ?? 0)} />
+                    <ProgressBar label="Interviewing" value={fb.in_interview ?? 0} max={maxVal} color={COLORS.purple} suffix={getAppSuffix(fb.in_interview ?? 0)} />
+                    <ProgressBar label="Placed" value={placedCount} max={maxVal} color={COLORS.success} suffix={getAppSuffix(placedCount)} />
+                    <ProgressBar label="Declined" value={fb.rejected ?? 0} max={maxVal} color={COLORS.danger} suffix={getAppSuffix(fb.rejected ?? 0)} />
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 8, background: 'var(--bg-card-light)', border: '1px solid var(--border-light)', marginTop: 8 }}>
                       <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>Total Applications Funnel</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 900, color: COLORS.accent }}>{fb.total_applications ?? 0} Applications</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 900, color: COLORS.accent }}>{totalApps} {totalApps === 1 ? 'Application' : 'Applications'}</span>
                     </div>
                   </div>
                 );
               })()}
             </ChartCard>
-          </div>
 
-          {/* 3. Job Application & Student Participation Funnel */}
-          <div className="card" style={{ padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-            <SectionHeader icon={Activity} title="Job Application & Student Participation Funnel" color={COLORS.purple} />
-            {(() => {
-              const pm = s.participation_metrics || {};
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-                  <DetailMiniCard title="Total Applications" value={pm.total_applications_submitted ?? 0} icon={Briefcase} color={COLORS.info} />
-                  <DetailMiniCard title="Avg Applications per Learner" value={pm.avg_applications_per_learner ?? 0} icon={Activity} color={COLORS.info} />
-                  <DetailMiniCard 
-                    title="Application To Shortlist Ratio" 
-                    value={`${pm.application_to_shortlist_ratio ?? 0}%`} 
-                    icon={CheckCircle} 
-                    color={COLORS.success} 
-                    percentage={pm.application_to_shortlist_ratio}
-                  />
-                  <DetailMiniCard 
-                    title="Application To Interview Ratio" 
-                    value={`${pm.application_to_interview_ratio ?? 0}%`} 
-                    icon={Users} 
-                    color={COLORS.warning} 
-                    percentage={pm.application_to_interview_ratio}
-                  />
-                  <DetailMiniCard 
-                    title="Offer Success Rate" 
-                    value={`${pm.offers_candidates_pct ?? 0}%`} 
-                    icon={Award} 
-                    color={COLORS.purple} 
-                    percentage={pm.offers_candidates_pct}
-                  />
-                  <DetailMiniCard 
-                    title="Students With No Applications" 
-                    value={pm.students_with_no_applications ?? 0} 
-                    icon={UserX} 
-                    color={COLORS.danger} 
-                    percentage={pm.students_with_no_applications_pct}
-                  />
+            {/* Overall Performance Status - Beautiful Number Display */}
+            <ChartCard title="Overall Performance Status" icon={Award} color={COLORS.purple}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '10px 5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  <div>
+                    <div style={{ 
+                      fontSize: '3.2rem', 
+                      fontWeight: 900, 
+                      lineHeight: 1,
+                      background: `linear-gradient(135deg, ${COLORS.success} 0%, ${COLORS.accent} 100%)`,
+                      WebkitBackgroundClip: 'text', 
+                      WebkitTextFillColor: 'transparent',
+                      letterSpacing: '-0.03em'
+                    }}>
+                      {ov.placement_rate ?? 0}%
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.78rem', 
+                      fontWeight: 800, 
+                      color: COLORS.success,
+                      letterSpacing: '0.1em',
+                      marginTop: 4,
+                      textTransform: 'uppercase'
+                    }}>
+                      {T.placedRateGauge}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, maxWidth: '180px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Placed:</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: COLORS.success }}>
+                        {ov.placed_students ?? 0} {ov.placed_students === 1 ? 'Student' : 'Students'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Eligible Base:</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {ov.total_students ?? 0} {ov.total_students === 1 ? 'Student' : 'Students'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              );
-            })()}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    <span>Placement Progress</span>
+                    <span>{ov.placement_rate ?? 0}%</span>
+                  </div>
+                  <div style={{ height: 10, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ 
+                      height: '100%', 
+                      width: `${ov.placement_rate ?? 0}%`, 
+                      borderRadius: 99, 
+                      background: `linear-gradient(90deg, ${COLORS.success} 0%, ${COLORS.accent} 100%)`, 
+                      transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                    }} />
+                  </div>
+                </div>
+              </div>
+            </ChartCard>
           </div>
 
-          {/* 4. Salary Overview Panel */}
+          {/* 3. Salary Overview Panel */}
           <div>
             {/* Learner Salary Stats */}
             <div className="card" style={{ padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)' }}>
-              <SectionHeader icon={DollarSign} title="Salary Overview (Learner CTC)" color={COLORS.success} />
-              {(() => {
-                const formatSalaryLPA = (val) => {
-                  if (val == null || isNaN(val)) return '—';
-                  const valF = parseFloat(val);
-                  if (valF === 0) return '—';
-                  if (valF < 0.1) {
-                    return `${Math.round(valF * 100)}k`;
-                  }
-                  return `${valF} LPA`;
-                };
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                    <DetailMiniCard title="Avg CTC Offered" value={formatSalaryLPA(sal.avg_package)} icon={DollarSign} color={COLORS.accent} />
-                    <DetailMiniCard title="Median CTC Offered" value={formatSalaryLPA(sal.median_package)} icon={TrendingUp} color={COLORS.success} />
-                    <DetailMiniCard title="Min CTC Offered" value={formatSalaryLPA(sal.lowest_package)} icon={ArrowDown} color={COLORS.danger} />
-                    <DetailMiniCard title="Max CTC Offered" value={formatSalaryLPA(sal.highest_package)} icon={Award} color={COLORS.purple} />
-                  </div>
-                );
-              })()}
+              <SectionHeader icon={DollarSign} title={T.salarySectionOv} color={COLORS.success} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                <DetailMiniCard title={T.avgCompOffered} value={T.formatComp(sal.avg_package)} icon={DollarSign} color={COLORS.accent} />
+                <DetailMiniCard title={T.medianCompOffered} value={T.formatComp(sal.median_package)} icon={TrendingUp} color={COLORS.success} />
+                <DetailMiniCard title={T.minCompOffered} value={T.formatComp(sal.lowest_package)} icon={ArrowDown} color={COLORS.danger} />
+                <DetailMiniCard title={T.maxCompOffered} value={T.formatComp(sal.highest_package)} icon={Award} color={COLORS.purple} />
+              </div>
             </div>
           </div>
 
-          {/* Core Monthly Trends & Original Distribution Charts */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+          {/* 4. Core Monthly Trends - Full Width Line Chart */}
+          <div>
             {/* Monthly Trend Sparkline */}
-            <ChartCard title="Monthly Placements Trend" icon={Calendar} color={COLORS.info}>
+            <ChartCard title={T.monthlyTrend} icon={Calendar} color={COLORS.info}>
               <div style={{ marginTop: 10 }}>
-                <Sparkline data={tt.monthly_placements} color={COLORS.accent} height={90} />
-              </div>
-            </ChartCard>
-
-            {/* Circular Gauge */}
-            <ChartCard title="Overall Performance Status" icon={Award} color={COLORS.purple}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                <div style={{ position: 'relative', width: 120, height: 120 }}>
-                  <svg width={120} height={120} style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx={60} cy={60} r={50} fill="none" stroke="var(--border-light)" strokeWidth={12} />
-                    <circle cx={60} cy={60} r={50} fill="none" stroke="url(#gGrad)" strokeWidth={12} strokeDasharray={314} strokeDashoffset={314 - (314 * (ov.placement_rate ?? 0)) / 100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
-                    <defs>
-                      <linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#2563eb" />
-                        <stop offset="100%" stopColor="#dc2626" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{ov.placement_rate ?? 0}%</div>
-                    <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-secondary)' }}>PLACED</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Eligible Base:</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text-primary)' }}>{ov.total_students ?? 0} Students</span>
-                </div>
+                <Sparkline data={tt.monthly_placements} color={COLORS.accent} height={120} />
               </div>
             </ChartCard>
           </div>
@@ -774,91 +966,129 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SECTION: STATUS                                            */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <Activity size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('status')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <Activity size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+          <h2 className="dashboard-section-title">
             Application Status
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('status')}
+          className={`dashboard-section-premium-toggle ${expanded.status ? 'active' : ''}`}
           title={expanded.status ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.status ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.status ? 'none' : '1px solid var(--border-color)',
-            color: expanded.status ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.status ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('status'); }}
         >
-          {expanded.status ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.status ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
-      {/* Status First Row Statistics (Always Visible) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-        <KPICard title="Applied Count"    value={status.applied_count ?? 0}   icon={Briefcase}  color={COLORS.info} />
-        <KPICard title="In Interview"     value={status.in_interview ?? 0}    icon={Activity}   color={COLORS.warning} />
-        <KPICard title="Offer Received"   value={status.offer_received ?? 0}  icon={Star}       color={COLORS.purple} />
-        <KPICard title="Offer Accepted"   value={status.offer_accepted ?? 0}  icon={CheckCircle} color={COLORS.success} />
-        <KPICard title="Rejected Count"   value={status.rejected_count ?? 0}  icon={XCircle}    color={COLORS.danger} />
-        <KPICard title="Pending Decision" value={status.pending_decision ?? 0} icon={Clock}     color={COLORS.slate} />
-        <KPICard title="Not Applied"      value={status.not_applied ?? 0}     icon={UserX}      color={COLORS.danger} />
+      {/* Status First Row Statistics (Always Visible) - Swapped: now shows the Application Pipeline */}
+      <div className="card hover-lift" style={{ padding: '24px 28px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', background: 'var(--bg-card)', marginBottom: 14, boxShadow: 'var(--shadow-md)' }}>
+        <SectionHeader icon={Activity} title="Application Pipeline" color={COLORS.accent} />
+        {(() => {
+          return (
+            <div className="pipeline-grid">
+              {[
+                { label: 'Applied',      value: fb.applied ?? 0,   color: COLORS.info },
+                { label: 'Shortlisted',  value: fb.shortlist ?? 0, color: COLORS.warning },
+                { label: 'Interviewing', value: fb.in_interview ?? 0, color: COLORS.purple },
+                { label: 'Placed',       value: placedCount,       color: COLORS.success },
+                { label: 'Declined',     value: fb.rejected ?? 0,  color: COLORS.danger },
+                { label: 'Not Applied',  value: status.not_applied ?? 0, color: COLORS.slate },
+              ].map(row => (
+                <div key={row.label} className="pipeline-stage-col">
+                  <ProgressBar label={row.label} value={row.value}
+                    max={ov.total_students || 1} color={row.color} />
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Status Expanded Details */}
       {expanded.status && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <ChartCard title="Application Pipeline" icon={Activity} color={COLORS.accent}>
-              {[
-                { label: 'Applied',          value: status.applied_count ?? 0,   color: COLORS.info },
-                { label: 'In Interview',     value: status.in_interview ?? 0,    color: COLORS.warning },
-                { label: 'Offer Received',   value: status.offer_received ?? 0,  color: COLORS.purple },
-                { label: 'Offer Accepted',   value: status.offer_accepted ?? 0,  color: COLORS.success },
-                { label: 'Rejected',         value: status.rejected_count ?? 0,  color: COLORS.danger },
-                { label: 'Not Applied',      value: status.not_applied ?? 0,     color: COLORS.slate },
-              ].map(row => (
-                <ProgressBar key={row.label} label={row.label} value={row.value}
-                  max={ov.total_students || 1} color={row.color} />
-              ))}
-            </ChartCard>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+            {/* Swapped: detailed participation and engagement metrics cards */}
+            <div className="card" style={{ padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+              <SectionHeader icon={TrendingUp} title="Participation & Engagement Metrics" color={COLORS.accent} />
+              <div className="participation-grid">
+                <DetailMiniCard 
+                  title="Total Applications" 
+                  value={ov.total_applications ?? 0} 
+                  subtitle={isInternship ? "Total internship applications submitted" : "Total job applications submitted"}
+                  icon={Briefcase} 
+                  color={COLORS.info} 
+                />
+                <DetailMiniCard 
+                  title="Currently Pending" 
+                  value={fb.applied ?? 0} 
+                  subtitle="Applications currently awaiting review"
+                  icon={Clock} 
+                  color={COLORS.accent} 
+                  percentage={ov.total_applications ? ((fb.applied / ov.total_applications) * 100) : 0}
+                />
+                <DetailMiniCard 
+                  title="Currently Shortlisted" 
+                  value={fb.shortlist ?? 0} 
+                  subtitle="Applications currently shortlisted for next steps"
+                  icon={UserCheck} 
+                  color={COLORS.warning} 
+                  percentage={ov.total_applications ? ((fb.shortlist / ov.total_applications) * 100) : 0}
+                />
+                <DetailMiniCard 
+                  title="Currently Interviewing" 
+                  value={fb.in_interview ?? 0} 
+                  subtitle="Applications currently in active interview stages"
+                  icon={Activity} 
+                  color={COLORS.purple} 
+                  percentage={ov.total_applications ? ((fb.in_interview / ov.total_applications) * 100) : 0}
+                />
+                <DetailMiniCard 
+                  title="Currently Selected" 
+                  value={placedCount} 
+                  subtitle={isInternship ? "Internship offers currently received by candidates" : "Job offers currently received by candidates"}
+                  icon={Award} 
+                  color={COLORS.success} 
+                  percentage={ov.total_applications ? ((placedCount / ov.total_applications) * 100) : 0}
+                />
+                <DetailMiniCard 
+                  title="Currently Declined" 
+                  value={fb.rejected ?? 0} 
+                  subtitle="Applications currently rejected or withdrawn"
+                  icon={UserX} 
+                  color={COLORS.danger} 
+                  percentage={ov.total_applications ? ((fb.rejected / ov.total_applications) * 100) : 0}
+                />
+              </div>
+            </div>
 
-            <ChartCard title="Status Distribution (Jobs)" icon={PieChart} color={COLORS.info}>
-              <DonutChart data={s.application_status?.application_status} />
+            <ChartCard title={T.statusDistTitle} icon={PieChart} color={COLORS.info}>
+              {(() => {
+                const fb = s.funnel_breakdown || {};
+                const placedCount = (fb.offered ?? 0) + (fb.joined ?? 0);
+                const chartData = {
+                  'Applied': fb.applied ?? 0,
+                  'Shortlisted': fb.shortlist ?? 0,
+                  'Interviewing': fb.in_interview ?? 0,
+                  'Placed': placedCount,
+                  'Declined': fb.rejected ?? 0,
+                };
+                return <DonutChart data={chartData} />;
+              })()}
             </ChartCard>
           </div>
 
@@ -871,57 +1101,31 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SECTION: COMPANIES                                         */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <Building size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('companies')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <Building size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+          <h2 className="dashboard-section-title">
             Companies Analytics
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('companies')}
+          className={`dashboard-section-premium-toggle ${expanded.companies ? 'active' : ''}`}
           title={expanded.companies ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.companies ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.companies ? 'none' : '1px solid var(--border-color)',
-            color: expanded.companies ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.companies ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('companies'); }}
         >
-          {expanded.companies ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.companies ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
@@ -930,7 +1134,7 @@ export default function Dashboard() {
         <KPICard title="Total Companies"      value={ca.total_companies ?? 0}                          icon={Building}  color={COLORS.teal} />
         <KPICard title="Top Company"          value={ca.top_company?.company_name || '—'}              icon={Star}      color={COLORS.accent} subtitle={`${ca.top_company?.placed_count ?? 0} placed`} />
         <KPICard title="Top Company Count"    value={ca.top_company?.placed_count ?? 0}               icon={Users}     color={COLORS.success} subtitle="Students placed" />
-        <KPICard title="Highest Paying"       value={ca.highest_paying_company?.company_name || '—'}  icon={Award}     color={COLORS.purple} subtitle={`₹${ca.highest_paying_company?.max_package ?? 0} LPA`} />
+        <KPICard title="Highest Paying"       value={ca.highest_paying_company?.company_name || '—'}  icon={Award}     color={COLORS.purple} subtitle={T.formatComp(ca.highest_paying_company?.max_package)} />
       </div>
 
       {/* Companies Expanded Details */}
@@ -951,7 +1155,7 @@ export default function Dashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                    {['#', 'Company', 'Avg Salary (LPA)', 'Max Package (LPA)', 'Students Placed', 'Roles'].map(h => (
+                    {T.compTableHeaders.map(h => (
                       <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -962,8 +1166,8 @@ export default function Dashboard() {
                       className="hover-row">
                       <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: '8px 10px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.company_name}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>₹{c.avg_package}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>₹{c.max_package}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>{T.formatComp(c.avg_package)}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>{T.formatComp(c.max_package)}</td>
                       <td style={{ padding: '8px 10px' }}>
                         <span style={{ background: COLORS.info + '18', color: COLORS.info, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.7rem' }}>{c.placed_count}</span>
                       </td>
@@ -980,68 +1184,42 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SECTION: SALARY                                            */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <DollarSign size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('salary')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <DollarSign size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-            Salary Analysis
+          <h2 className="dashboard-section-title">
+            {T.salarySection}
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('salary')}
+          className={`dashboard-section-premium-toggle ${expanded.salary ? 'active' : ''}`}
           title={expanded.salary ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.salary ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.salary ? 'none' : '1px solid var(--border-color)',
-            color: expanded.salary ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.salary ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('salary'); }}
         >
-          {expanded.salary ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.salary ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
       {/* Salary First Row Statistics (Always Visible) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-        <KPICard title="Highest Package"   value={`₹${sal.highest_package ?? 0} LPA`}   icon={TrendingUp} color={COLORS.success} />
-        <KPICard title="Lowest Package"    value={`₹${sal.lowest_package ?? 0} LPA`}    icon={ArrowDown}  color={COLORS.danger} />
-        <KPICard title="Average Package"   value={`₹${sal.avg_package ?? 0} LPA`}       icon={DollarSign} color={COLORS.accent} />
-        <KPICard title="Median Package"    value={`₹${sal.median_package ?? 0} LPA`}    icon={BarChart2}  color={COLORS.info} />
-        <KPICard title="Most Common Salary" value={`₹${sal.most_common_salary ?? 0} LPA`} icon={Target}   color={COLORS.purple} />
-        <KPICard title="Highest Paid Role" value={sal.highest_paid_role || '—'}         icon={Award}      color={COLORS.warning} />
+        <KPICard title={T.highestComp}    value={T.formatComp(sal.highest_package)} icon={TrendingUp} color={COLORS.success} />
+        <KPICard title={T.lowestComp}     value={T.formatComp(sal.lowest_package)}  icon={ArrowDown}  color={COLORS.danger} />
+        <KPICard title={T.avgComp}        value={T.formatComp(sal.avg_package)}      icon={DollarSign} color={COLORS.accent} />
+        <KPICard title={T.medianComp}     value={T.formatComp(sal.median_package)}   icon={BarChart2}  color={COLORS.info} />
+        <KPICard title={T.mostCommonComp} value={T.formatComp(sal.most_common_salary)} icon={Target}   color={COLORS.purple} />
+        <KPICard title={T.highestPaidRole} value={sal.highest_paid_role || '—'}      icon={Award}      color={COLORS.warning} />
       </div>
 
       {/* Salary Expanded Details */}
@@ -1049,7 +1227,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {/* Salary Bands (spec-defined) */}
-            <ChartCard title="Salary Bands (Spec-Defined)" icon={BarChart2} color={COLORS.warning}>
+            <ChartCard title={T.salaryBands} icon={BarChart2} color={COLORS.warning}>
               <BarChart
                 data={Object.entries(sal.salary_bands_detailed || {}).map(([k, v]) => ({ band: k, count: v }))}
                 keyField="band" valueField="count"
@@ -1057,22 +1235,19 @@ export default function Dashboard() {
               />
             </ChartCard>
 
-            {/* Salary Distribution Donut */}
-            <ChartCard title="Salary Distribution" icon={PieChart} color={COLORS.accent}>
+            <ChartCard title={T.salaryDist} icon={PieChart} color={COLORS.accent}>
               <DonutChart data={sal.salary_distribution} />
             </ChartCard>
           </div>
 
-          {/* Salary Growth Rate (monthly trend) */}
-          <ChartCard title="Salary Growth Rate — Monthly Placement Volume" icon={TrendingUp} color={COLORS.success}>
+          <ChartCard title={T.salaryGrowth} icon={TrendingUp} color={COLORS.success}>
             <Sparkline data={tt.monthly_placements} color={COLORS.success} height={90} />
           </ChartCard>
 
-          {/* Salary by Company — Top 10 */}
-          <ChartCard title="Avg Salary by Company (Top 10)" icon={Building} color={COLORS.teal}>
+          <ChartCard title={T.avgSalaryByComp} icon={Building} color={COLORS.teal}>
             <BarChart
               data={(ca.top_companies_by_salary || []).map(c => ({ name: c.company_name.split(' ')[0], avg: c.avg_package }))}
-              keyField="name" valueField="avg" unit=" LPA"
+              keyField="name" valueField="avg" unit={isInternship ? ' ₹/mo' : ' LPA'}
               colorFn={(_, i) => PALETTE[i % PALETTE.length]}
             />
           </ChartCard>
@@ -1082,97 +1257,130 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SECTION: COURSES                                           */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <GraduationCap size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('courses')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <GraduationCap size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
-            Course Performance
+          <h2 className="dashboard-section-title">
+            {isInternship ? 'Course Internship Performance' : 'Course Placement Performance'}
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('courses')}
+          className={`dashboard-section-premium-toggle ${expanded.courses ? 'active' : ''}`}
           title={expanded.courses ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.courses ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.courses ? 'none' : '1px solid var(--border-color)',
-            color: expanded.courses ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.courses ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('courses'); }}
         >
-          {expanded.courses ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.courses ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
-      {/* Courses First Row Statistics (Always Visible) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-        {(cp || []).map((c, i) => (
-          <KPICard key={i}
-            title={`${c.course} Placement %`}
-            value={`${c.placement_rate}%`}
-            icon={GraduationCap}
-            color={PALETTE[i % PALETTE.length]}
-            subtitle={`${c.placed}/${c.total} placed`}
-          />
-        ))}
+      {/* Course Performance Graph & Summary (Always Visible) */}
+      <div className="card" style={{ padding: 24, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 28 }}>
+        <div>
+          <h4 style={{ margin: '0 0 16px 0', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+            Course-wise {isInternship ? 'Conversion' : 'Placement'} Rates
+          </h4>
+          <div style={{ maxHeight: '340px', overflowY: 'auto', paddingRight: '8px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {(cp || []).map((c, i) => (
+              <div key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{c.course}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: PALETTE[i % PALETTE.length] }}>
+                    {c.placement_rate}% <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)' }}>({c.placed}/{c.total})</span>
+                  </span>
+                </div>
+                <div style={{ height: 8, borderRadius: 99, background: 'var(--border-light)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${c.placement_rate}%`, borderRadius: 99, background: PALETTE[i % PALETTE.length], transition: 'width 1s ease-out' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>
+            Performance Summary
+          </h4>
+          {(() => {
+            const sortedByRate = [...(cp || [])].sort((a, b) => b.placement_rate - a.placement_rate);
+            const topCourse = sortedByRate[0];
+            const bottomCourse = sortedByRate.filter(c => c.total > 0).pop();
+            const totalStudents = (cp || []).reduce((sum, c) => sum + c.total, 0);
+            const totalPlaced = (cp || []).reduce((sum, c) => sum + c.placed, 0);
+            const averageRate = totalStudents > 0 ? Math.round((totalPlaced / totalStudents) * 100) : 0;
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'space-between', height: '100%' }}>
+                <KPICard 
+                  title="Top Performing Course" 
+                  value={topCourse ? `${topCourse.course} (${topCourse.placement_rate}%)` : '—'} 
+                  subtitle={`${topCourse?.placed ?? 0}/${topCourse?.total ?? 0} students placed`}
+                  icon={Award}
+                  color={COLORS.success}
+                  small
+                />
+                <KPICard 
+                  title="Overall Average Placement" 
+                  value={`${averageRate}%`} 
+                  subtitle={`${totalPlaced}/${totalStudents} total students`}
+                  icon={TrendingUp}
+                  color={COLORS.accent}
+                  small
+                />
+                {bottomCourse && (
+                  <KPICard 
+                    title="Needs Attention (Lowest)" 
+                    value={`${bottomCourse.course} (${bottomCourse.placement_rate}%)`} 
+                    subtitle={`${bottomCourse.total - bottomCourse.placed} students remaining`}
+                    icon={AlertCircle}
+                    color={COLORS.danger}
+                    small
+                  />
+                )}
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Courses Expanded Details */}
       {expanded.courses && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <ChartCard title="Placement % by Course" icon={BarChart2} color={COLORS.purple}>
+            <ChartCard title={isInternship ? "Conversion % by Course" : "Placement % by Course"} icon={BarChart2} color={COLORS.purple}>
               <BarChart
                 data={(cp || []).map(c => ({ course: c.course, rate: c.placement_rate }))}
                 keyField="course" valueField="rate" unit="%" colorFn={(_, i) => PALETTE[i % PALETTE.length]}
               />
             </ChartCard>
-            <ChartCard title="Avg Salary by Course" icon={DollarSign} color={COLORS.warning}>
+            <ChartCard title={isInternship ? "Avg Stipend by Course" : "Avg Salary by Course"} icon={DollarSign} color={COLORS.warning}>
               <BarChart
                 data={(cp || []).map(c => ({ course: c.course, salary: c.avg_salary }))}
-                keyField="course" valueField="salary" unit=" LPA" colorFn={(_, i) => PALETTE[i % PALETTE.length]}
+                keyField="course" valueField="salary" unit={isInternship ? " ₹/mo" : " LPA"} colorFn={(_, i) => PALETTE[i % PALETTE.length]}
               />
             </ChartCard>
           </div>
 
           {/* Course Detail Table */}
-          <ChartCard title="Course Rankings — Full Detail" icon={BookOpen} color={COLORS.teal}>
+          <ChartCard title={isInternship ? "Course Rankings — Internship Detail" : "Course Rankings — Placement Detail"} icon={BookOpen} color={COLORS.teal}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                  {['Rank', 'Course', 'Total', 'Placed', 'Placement %', 'Avg Salary', 'Max Salary'].map(h => (
+                  {(isInternship
+                    ? ['Rank', 'Course', 'Total', 'Converted', 'Conversion %', 'Avg Stipend', 'Max Stipend']
+                    : ['Rank', 'Course', 'Total', 'Placed', 'Placement %', 'Avg Salary', 'Max Salary']
+                  ).map(h => (
                     <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.67rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -1187,8 +1395,8 @@ export default function Dashboard() {
                     <td style={{ padding: '8px 10px' }}>
                       <span style={{ background: COLORS.accent + '18', color: COLORS.accent, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.7rem' }}>{c.placement_rate}%</span>
                     </td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>₹{c.avg_salary ?? 0} LPA</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>₹{c.max_salary ?? 0} LPA</td>
+                    <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>{T.formatComp(c.avg_salary)}</td>
+                    <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>{T.formatComp(c.max_salary)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1200,57 +1408,31 @@ export default function Dashboard() {
       {/* ──═════════════════════════════════════════════════════════── */}
       {/* SECTION: STUDENTS                                          */}
       {/* ──═════════════════════════════════════════════════════════── */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <Users size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('students')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <Users size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+          <h2 className="dashboard-section-title">
             Student Demographics
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('students')}
+          className={`dashboard-section-premium-toggle ${expanded.students ? 'active' : ''}`}
           title={expanded.students ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.students ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.students ? 'none' : '1px solid var(--border-color)',
-            color: expanded.students ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.students ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('students'); }}
         >
-          {expanded.students ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.students ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
@@ -1312,57 +1494,31 @@ export default function Dashboard() {
       {/* ──═════════════════════════════════════════════════════════── */}
       {/* SECTION: ELIGIBILITY                                       */}
       {/* ──═════════════════════════════════════════════════════════── */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '16px 24px',
-          marginTop: 36,
-          marginBottom: 16,
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span 
-            style={{ 
-              background: 'var(--accent-soft)', 
-              color: 'var(--accent-primary-dark)', 
-              padding: 10, 
-              borderRadius: 'var(--radius-md)', 
-              display: 'flex' 
-            }}
-          >
-            <CheckCircle size={20} />
+      <div className="dashboard-section-header" onClick={() => toggleSection('eligibility')}>
+        <div className="dashboard-section-left">
+          <span className="dashboard-section-icon">
+            <CheckCircle size={18} />
           </span>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+          <h2 className="dashboard-section-title">
             Eligibility & Compliance
           </h2>
         </div>
         <button 
-          onClick={() => toggleSection('eligibility')}
+          className={`dashboard-section-premium-toggle ${expanded.eligibility ? 'active' : ''}`}
           title={expanded.eligibility ? "Collapse Details" : "Expand Details"}
-          style={{
-            background: expanded.eligibility ? 'var(--accent-gradient)' : 'var(--bg-card-hover)',
-            border: expanded.eligibility ? 'none' : '1px solid var(--border-color)',
-            color: expanded.eligibility ? '#fff' : 'var(--text-primary)',
-            borderRadius: 'var(--radius-sm)',
-            width: 44,
-            height: 44,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: expanded.eligibility ? '0 4px 12px rgba(37, 99, 235, 0.2)' : 'none',
-            outline: 'none'
-          }}
-          className="hover-lift"
+          onClick={(e) => { e.stopPropagation(); toggleSection('eligibility'); }}
         >
-          {expanded.eligibility ? <ChevronUp size={20} /> : <ChevronDown size={20} style={{ strokeWidth: 3 }} />}
+          {expanded.eligibility ? (
+            <>
+              <span>Hide Details</span>
+              <Minimize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          ) : (
+            <>
+              <span>View Details</span>
+              <Maximize2 size={12} style={{ strokeWidth: 2.5 }} />
+            </>
+          )}
         </button>
       </div>
 
@@ -1380,6 +1536,38 @@ export default function Dashboard() {
       {/* Eligibility Expanded Details */}
       {expanded.eligibility && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
+
+          {/* Eligibility Cards Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+            <DetailMiniCard 
+              title="Avg PACT Score" 
+              value={eli.avg_pact_score ?? 0} 
+              subtitle="Overall index score"
+              icon={Target}
+              color={COLORS.purple}
+            />
+            <DetailMiniCard 
+              title="Category A Students" 
+              value={eli.category_distribution?.A ?? 0} 
+              subtitle="Outstanding profiles"
+              icon={Award}
+              color={COLORS.success}
+            />
+            <DetailMiniCard 
+              title="Category B Students" 
+              value={eli.category_distribution?.B ?? 0} 
+              subtitle="Consistent performers"
+              icon={UserCheck}
+              color={COLORS.warning}
+            />
+            <DetailMiniCard 
+              title="Category C Students" 
+              value={eli.category_distribution?.C ?? 0} 
+              subtitle="Need improvement"
+              icon={UserX}
+              color={COLORS.danger}
+            />
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <ChartCard title="Eligible vs Ineligible" icon={PieChart} color={COLORS.success}>
@@ -1399,6 +1587,46 @@ export default function Dashboard() {
             ].map(row => (
               <ProgressBar key={row.label} label={row.label} value={row.value} max={ov.total_students || 1} color={row.color} />
             ))}
+          </ChartCard>
+
+          {/* Departmental Eligibility & PACT Performance Table */}
+          <ChartCard title="Departmental Eligibility & PACT Performance" icon={Building} color={COLORS.teal}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>DEPARTMENT / COURSE</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>TOTAL</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>ELIGIBLE</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>ELIGIBILITY %</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>CAT A / B / C</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>AVG CGPA</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>AVG ATTENDANCE</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: COLORS.accent }}>AVG PACT SCORE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(eli.course_eligibility || []).map((row, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }} className="hover-row">
+                      <td style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--text-primary)' }}>{row.course}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>{row.total_students}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: COLORS.success, fontWeight: 700 }}>{row.eligible_count}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <span style={{ background: COLORS.success + '15', color: COLORS.success, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.75rem' }}>
+                          {row.eligibility_rate}%
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>
+                        <span style={{ color: COLORS.success }}>{row.cat_a}</span> / <span style={{ color: COLORS.warning }}>{row.cat_b}</span> / <span style={{ color: COLORS.danger }}>{row.cat_c}</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>{row.avg_cgpa}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>{row.avg_attendance}%</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 900, color: COLORS.accent, fontSize: '0.85rem' }}>{row.avg_pact_score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </ChartCard>
         </div>
       )}

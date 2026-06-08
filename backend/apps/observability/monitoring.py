@@ -89,10 +89,14 @@ def health_check():
 
     # Celery
     try:
-        from config.celery import app as celery_app
-        inspector = celery_app.control.inspect()
-        stats = inspector.stats()
-        health['checks']['celery'] = 'ok' if stats else 'no workers'
+        from django.conf import settings
+        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+            health['checks']['celery'] = 'always_eager (no workers required)'
+        else:
+            from config.celery import app as celery_app
+            inspector = celery_app.control.inspect()
+            stats = inspector.stats()
+            health['checks']['celery'] = 'ok' if stats else 'no workers'
     except Exception as exc:
         health['checks']['celery'] = f'error: {exc}'
 

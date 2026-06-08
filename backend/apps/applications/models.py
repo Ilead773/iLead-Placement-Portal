@@ -31,6 +31,7 @@ class Application(models.Model):
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'png'])]
     )
     offer_letter_uploaded = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.offer_letter_file:
@@ -148,3 +149,47 @@ class ResumeEmailLog(models.Model):
 
     def __str__(self):
         return f"Email to {self.company_email} — {self.resumes_attached} resumes — {self.status}"
+
+
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Notification)
+def send_notification_email_trigger(sender, instance, created, **kwargs):
+    if created:
+        from .tasks import send_notification_email
+        try:
+            send_notification_email.delay(instance.id)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Could not queue notification email for notification {instance.id} (is Redis/Celery running?): {e}")
+
+
+def sync_job_status(job):
+    """
+    Counts the number of selected/accepted applications for a job, and closes the job
+    if the count meets or exceeds openings_count, or reopens it if it is below.
+    """
+    placed_count = Application.objects.filter(
+        job=job,
+        status__in=['selected', 'accepted'],
+        is_deleted=False
+    ).count()
+    if placed_count >= job.openings_count:
+        if job.status == 'active':
+            job.status = 'closed'
+            job.save(update_fields=['status'])
+    else:
+        if job.status == 'closed':
+            job.status = 'active'
+            job.save(update_fields=['status'])
+
+@receiver(post_save, sender=Application)
+def close_job_when_openings_filled(sender, instance, **kwargs):
+    sync_job_status(instance.job)
+
+@receiver(post_delete, sender=Application)
+def reopen_job_on_application_delete(sender, instance, **kwargs):
+    sync_job_status(instance.job)
+

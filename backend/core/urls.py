@@ -14,7 +14,7 @@ urlpatterns = [
     # Students (Admin/Coordinator)
     path('students/import-csv/', views.StudentViewSet.as_view({'post': 'import_csv'})),
     path('students/', views.StudentViewSet.as_view({'get': 'list_students'})),
-    path('students/<uuid:pk>/', views.StudentViewSet.as_view({'get': 'get_student'})),
+    path('students/<uuid:pk>/', views.StudentViewSet.as_view({'get': 'get_student', 'put': 'update_student', 'patch': 'update_student'})),
     path('students/<uuid:pk>/delete/', views.StudentViewSet.as_view({'delete': 'delete_student'})),
     path('students/<uuid:pk>/toggle-access/', views.StudentViewSet.as_view({'post': 'toggle_access'})),
     path('students/<uuid:pk>/change-category/', views.StudentViewSet.as_view({'post': 'change_category', 'put': 'change_category', 'patch': 'change_category'})),

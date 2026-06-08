@@ -39,26 +39,63 @@ export default function DashboardNew() {
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
 
   // KPI Card Component
-  const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'accent-primary', bgColor = 'bg-accent-soft' }) => (
-    <div className="card group hover-lift">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <p className="text-xs font-bold text-muted uppercase tracking-wider">{title}</p>
-          <h3 className="text-2xl font-black text-primary mt-2">{value}</h3>
-          {subtitle && <p className="text-xs text-secondary mt-1">{subtitle}</p>}
+  const KPICard = ({ title, value, subtitle, icon: Icon, trend, color = 'accent-primary', bgColor }) => {
+    // Map tailwind-like colors to correct CSS variables or fallback theme colors
+    const colorMap = {
+      'accent-primary': 'var(--accent-primary)',
+      'success': 'var(--success)',
+      'info': 'var(--info)',
+      'warning': 'var(--warning)',
+      'danger': 'var(--danger)',
+    };
+    
+    const bgMap = {
+      'accent-primary': 'var(--accent-soft)',
+      'success': 'rgba(16, 185, 129, 0.1)',
+      'info': 'rgba(59, 130, 246, 0.1)',
+      'warning': 'rgba(245, 158, 11, 0.1)',
+      'danger': 'rgba(239, 68, 68, 0.1)',
+    };
+
+    const mappedColor = colorMap[color] || 'var(--accent-primary)';
+    const mappedBg = bgMap[color] || 'var(--accent-soft)';
+
+    const valueStr = String(value || '');
+    const isVeryLong = valueStr.length > 22;
+    const isLongText = valueStr.length > 15;
+    
+    const fontSize = isVeryLong
+      ? '0.85rem'
+      : isLongText
+        ? '0.95rem'
+        : '1.25rem';
+
+    const fontWeight = isLongText ? 700 : 800;
+    const lineHeight = isLongText ? 1.35 : 1.2;
+
+    return (
+      <div className="card group hover-lift relative overflow-hidden flex flex-col justify-between animate-in" style={{ minHeight: '135px', padding: '20px 24px' }}>
+        {/* Dynamic top highlight strip for premium dashboard card uniformity */}
+        <div className="absolute top-0 left-0 right-0 h-1" style={{ background: mappedColor, opacity: 0.85, height: '4px' }} />
+        
+        <div className="flex justify-between items-start mb-2 pt-1 gap-2">
+          <div>
+            <p className="text-xs font-extrabold text-muted uppercase tracking-wider" style={{ fontSize: '0.78rem' }}>{title}</p>
+            <h3 className="mt-2 tracking-tight" style={{ fontSize, fontWeight, color: mappedColor, lineHeight }}>{value}</h3>
+          </div>
+          <div className="p-2 rounded-lg flex-shrink-0 flex items-center justify-center" style={{ background: mappedBg, color: mappedColor, padding: '6px', borderRadius: '8px' }}>
+            {Icon && <Icon size={18} style={{ color: mappedColor }} />}
+          </div>
         </div>
-        <div className={`${bgColor} p-2 rounded-lg text-${color}`}>
-          {Icon && <Icon size={20} className={`text-${color}`} />}
-        </div>
+        {trend && (
+          <div className="flex items-center gap-1 text-xs font-bold mt-2">
+            {trend.up ? <ArrowUp size={12} className="text-success" /> : <ArrowDown size={12} className="text-danger" />}
+            <span className={trend.up ? 'text-success' : 'text-danger'}>{trend.value}</span>
+          </div>
+        )}
       </div>
-      {trend && (
-        <div className="flex items-center gap-1 text-xs">
-          {trend.up ? <ArrowUp size={14} className="text-success" /> : <ArrowDown size={14} className="text-danger" />}
-          <span className={trend.up ? 'text-success' : 'text-danger'}>{trend.value}</span>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   // Chart Section Component
   const ChartSection = ({ title, icon: Icon, children }) => (
@@ -206,7 +243,6 @@ export default function DashboardNew() {
             <KPICard
               title="Total Students"
               value={stats?.overview?.total_students || 0}
-              subtitle="Registered students"
               icon={Users}
             />
             <KPICard

@@ -88,6 +88,8 @@ class QuestionBriefSerializer(serializers.ModelSerializer):
 class StartInterviewSerializer(serializers.Serializer):
     interview_type_id = serializers.UUIDField()
     use_voice = serializers.BooleanField(default=True)
+    num_questions = serializers.IntegerField(required=False, min_value=1, max_value=20)
+
 
 
 class SubmitAnswerSerializer(serializers.Serializer):

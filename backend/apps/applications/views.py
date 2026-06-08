@@ -1,25 +1,70 @@
+import requests
+import logging
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError, transaction
+from django.conf import settings
 from .models import Application, ApplicationRound, ApplicationStatusHistory, Notification
 from .serializers import ApplicationSerializer, ApplicationRoundSerializer, NotificationSerializer, SendResumesSerializer, ResumeEmailLogSerializer
 from apps.jobs.models import Job, JobRound
 from .eligibility_engine import check_eligibility
+
+logger = logging.getLogger(__name__)
 
 class ApplicationViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.role == 'admin':
-            return Application.objects.all()
+        if self.request.user.role in ['admin', 'coordinator']:
+            return Application.objects.filter(is_deleted=False)
         student_profile = getattr(self.request.user, 'student_profile', None)
         if student_profile:
             return Application.objects.filter(student=student_profile)
         return Application.objects.none()
+
+    def destroy(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        try:
+            # Query base objects directly to check if it's already soft-deleted
+            application = Application.objects.get(pk=pk)
+            
+            # Access control: students can only delete/withdraw their own applications
+            if request.user.role not in ['admin', 'coordinator']:
+                student_profile = getattr(request.user, 'student_profile', None)
+                if not student_profile or application.student != student_profile:
+                    return Response({'error': 'Application not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+            if application.is_deleted:
+                # Already soft-deleted: return success idempotently
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            
+            self.perform_destroy(application)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Application.DoesNotExist:
+            return Response({'error': 'Application not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def perform_destroy(self, instance):
+        if instance.status in ['selected', 'accepted']:
+            company_name = instance.job.company_name
+            role = instance.job.role
+            title = f"⚠️ Placement Update: {company_name}"
+            message = f"Your placement status for the role of {role} at {company_name} has been reverted."
+            
+            Notification.objects.create(
+                user=instance.student.user,
+                notification_type='APPLICATION_UPDATE',
+                title=title,
+                message=message,
+                priority='high',
+                action_url=None
+            )
+            
+        instance.is_deleted = True
+        instance.save(update_fields=['is_deleted'])
 
     def perform_update(self, serializer):
         instance = self.get_object()
@@ -39,33 +84,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 changed_by=self.request.user
             )
             
-            # 2. Build custom high-fidelity notifications
-            company_name = application.job.company_name
-            role = application.job.role
-            title = f"Application Update: {company_name}"
-            message = f"Your application status for {role} at {company_name} was updated."
-            
-            if new_status == 'shortlisted':
-                title = f"🎉 Shortlisted for {company_name}!"
-                message = f"Congratulations! You have been shortlisted for the role of {role} at {company_name}. Please stay tuned for the next steps."
-            elif new_status == 'interviewing':
-                title = f"📅 Interview Invitation: {company_name}"
-                message = f"Fantastic news! You have been selected for an interview round for the {role} position at {company_name}. Please check your email and dashboard for schedule details."
-            elif new_status == 'selected':
-                title = f"🏆 Placed at {company_name}!"
-                message = f"Incredible achievement! You have been selected & offered the role of {role} at {company_name}. The placement cell congratulates you!"
-            elif new_status == 'rejected':
-                title = f"Status Update: {company_name}"
-                message = f"Thank you for participating in the {company_name} recruitment drive for {role}. Unfortunately, your application is not moving forward at this time. Keep learning and growing!"
-            
-            Notification.objects.create(
-                user=application.student.user,
-                notification_type='APPLICATION_UPDATE',
-                title=title,
-                message=message,
-                priority='high' if new_status in ['shortlisted', 'interviewing', 'selected', 'rejected'] else 'medium',
-                action_url=f"/student/applications/{application.id}"
-            )
+            # 2. Build custom high-fidelity notification only on reverting placement
+            if old_status in ['selected', 'accepted'] and new_status not in ['selected', 'accepted']:
+                company_name = application.job.company_name
+                role = application.job.role
+                title = f"⚠️ Placement Update: {company_name}"
+                message = f"Your placement status for the role of {role} at {company_name} has been reverted. Your application status is now {new_status.capitalize()}."
+                
+                Notification.objects.create(
+                    user=application.student.user,
+                    notification_type='APPLICATION_UPDATE',
+                    title=title,
+                    message=message,
+                    priority='high',
+                    action_url=f"/student/applications/{application.id}"
+                )
 
     def create(self, request, *args, **kwargs):
         student_profile = getattr(request.user, 'student_profile', None)
@@ -221,11 +254,21 @@ class NotificationViewSet(viewsets.ModelViewSet):
             for user in users
         ]
         
-        Notification.objects.bulk_create(notifications_to_create)
+        created_notifications = Notification.objects.bulk_create(notifications_to_create)
+
+        # Trigger background email/push dispatches (requires Celery + Redis to be running)
+        from .tasks import send_notification_email
+        email_queued = 0
+        for notif in created_notifications:
+            try:
+                send_notification_email.delay(notif.id)
+                email_queued += 1
+            except Exception as e:
+                logger.warning(f"Could not queue email for notification {notif.id} (is Celery running?): {e}")
 
         return Response({
             'status': 'success',
-            'message': f'Successfully dispatched notifications to {len(users)} student(s).'
+            'message': f'Successfully dispatched notifications to {len(users)} student(s). Email/push queued for {email_queued}/{len(users)} recipients.'
         })
 
 class SendResumesToCompanyView(APIView):
@@ -272,33 +315,38 @@ class SendResumesToCompanyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Pre-create the log synchronously
+        from .models import ResumeEmailLog
+        from django.conf import settings
+
+        student_names = list(valid_apps.values_list('student__name', flat=True))
+        str_app_ids = [str(uid) for uid in valid_ids]
+
+        log_obj = ResumeEmailLog.objects.create(
+            sent_by=request.user,
+            job=job,
+            company_email=data['company_email'],
+            subject=data['subject'],
+            body=data['body'],
+            cc_emails=data.get('cc_emails', []),
+            application_ids=str_app_ids,
+            student_names=student_names,
+            resumes_attached=0,
+            status='pending',
+            error_message=None,
+        )
+
         # Queue async Celery task
         from .tasks import send_resumes_to_company_task
-        try:
-            task = send_resumes_to_company_task.delay(
-                application_ids=valid_ids,
-                company_email=data['company_email'],
-                subject=data['subject'],
-                body=data['body'],
-                cc_emails=data.get('cc_emails', []),
-                sent_by_user_id=request.user.id,
-                job_id=job.id,
-            )
-        except Exception as exc:
-            import traceback
-            traceback.print_exc()
-            return Response(
-                {
-                    'error': 'email_task_failed',
-                    'message': f'Could not send email: {str(exc)}'
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        task = send_resumes_to_company_task.delay(
+            log_id=str(log_obj.id)
+        )
 
         return Response(
             {
                 'message': 'Email is being sent. You will receive a notification when done.',
                 'task_id': task.id,
+                'shared_link': f"{settings.FRONTEND_URL}/shared-resumes/{log_obj.id}",
                 'summary': {
                     'selected_students': len(valid_ids),
                     'company_email': data['company_email'],
@@ -308,18 +356,56 @@ class SendResumesToCompanyView(APIView):
             status=status.HTTP_202_ACCEPTED
         )
 
+
 class ResumeEmailLogView(APIView):
     """
-    GET /api/v1/admin/jobs/{job_id}/email-log/
+    GET /api/v1/admin/jobs/{job_id}/email-log/ or GET /api/v1/admin/email-logs/
     """
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request, job_id):
+    def get(self, request, job_id=None):
         if request.user.role not in ['admin', 'coordinator']:
             return Response({'error': 'Only admins and coordinators can view logs.'}, status=status.HTTP_403_FORBIDDEN)
             
         from .models import ResumeEmailLog
-        logs = ResumeEmailLog.objects.filter(job_id=job_id).select_related('sent_by')
+        
+        target_job_id = job_id or request.query_params.get('job_id')
+        if target_job_id:
+            logs = ResumeEmailLog.objects.filter(job_id=target_job_id).select_related('sent_by', 'job')
+        else:
+            logs = ResumeEmailLog.objects.all().select_related('sent_by', 'job')
 
         serializer = ResumeEmailLogSerializer(logs, many=True)
         return Response(serializer.data)
+
+class SharedResumeView(APIView):
+    """
+    GET /api/v1/applications/shared-resumes/{log_id}/
+    Public endpoint to view shared resumes.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, log_id):
+        from .models import ResumeEmailLog, Application
+        from .serializers import ApplicationSerializer
+        
+        log = get_object_or_404(ResumeEmailLog, id=log_id)
+        
+        app_ids = log.application_ids
+        applications = Application.objects.filter(id__in=app_ids).select_related('student', 'student__user', 'job')
+        
+        serializer = ApplicationSerializer(applications, many=True, context={'request': request})
+        
+        return Response({
+            'company_email': log.company_email,
+            'subject': log.subject,
+            'body': log.body,
+            'sent_at': log.sent_at,
+            'job': {
+                'company_name': log.job.company_name,
+                'role': log.job.role,
+            },
+            'applications': serializer.data
+        })
+
+

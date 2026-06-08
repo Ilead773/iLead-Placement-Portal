@@ -28,7 +28,8 @@ class TestUniqueResumes:
         template = ResumeTemplate.objects.create(
             name='Template A',
             is_active=True,
-            html_content='<div>{{ personal.name }}</div>'
+            html_template='<div>{{ personal.name }}</div>',
+            css_styles='body { color: black; }'
         )
         
         # Create client and auth
