@@ -160,12 +160,12 @@ const SendResumesPage = () => {
   if (result?.success) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]" style={{ width: '100%' }}>
-        <div className="card text-center max-w-2xl w-full p-10 shadow-2xl rounded-3xl border border-emerald-500/10">
+        <div className="card text-center max-w-2xl w-full p-6 sm:p-10 shadow-2xl rounded-3xl border border-emerald-500/10">
           <div className="text-emerald-500 bg-emerald-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-4xl border border-emerald-500/20 mb-6">✓</div>
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Email Sent Successfully!</h2>
           <p className="text-slate-500 dark:text-slate-400">The candidate resumes workspace has been generated and emailed.</p>
           
-          <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 my-6 text-left space-y-3">
+          <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 my-4 sm:my-6 text-left space-y-3">
             <p className="text-sm"><strong className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs">Employer Email:</strong> <span className="font-semibold text-slate-800 dark:text-slate-200">{result.summary.company_email}</span></p>
             <p className="text-sm"><strong className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-xs">Selected Candidates:</strong> <span className="font-semibold text-slate-800 dark:text-slate-200">{result.summary.selected_students}</span></p>
             
@@ -192,11 +192,11 @@ const SendResumesPage = () => {
             )}
           </div>
 
-          <div className="flex justify-center space-x-4">
-            <Link to={`/jobs/${jobId}/applications`} className="btn btn-secondary px-8 py-3 rounded-xl font-bold">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:space-x-4">
+            <Link to={`/jobs/${jobId}/applications`} className="btn btn-secondary w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-center">
               Back to Applications
             </Link>
-            <Link to="/admin/jobs" className="btn btn-primary px-8 py-3 rounded-xl font-bold">
+            <Link to="/admin/jobs" className="btn btn-primary w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-center">
               Go to Jobs
             </Link>
           </div>
@@ -313,7 +313,7 @@ const SendResumesPage = () => {
               <button 
                 onClick={handleSend} 
                 disabled={loading || appsWithResume.length === 0 || !companyEmail.trim() || !subject.trim() || !body.trim()} 
-                className="btn btn-primary"
+                className="btn btn-primary w-full sm:w-auto"
               >
                 {loading ? (
                   <>

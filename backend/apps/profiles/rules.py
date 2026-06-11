@@ -23,29 +23,29 @@ PROFILE_COMPLETION_RULES = {
     "personal": {
         "require_name": True,
         "require_email": True,
-        "require_phone": False,
-        "require_location": False,
+        "require_phone": True,
+        "require_location": True,
         "weight": 0.20,  # 20% of completion score
     },
     "professional_summary": {
-        "require": False,
+        "require": True,
         "min_length": 50,  # characters
         "weight": 0.10,
     },
     "experience": {
-        "min_count": 0,
+        "min_count": 1,
         "max_count": 10,
-        "require_at_least_one": False,
+        "require_at_least_one": True,
         "weight": 0.15,
     },
     "projects": {
-        "min_count": 0,
+        "min_count": 1,
         "max_count": 15,
-        "require_at_least_one": False,
+        "require_at_least_one": True,
         "weight": 0.15,
     },
     "skills": {
-        "min_count": 1,
+        "min_count": 3,
         "min_skills_per_category": 1,
         "max_skills": 50,
         "weight": 0.15,
@@ -60,14 +60,24 @@ PROFILE_COMPLETION_RULES = {
         "weight": 0.05,
     },
     "links": {
-        "require_linkedin": False,
-        "require_github": False,
+        "require_linkedin": True,
+        "require_github": True,
         "weight": 0.05,
     },
     "resume_generation": {
-        "min_profile_completion": 0.40,  # 40% to allow resume generation
+        "min_profile_completion": 0.80,  # 80% to allow resume generation
     },
 }
+
+
+def get_relation_count(instance, relation_name):
+    if hasattr(instance, '_prefetched_objects_cache') and relation_name in instance._prefetched_objects_cache:
+        return len(getattr(instance, relation_name).all())
+    # Support custom cached attribute names
+    cached_attr = f'_cached_{relation_name}_count'
+    if hasattr(instance, cached_attr):
+        return getattr(instance, cached_attr)
+    return getattr(instance, relation_name).count()
 
 
 class ProfileCompletionValidator:
@@ -148,7 +158,7 @@ class ProfileCompletionValidator:
 
         # ── Skills ───────────────────────────────────────────────
         skill_rules = self.rules['skills']
-        skill_count = profile.skills.count()
+        skill_count = get_relation_count(profile, 'skills')
         if skill_count >= skill_rules['min_count']:
             section_scores['skills'] = min(1.0, skill_count / max(skill_rules['min_count'], 3))
         else:
@@ -160,7 +170,7 @@ class ProfileCompletionValidator:
 
         # ── Experience ───────────────────────────────────────────
         exp_rules = self.rules['experience']
-        exp_count = profile.experiences.count()
+        exp_count = get_relation_count(profile, 'experiences')
         if exp_rules['require_at_least_one'] and exp_count == 0:
             section_scores['experience'] = 0.0
             errors.append("At least one experience entry is required.")
@@ -171,7 +181,7 @@ class ProfileCompletionValidator:
 
         # ── Projects ─────────────────────────────────────────────
         proj_rules = self.rules['projects']
-        proj_count = profile.projects.count()
+        proj_count = get_relation_count(profile, 'projects')
         if proj_rules['require_at_least_one'] and proj_count == 0:
             section_scores['projects'] = 0.0
             errors.append("At least one project is required.")
@@ -182,7 +192,7 @@ class ProfileCompletionValidator:
 
         # ── Education ────────────────────────────────────────────
         edu_rules = self.rules['education']
-        edu_count = profile.education_entries.count()
+        edu_count = get_relation_count(profile, 'education_entries')
         if edu_rules['require_at_least_one'] and edu_count == 0:
             section_scores['education'] = 0.0
             errors.append("At least one education entry is required.")
@@ -192,7 +202,7 @@ class ProfileCompletionValidator:
             section_scores['education'] = 0.0
 
         # ── Certifications ───────────────────────────────────────
-        cert_count = profile.certifications.count()
+        cert_count = get_relation_count(profile, 'certifications')
         section_scores['certifications'] = 1.0 if cert_count > 0 else 0.0
 
         # ── Links ────────────────────────────────────────────────
@@ -267,15 +277,15 @@ class ProfileCompletionValidator:
             suggestions.append(
                 "Add a professional summary (2-3 sentences about your goals)."
             )
-        if profile.skills.count() < 3:
+        if get_relation_count(profile, 'skills') < 3:
             suggestions.append("Add at least 3 skills to strengthen your profile.")
-        if profile.projects.count() == 0:
+        if get_relation_count(profile, 'projects') == 0:
             suggestions.append("Add at least one project to showcase your work.")
         if not profile.linkedin:
             suggestions.append("Add your LinkedIn profile URL.")
         if not profile.github:
             suggestions.append("Add your GitHub profile URL.")
-        if profile.experiences.count() == 0:
+        if get_relation_count(profile, 'experiences') == 0:
             suggestions.append(
                 "Add internship or work experience if applicable."
             )

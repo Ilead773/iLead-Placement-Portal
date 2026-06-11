@@ -22,6 +22,7 @@ class ScrapedJob(models.Model):
         ('adzuna', 'Adzuna'),
         ('greenhouse', 'Greenhouse'),
         ('lever', 'Lever'),
+        ('linkedin', 'LinkedIn'),
     ]
 
     JOB_TYPE_CHOICES = [

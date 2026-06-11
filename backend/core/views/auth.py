@@ -170,11 +170,9 @@ class AuthViewSet(viewsets.ViewSet):
             """
             
             print(f"DEBUG: Attempting to send password reset email to: {user.email}")
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
-            print(f"DEBUG: Email sent successfully to {user.email}")
-            return Response({'message': 'Password reset link sent to your email.'})
-            
-            print(f"DEBUG: Email sent successfully to {user.email}")
+            from core.tasks import async_send_mail
+            async_send_mail.delay(subject, message, [user.email], fail_silently=False)
+            print(f"DEBUG: Email queued successfully to {user.email}")
             return Response({'message': 'Password reset link sent to your email.'})
             
         except Exception as e:

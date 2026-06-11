@@ -261,7 +261,7 @@ def add_mock_data_to_student(login_id='demo001'):
         print(f"Profile Completion: {profile.completion_score:.0%}")
         print("="*60)
         print("\n✨ Mock data successfully added!")
-        print(f"📍 Login and check the profile at: http://localhost:5173/student/profile")
+        print(f"📍 Login and check the profile at: http://localhost:3000/student/profile")
         
         return True
         

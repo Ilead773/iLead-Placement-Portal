@@ -39,17 +39,27 @@ class StudentViewSet(viewsets.ViewSet):
             credentials, upload_log = process_csv(content, request.user, file_name=file.name)
             log_audit(request.user, 'csv_upload', f'{file.name}: {upload_log.successful_records}/{upload_log.total_records}', request)
 
-            # Build credentials CSV for download
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(['Name', 'Registration Number', 'Login ID', 'Email', 'Temporary Password'])
+            # Build credentials Excel for download
+            import openpyxl
+            import base64
+            
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Credentials"
+            ws.append(['Name', 'Registration Number', 'Login ID', 'Email', 'Temporary Password'])
             for cred in credentials:
-                writer.writerow([cred['name'], cred['registration_number'], cred['login_id'], cred['email'], cred['temporary_password']])
+                ws.append([cred['name'], cred['registration_number'], cred['login_id'], cred['email'], cred['temporary_password']])
+                
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            excel_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
 
             return Response({
                 'message': f'{upload_log.successful_records} students created successfully.',
                 'upload_log': CSVUploadLogSerializer(upload_log).data,
-                'credentials_csv': output.getvalue(),
+                'credentials_excel': excel_base64,
                 'credentials': credentials,
             }, status=status.HTTP_201_CREATED)
         except ValueError as e:
@@ -113,6 +123,20 @@ class StudentViewSet(viewsets.ViewSet):
         if backlogs_count_max:
             qs = qs.filter(backlogs_count__lte=int(backlogs_count_max))
 
+        # Skill filter — filter students who have a skill matching the given name(s)
+        skill_param = request.query_params.get('skill')
+        if skill_param:
+            skill_names = [s.strip() for s in skill_param.split(',') if s.strip()]
+            for skill_name in skill_names:
+                qs = qs.filter(resume_profile__skills__name__icontains=skill_name)
+            qs = qs.distinct()
+
+        # IDs filter — return specific students by comma-separated UUIDs (used to pre-fill EditJob targeting)
+        ids_param = request.query_params.get('ids')
+        if ids_param:
+            id_list = [i.strip() for i in ids_param.split(',') if i.strip()]
+            qs = qs.filter(id__in=id_list)
+
         # Pagination
         page = int(request.query_params.get('page', 1))
         limit = min(int(request.query_params.get('limit', 20)), 10000)
@@ -147,6 +171,36 @@ class StudentViewSet(viewsets.ViewSet):
         """View CSV upload logs."""
         logs = CSVUploadLog.objects.select_related('uploaded_by').all()[:50]
         return Response(CSVUploadLogSerializer(logs, many=True).data)
+
+    @action(detail=True, methods=['post'], url_path='revert-upload')
+    def revert_upload(self, request, pk=None):
+        """Revert a CSV upload by deleting newly created students."""
+        if request.user.role != 'admin':
+            return Response({'error': 'Only admins can revert uploads.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            log = CSVUploadLog.objects.get(pk=pk)
+            if log.status == 'reverted':
+                return Response({'error': 'This upload has already been reverted.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            # Get students created by this upload
+            students = Student.objects.filter(upload_log=log)
+            deleted_count = students.count()
+            
+            # Delete their users (which cascades to Student profile)
+            user_ids = students.values_list('user_id', flat=True)
+            User.objects.filter(id__in=user_ids).delete()
+            
+            # Mark log as reverted
+            log.status = 'reverted'
+            log.save()
+            
+            log_audit(request.user, 'csv_upload_reverted', f'Reverted upload {log.file_name}, deleted {deleted_count} students.', request)
+            
+            return Response({'message': f'Successfully reverted upload. Deleted {deleted_count} newly created students.'})
+            
+        except CSVUploadLog.DoesNotExist:
+            return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['delete'], url_path='delete')
     def delete_student(self, request, pk=None):

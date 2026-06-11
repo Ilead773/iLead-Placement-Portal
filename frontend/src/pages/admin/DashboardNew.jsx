@@ -137,7 +137,7 @@ export default function DashboardNew() {
     const colors = ['from-accent-primary', 'from-success', 'from-warning', 'from-danger', 'from-info'];
     
     return (
-      <div className="flex gap-6 items-center">
+      <div className="flex flex-col sm:flex-row gap-6 items-center">
         <div className="relative w-40 h-40">
           <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
             {Object.entries(data).map(([key, value], idx) => {

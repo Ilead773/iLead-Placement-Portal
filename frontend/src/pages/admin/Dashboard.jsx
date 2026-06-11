@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { toast } from 'react-hot-toast';
+import useAuthStore from '../../store/authStore';
 import {
   TrendingUp, Users, Building, Briefcase, Award, DollarSign,
   CheckCircle, AlertCircle, XCircle, Clock, BarChart2, PieChart,
@@ -434,6 +436,10 @@ const TABS = [
 
 // ─── Main Dashboard Component ─────────────────────────────────────
 export default function Dashboard() {
+  const { user } = useAuthStore();
+  const canPlacements = user?.role !== 'coordinator' || user?.can_manage_placements === true;
+  const canStudents = user?.role !== 'coordinator' || user?.can_manage_students === true;
+
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({
@@ -473,13 +479,24 @@ export default function Dashboard() {
   const handleRefresh = () => { setRefreshing(true); fetchStats(); };
 
   const handleExport = async () => {
+    const toastId = toast.loading('Generating Excel report...');
     try {
       const { data } = await api.get('/dashboard/reports/');
-      const blob = new Blob([data.csv], { type: 'text/csv' });
+      const byteCharacters = atob(data.excel);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = data.filename; a.click();
       URL.revokeObjectURL(url);
-    } catch (e) { console.error(e); }
+      toast.success('Excel report exported successfully!', { id: toastId });
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to export Excel report. Please verify the backend server has openpyxl installed and restart it.', { id: toastId });
+    }
   };
 
   if (loading) return (
@@ -515,14 +532,14 @@ export default function Dashboard() {
     overviewDetail:    isInternship ? 'Internship Overview Detail' : 'Placement Overview Detail',
     totalListings:     isInternship ? 'Total Internships' : 'Total Jobs',
     listingPostings:   isInternship ? 'Internship postings' : 'Job postings',
-    totalPlaced:       isInternship ? 'Total Converted' : 'Total Placed',
-    placedSubtitle:    isInternship ? 'conversion rate' : 'placement rate',
-    placedRate:        isInternship ? 'Conversion Rate' : 'Placement Rate',
-    placedRateGauge:   isInternship ? 'CONVERTED' : 'PLACED',
-    placedLearners:    isInternship ? 'Interns Converted' : 'Placed Learners',
-    notPlaced:         isInternship ? 'Not Converted' : 'Not Placed',
-    onCampus:          isInternship ? 'On-Campus Converted' : 'On-Campus Placed',
-    offCampus:         isInternship ? 'Off-Campus Converted' : 'Off-Campus Placed',
+    totalPlaced:       isInternship ? 'Total Placements' : 'Total Placements',
+    placedSubtitle:    isInternship ? 'placement rate' : 'placement rate',
+    placedRate:        isInternship ? 'Placement Rate' : 'Placement Rate',
+    placedRateGauge:   isInternship ? 'PLACED' : 'PLACED',
+    placedLearners:    isInternship ? 'Interns Placed' : 'Placed Learners',
+    notPlaced:         isInternship ? 'Not Placed' : 'Not Placed',
+    onCampus:          isInternship ? 'On-Campus Placed' : 'On-Campus Placed',
+    offCampus:         isInternship ? 'Off-Campus Placed' : 'Off-Campus Placed',
     compLabel:         isInternship ? 'Stipend' : 'Package',
     compUnit:          isInternship ? '₹/month' : 'LPA',
     compSuffix:        isInternship ? '/month' : ' LPA',
@@ -544,7 +561,7 @@ export default function Dashboard() {
     salaryGrowth:      isInternship ? 'Monthly Internship Volume' : 'Salary Growth Rate — Monthly Volume',
     avgSalaryByComp:   isInternship ? 'Avg Stipend by Company (Top 10)' : 'Avg Salary by Company (Top 10)',
     compTableHeaders:  isInternship
-      ? ['#', 'Company', 'Avg Stipend (₹/mo)', 'Max Stipend (₹/mo)', 'Students Converted', 'Roles']
+      ? ['#', 'Company', 'Avg Stipend (₹/mo)', 'Max Stipend (₹/mo)', 'Students Placed', 'Roles']
       : ['#', 'Company', 'Avg Salary (LPA)', 'Max Package (LPA)', 'Students Placed', 'Roles'],
     formatComp: (val) => {
       if (val == null || isNaN(val) || parseFloat(val) === 0) return '—';
@@ -587,7 +604,7 @@ export default function Dashboard() {
           <button onClick={handleExport}
             className="btn btn-primary btn-sm"
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10 }}>
-            <Download size={13} /> Export CSV
+            <Download size={13} /> Export Excel
           </button>
         </div>
       </div>
@@ -717,8 +734,10 @@ export default function Dashboard() {
         }
       `}</style>
 
-      {/* Dynamic Switcher (Jobs / Internships) */}
-      <div className="premium-toggle-container animate-in">
+      {canPlacements && (
+        <>
+          {/* Dynamic Switcher (Jobs / Internships) */}
+          <div className="premium-toggle-container animate-in">
         <button
           onClick={() => setSelectedListingType('job')}
           className={`premium-toggle-button ${selectedListingType === 'job' ? 'active' : ''}`}
@@ -769,9 +788,9 @@ export default function Dashboard() {
       {/* First Row Statistics (Always Visible) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
         <KPICard title="Total Students" value={ov.total_students ?? 0} icon={Users} color={COLORS.info} />
-        <KPICard title={T.totalPlaced} value={ov.placed_students ?? 0} icon={CheckCircle} color={COLORS.success} subtitle={`${ov.placement_rate ?? 0}% ${T.placedSubtitle}`} />
-        <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal drives" />
-        <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External links" />
+        <KPICard title={T.totalPlaced} value={ov.total_placements ?? ov.placed_students ?? 0} icon={CheckCircle} color={COLORS.success} subtitle="Selected / accepted offers" />
+        <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal offers" />
+        <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External offers" />
         <KPICard title={T.avgComp} value={T.formatComp(sal.avg_package)} icon={DollarSign} color={COLORS.warning} subtitle={isInternship ? "Monthly average" : "Average CTC"} />
         <KPICard title={T.highestComp} value={T.formatComp(sal.highest_package)} icon={Award} color={COLORS.purple} subtitle={isInternship ? "Peak monthly rate" : "Max CTC package"} />
         <KPICard title="Companies" value={ca.total_companies ?? ov.total_companies ?? 0} icon={Building} color={COLORS.teal} subtitle="Active recruiters" />
@@ -794,8 +813,8 @@ export default function Dashboard() {
               <KPICard title="Total Companies" value={ov.total_companies ?? 0} icon={Building} color={COLORS.info} subtitle="Recruiting" small />
               <KPICard title="Total Openings" value={ov.total_openings ?? 0} icon={Target} color={COLORS.pink} subtitle="Available roles" small />
               <KPICard title={T.placedLearners} value={ov.placed_students ?? 0} icon={UserCheck} color={COLORS.success} subtitle="Unique learners" small />
-              <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal drives" small />
-              <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External links" small />
+              <KPICard title={T.onCampus} value={ov.placed_on_campus ?? 0} icon={CheckCircle} color={COLORS.teal} subtitle="Internal offers" small />
+              <KPICard title={T.offCampus} value={ov.placed_off_campus ?? 0} icon={TrendingUp} color={COLORS.purple} subtitle="External offers" small />
               <KPICard title={T.notPlaced} value={ov.total_not_placed ?? 0} icon={UserX} color={COLORS.danger} subtitle="Eligible & pending" small />
               
               <div className="card" style={{
@@ -847,7 +866,7 @@ export default function Dashboard() {
           </div>
 
           {/* 2. Recruitment Funnel & Overall Performance Status */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+          <div className="grid-responsive-1-2">
             {/* Recruitment Pipeline Funnel */}
             <ChartCard title="Recruitment Status Funnel" icon={PieChart} color={COLORS.info}>
               {(() => {
@@ -1021,7 +1040,7 @@ export default function Dashboard() {
       {/* Status Expanded Details */}
       {expanded.status && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+          <div className="grid-responsive-1-2">
             {/* Swapped: detailed participation and engagement metrics cards */}
             <div className="card" style={{ padding: 20, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
               <SectionHeader icon={TrendingUp} title="Participation & Engagement Metrics" color={COLORS.accent} />
@@ -1225,7 +1244,7 @@ export default function Dashboard() {
       {/* Salary Expanded Details */}
       {expanded.salary && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid-responsive-2">
             {/* Salary Bands (spec-defined) */}
             <ChartCard title={T.salaryBands} icon={BarChart2} color={COLORS.warning}>
               <BarChart
@@ -1357,8 +1376,8 @@ export default function Dashboard() {
       {/* Courses Expanded Details */}
       {expanded.courses && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            <ChartCard title={isInternship ? "Conversion % by Course" : "Placement % by Course"} icon={BarChart2} color={COLORS.purple}>
+          <div className="grid-responsive-2">
+            <ChartCard title="Placement % by Course" icon={BarChart2} color={COLORS.purple}>
               <BarChart
                 data={(cp || []).map(c => ({ course: c.course, rate: c.placement_rate }))}
                 keyField="course" valueField="rate" unit="%" colorFn={(_, i) => PALETTE[i % PALETTE.length]}
@@ -1374,40 +1393,46 @@ export default function Dashboard() {
 
           {/* Course Detail Table */}
           <ChartCard title={isInternship ? "Course Rankings — Internship Detail" : "Course Rankings — Placement Detail"} icon={BookOpen} color={COLORS.teal}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                  {(isInternship
-                    ? ['Rank', 'Course', 'Total', 'Converted', 'Conversion %', 'Avg Stipend', 'Max Stipend']
-                    : ['Rank', 'Course', 'Total', 'Placed', 'Placement %', 'Avg Salary', 'Max Salary']
-                  ).map(h => (
-                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.67rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(s.course_rankings || cp || []).map((c, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                    <td style={{ padding: '8px 10px', fontWeight: 900, color: PALETTE[i % PALETTE.length] }}># {i + 1}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.course}</td>
-                    <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>{c.total}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.success }}>{c.placed}</td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <span style={{ background: COLORS.accent + '18', color: COLORS.accent, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.7rem' }}>{c.placement_rate}%</span>
-                    </td>
-                    <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>{T.formatComp(c.avg_salary)}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>{T.formatComp(c.max_salary)}</td>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                    {(isInternship
+                      ? ['Rank', 'Course', 'Total', 'Placed', 'Placement %', 'Avg Stipend', 'Max Stipend']
+                      : ['Rank', 'Course', 'Total', 'Placed', 'Placement %', 'Avg Salary', 'Max Salary']
+                    ).map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.67rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(s.course_rankings || cp || []).map((c, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: 900, color: PALETTE[i % PALETTE.length] }}># {i + 1}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.course}</td>
+                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>{c.total}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.success }}>{c.placed}</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ background: COLORS.accent + '18', color: COLORS.accent, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.7rem' }}>{c.placement_rate}%</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>{T.formatComp(c.avg_salary)}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>{T.formatComp(c.max_salary)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </ChartCard>
         </div>
       )}
+        </>
+      )}
 
-      {/* ──═════════════════════════════════════════════════════════── */}
-      {/* SECTION: STUDENTS                                          */}
-      {/* ──═════════════════════════════════════════════════════════── */}
+      {canStudents && (
+        <>
+          {/* ──═════════════════════════════════════════════════════════── */}
+          {/* SECTION: STUDENTS                                          */}
+          {/* ──═════════════════════════════════════════════════════════── */}
       <div className="dashboard-section-header" onClick={() => toggleSection('students')}>
         <div className="dashboard-section-left">
           <span className="dashboard-section-icon">
@@ -1450,7 +1475,7 @@ export default function Dashboard() {
       {/* Students Expanded Details */}
       {expanded.students && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
+          <div className="grid-responsive-3">
             <ChartCard title="CGPA Distribution" icon={BarChart2} color={COLORS.info}>
               <DonutChart data={dem.cgpa_distribution} size={120} />
             </ChartCard>
@@ -1465,27 +1490,29 @@ export default function Dashboard() {
           {/* Semester-wise stats */}
           <ChartCard title="Semester-wise Statistics" icon={BookOpen} color={COLORS.teal}>
             {(s.semester_stats || []).length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                    {['Semester', 'Total', 'Placed', 'Placement %'].map(h => (
-                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.67rem', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.semester_stats.map((r, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: 800 }}>Semester {r.semester}</td>
-                      <td style={{ padding: '8px 10px' }}>{r.total}</td>
-                      <td style={{ padding: '8px 10px', color: COLORS.success, fontWeight: 700 }}>{r.placed}</td>
-                      <td style={{ padding: '8px 10px' }}>
-                        <ProgressBar label="" value={r.placement_rate} max={100} color={PALETTE[i % PALETTE.length]} suffix="%" />
-                      </td>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                      {['Semester', 'Total', 'Placed', 'Placement %'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.67rem', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {s.semester_stats.map((r, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 800 }}>Semester {r.semester}</td>
+                        <td style={{ padding: '8px 10px' }}>{r.total}</td>
+                        <td style={{ padding: '8px 10px', color: COLORS.success, fontWeight: 700 }}>{r.placed}</td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <ProgressBar label="" value={r.placement_rate} max={100} color={PALETTE[i % PALETTE.length]} suffix="%" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : <EmptyState />}
           </ChartCard>
         </div>
@@ -1569,7 +1596,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid-responsive-2">
             <ChartCard title="Eligible vs Ineligible" icon={PieChart} color={COLORS.success}>
               <DonutChart data={{ 'Eligible': eli.eligible_students ?? 0, 'Ineligible': eli.ineligible_students ?? 0 }} />
             </ChartCard>
@@ -1630,24 +1657,34 @@ export default function Dashboard() {
           </ChartCard>
         </div>
       )}
+        </>
+      )}
 
 
       {/* ── Footer Quick Links ── */}
-      <div style={{ marginTop: 32, padding: '16px 20px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', alignSelf: 'center', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Quick Nav:</span>
-        {[
-          { to: '/students', label: '👥 Students' },
-          { to: '/placements', label: '🎯 Placements' },
-          { to: '/admin/jobs', label: '💼 Jobs' },
-          { to: '/coordinators', label: '🧑‍💼 Coordinators' },
-          { to: '/jobs/create', label: '➕ Create Job' },
-        ].map(l => (
-          <Link key={l.to} to={l.to} className="btn btn-secondary btn-sm"
-            style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700 }}>
-            {l.label}
-          </Link>
-        ))}
-      </div>
+      {(() => {
+        const quickLinks = [
+          { to: '/students', label: '👥 Students', check: () => user?.role !== 'coordinator' || user?.can_manage_students === true },
+          { to: '/placements', label: '🎯 Placements', check: () => user?.role !== 'coordinator' || user?.can_manage_placements === true },
+          { to: '/admin/jobs', label: '💼 Jobs', check: () => user?.role !== 'coordinator' || user?.can_manage_placements === true },
+          { to: '/coordinators', label: '🧑‍💼 Coordinators', check: () => user?.role !== 'coordinator' },
+          { to: '/jobs/create', label: '➕ Create Job', check: () => user?.role !== 'coordinator' || user?.can_manage_placements === true },
+        ].filter(l => l.check());
+
+        if (quickLinks.length === 0) return null;
+
+        return (
+          <div style={{ marginTop: 32, padding: '16px 20px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', alignSelf: 'center', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Quick Nav:</span>
+            {quickLinks.map(l => (
+              <Link key={l.to} to={l.to} className="btn btn-secondary btn-sm"
+                style={{ padding: '6px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700 }}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

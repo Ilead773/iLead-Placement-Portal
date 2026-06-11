@@ -553,7 +553,7 @@ export default function MockInterview() {
           </button>
         </div>
 
-        <div className="setup-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '32px', alignItems: 'start' }}>
+        <div className="setup-layout-grid grid-responsive-1-6" style={{ alignItems: 'start' }}>
           
           {/* Left Column: Form Setup */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

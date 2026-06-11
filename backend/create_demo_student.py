@@ -77,7 +77,7 @@ def create_student():
         print(f"Attendance:        {student.attendance}%")
         print("="*60)
         print("\n⚠️  Note: Student must change password on first login")
-        print(f"📍 Login URL: http://localhost:5173/login")
+        print(f"📍 Login URL: http://localhost:3000/login")
         print("="*60 + "\n")
         
         return student

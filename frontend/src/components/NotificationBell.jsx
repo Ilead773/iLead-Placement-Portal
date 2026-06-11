@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import useNotificationStore from '../store/notificationStore';
-import { Bell, Check, Trash2, ChevronRight } from 'lucide-react';
+import useAuthStore from '../store/authStore';
+import { Bell, Check, Trash2, ChevronRight, X, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NotificationBell = () => {
   const { notifications, unreadCount, markRead, markAllRead, deleteNotification, poll } = useNotificationStore();
+  const { user } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const containerRef = React.useRef(null);
@@ -99,7 +101,11 @@ const NotificationBell = () => {
                         onClick={() => { 
                           if (isUnread) markRead(note.id); 
                           setIsOpen(false); 
-                          if(note.action_url) navigate(note.action_url); 
+                          if(note.action_url) {
+                            navigate(note.action_url);
+                          } else {
+                            navigate(user?.role === 'admin' ? '/admin/inbox' : '/student/notifications');
+                          }
                         }}
                       >
                         <div className={`h-2.5 w-2.5 mt-1.5 rounded-full flex-shrink-0 ${isUnread ? priorityColors[note.priority] : 'bg-slate-300'}`}></div>
@@ -134,7 +140,7 @@ const NotificationBell = () => {
                 <button 
                   onClick={() => {
                     setIsOpen(false);
-                    navigate('/student/notifications');
+                    navigate(user?.role === 'admin' ? '/admin/inbox' : '/student/notifications');
                   }} 
                   className="text-[10px] font-black uppercase tracking-wider text-orange-500 hover:text-orange-600 transition-colors w-full flex items-center justify-center gap-1"
                 >

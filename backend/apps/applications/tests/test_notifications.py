@@ -112,8 +112,8 @@ class TestNotificationTasks:
         
         mock_send_email.assert_called_once_with(notification)
 
-    @patch('apps.applications.tasks.send_email_for_notification_object')
-    def test_send_job_alert_task(self, mock_send_email):
+    @patch('apps.applications.tasks.send_notification_email.delay')
+    def test_send_job_alert_task(self, mock_send_delay):
         """
         Test the bulk job alert sender celery task.
         """
@@ -139,7 +139,7 @@ class TestNotificationTasks:
         
         # Clear out notifications first
         Notification.objects.all().delete()
-        mock_send_email.reset_mock()
+        mock_send_delay.reset_mock()
         
         send_job_alert_task(job.id)
         
@@ -159,8 +159,8 @@ class TestNotificationTasks:
         assert "Frontend Engineer" in notif.message
         assert "6.5" in notif.message
         
-        # Verify emails were triggered (should be called for each created notification)
-        assert mock_send_email.call_count == 2
+        # Verify Celery tasks were queued (should be called for each created notification)
+        assert mock_send_delay.call_count == 2
 
 
 @pytest.mark.django_db

@@ -8,7 +8,8 @@ const Coordinators = () => {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ 
         name: '', email: '', login_id: '',
-        can_manage_students: false, can_manage_placements: false, can_manage_resumes: false
+        can_manage_students: false, can_manage_placements: false, can_manage_resumes: false,
+        can_manage_assignments: false, can_send_notifications: false, can_view_scraping: false, can_view_clicks: false
     });
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -39,7 +40,8 @@ const Coordinators = () => {
             setMessage({ type: 'success', text: 'Coordinator created! An email has been sent with their credentials.' });
             setFormData({ 
                 name: '', email: '', login_id: '',
-                can_manage_students: false, can_manage_placements: false, can_manage_resumes: false
+                can_manage_students: false, can_manage_placements: false, can_manage_resumes: false,
+                can_manage_assignments: false, can_send_notifications: false, can_view_scraping: false, can_view_clicks: false
             });
             setShowModal(false);
             fetchCoordinators();
@@ -59,7 +61,11 @@ const Coordinators = () => {
             await axios.put(`/admin-ops/coordinators/${editingCoord.id}/update-permissions/`, {
                 can_manage_students: editingCoord.can_manage_students,
                 can_manage_placements: editingCoord.can_manage_placements,
-                can_manage_resumes: editingCoord.can_manage_resumes
+                can_manage_resumes: editingCoord.can_manage_resumes,
+                can_manage_assignments: editingCoord.can_manage_assignments,
+                can_send_notifications: editingCoord.can_send_notifications,
+                can_view_scraping: editingCoord.can_view_scraping,
+                can_view_clicks: editingCoord.can_view_clicks
             });
             setMessage({ type: 'success', text: `Permissions updated successfully for ${editingCoord.name}.` });
             setEditingCoord(null);
@@ -90,7 +96,7 @@ const Coordinators = () => {
                 </div>
             )}
 
-            <div className="card" style={{ overflow: 'hidden' }}>
+            <div className="card" style={{ overflowX: 'auto' }}>
                 <table className="data-table">
                     <thead>
                         <tr>
@@ -127,7 +133,13 @@ const Coordinators = () => {
                                             {coord.can_manage_students && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Students</span>}
                                             {coord.can_manage_placements && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Placements</span>}
                                             {coord.can_manage_resumes && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Resumes</span>}
-                                            {!coord.can_manage_students && !coord.can_manage_placements && !coord.can_manage_resumes && <span className="text-muted" style={{fontSize: '0.7rem'}}>None</span>}
+                                            {coord.can_manage_assignments && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Assignments</span>}
+                                            {coord.can_send_notifications && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Notifications</span>}
+                                            {coord.can_view_scraping && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Scraping</span>}
+                                            {coord.can_view_clicks && <span className="badge badge-info" style={{fontSize: '0.65rem'}}>Clicks</span>}
+                                            {!coord.can_manage_students && !coord.can_manage_placements && !coord.can_manage_resumes &&
+                                             !coord.can_manage_assignments && !coord.can_send_notifications && !coord.can_view_scraping && !coord.can_view_clicks &&
+                                             <span className="text-muted" style={{fontSize: '0.7rem'}}>None</span>}
                                         </div>
                                     </td>
                                     <td>
@@ -151,10 +163,10 @@ const Coordinators = () => {
 
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content card">
+                    <div className="modal">
                         <div className="modal-header">
                             <h2>Add New Coordinator</h2>
-                            <button className="btn-close" onClick={() => setShowModal(false)}>×</button>
+                            <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="input-group">
@@ -226,6 +238,38 @@ const Coordinators = () => {
                                         />
                                         Generate & Send Resumes
                                     </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={formData.can_manage_assignments}
+                                            onChange={e => setFormData({...formData, can_manage_assignments: e.target.checked})}
+                                        />
+                                        Manage MCQ Learning Assignments
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={formData.can_send_notifications}
+                                            onChange={e => setFormData({...formData, can_send_notifications: e.target.checked})}
+                                        />
+                                        Send Announcements & Notifications
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={formData.can_view_scraping}
+                                            onChange={e => setFormData({...formData, can_view_scraping: e.target.checked})}
+                                        />
+                                        Access Job Scraping Tools
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={formData.can_view_clicks}
+                                            onChange={e => setFormData({...formData, can_view_clicks: e.target.checked})}
+                                        />
+                                        View Outbound Click Logs
+                                    </label>
                                 </div>
                             </div>
 
@@ -242,10 +286,10 @@ const Coordinators = () => {
 
             {editingCoord && (
                 <div className="modal-overlay">
-                    <div className="modal-content card">
+                    <div className="modal">
                         <div className="modal-header">
                             <h2>Edit Permissions: {editingCoord.name}</h2>
-                            <button className="btn-close" onClick={() => setEditingCoord(null)}>×</button>
+                            <button className="modal-close" onClick={() => setEditingCoord(null)}>×</button>
                         </div>
                         <form onSubmit={handleUpdatePermissions}>
                             <div className="input-group" style={{ marginTop: '20px' }}>
@@ -274,6 +318,38 @@ const Coordinators = () => {
                                             onChange={e => setEditingCoord({...editingCoord, can_manage_resumes: e.target.checked})}
                                         />
                                         Generate & Send Resumes
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={editingCoord.can_manage_assignments}
+                                            onChange={e => setEditingCoord({...editingCoord, can_manage_assignments: e.target.checked})}
+                                        />
+                                        Manage MCQ Learning Assignments
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={editingCoord.can_send_notifications}
+                                            onChange={e => setEditingCoord({...editingCoord, can_send_notifications: e.target.checked})}
+                                        />
+                                        Send Announcements & Notifications
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={editingCoord.can_view_scraping}
+                                            onChange={e => setEditingCoord({...editingCoord, can_view_scraping: e.target.checked})}
+                                        />
+                                        Access Job Scraping Tools
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0, fontWeight: 'normal' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={editingCoord.can_view_clicks}
+                                            onChange={e => setEditingCoord({...editingCoord, can_view_clicks: e.target.checked})}
+                                        />
+                                        View Outbound Click Logs
                                     </label>
                                 </div>
                             </div>

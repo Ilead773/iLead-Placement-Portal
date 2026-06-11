@@ -47,7 +47,7 @@ class TestOrchestrator:
 
     def test_deactivate_expired_jobs(self):
         from datetime import datetime, timezone, timedelta
-        old_date = datetime.now(timezone.utc) - timedelta(hours=50)
+        old_date = datetime.now(timezone.utc) - timedelta(days=8)
         job = ScrapedJob.objects.create(
             external_job_id='old', source='test', title='Old Job',
             company_name='OldCo', dedup_hash='oldhash',

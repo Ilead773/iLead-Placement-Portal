@@ -162,6 +162,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
     fail = 0
     error_details = []
     credentials = []
+    new_students = []
     seen_reg_nos = set()  # Track duplicates within the same upload
 
     for row in reader:
@@ -341,6 +342,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                     )
                     student.full_clean()
                     student.save()
+                    new_students.append(student)
 
                     credentials.append({
                         'name': name,
@@ -376,5 +378,8 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
         status=log_status,
         error_details="\n".join(error_details) if error_details else None
     )
+
+    if new_students:
+        Student.objects.filter(id__in=[s.id for s in new_students]).update(upload_log=log)
 
     return credentials, log

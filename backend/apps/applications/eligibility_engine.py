@@ -1,8 +1,61 @@
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal
+from django.core.cache import cache
+from django.db.models import Max
 from apps.profiles.models import StudentProfile
+from apps.profiles.rules import ProfileCompletionValidator
+
+IS_TESTING = 'pytest' in sys.modules or 'test' in sys.argv
+
+def get_student_eligibility_state_key(student):
+    profile = getattr(student, 'resume_profile', None)
+    profile_updated = profile.updated_at.timestamp() if profile else 0
+    
+    # Avoid repeated DB queries by caching timestamps on the student model instance
+    max_built_ts = getattr(student, '_max_built_updated_ts', None)
+    if max_built_ts is None:
+        from apps.resumes.models import BuiltResume
+        max_built = BuiltResume.objects.filter(student=student).aggregate(Max('updated_at'))['updated_at__max']
+        max_built_ts = max_built.timestamp() if max_built else 0
+        student._max_built_updated_ts = max_built_ts
+        
+    max_uploaded_ts = getattr(student, '_max_uploaded_updated_ts', None)
+    if max_uploaded_ts is None:
+        from apps.resumes.models import ResumeUpload
+        max_uploaded = ResumeUpload.objects.filter(student=student).aggregate(Max('updated_at'))['updated_at__max']
+        max_uploaded_ts = max_uploaded.timestamp() if max_uploaded else 0
+        student._max_uploaded_updated_ts = max_uploaded_ts
+        
+    return f"student_state_{student.id}_{student.updated_at.timestamp()}_{profile_updated}_{max_built_ts}_{max_uploaded_ts}"
 
 def check_eligibility(student, job, ignore_profile_resume=False):
+    """
+    Evaluates a student against a job's eligibility rules with local memory caching.
+    """
+    if IS_TESTING:
+        return _check_eligibility_uncached(student, job, ignore_profile_resume)
+
+    try:
+        state_key = get_student_eligibility_state_key(student)
+        cache_key = f"eligibility_{state_key}_{job.id}_{job.updated_at.timestamp()}_{ignore_profile_resume}"
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+    except Exception:
+        cache_key = None
+
+    result = _check_eligibility_uncached(student, job, ignore_profile_resume)
+
+    if cache_key is not None:
+        try:
+            cache.set(cache_key, result, 3600)  # cache for 1 hour
+        except Exception:
+            pass
+            
+    return result
+
+def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     """
     Evaluates a student against a job's eligibility rules.
     Takes a core.Student instance.
@@ -15,35 +68,93 @@ def check_eligibility(student, job, ignore_profile_resume=False):
     passing_checks = []
     
     rules = job.eligibility_rules
-    
+
+    # 0. Individual Student Override
+    # If the admin has hand-picked specific students, ONLY they are eligible.
+    # All other eligibility checks are skipped for this job.
+    allowed_students = rules.get('allowed_students', [])
+    if allowed_students:
+        student_id = str(student.id)
+        if student_id not in [str(s) for s in allowed_students]:
+            return {
+                'eligible': False,
+                'failing_checks': [{
+                    'check_name': 'individual_selection',
+                    'reason': 'You have not been individually selected for this opportunity.',
+                    'how_to_fix': 'Contact your placement coordinator for more information.'
+                }],
+                'passing_checks': [],
+                'match_score': 0.0
+            }
+        else:
+            return {
+                'eligible': True,
+                'failing_checks': [],
+                'passing_checks': ['individual_selection'],
+                'match_score': 1.0
+            }
+
     # 1. Profile Complete Check
     # Check if a StudentProfile exists and its completion_score
     try:
-        profile = student.resume_profile
-        completion_score = profile.completion_score
-        
-        if completion_score < 0.6: # Assume 60% is "complete enough"
+        profile = getattr(student, 'resume_profile', None)
+        if profile is None:
+            # Try standard django access if not already populated or set to None
+            profile = student.resume_profile
+    except StudentProfile.DoesNotExist:
+        profile = None
+
+    if profile:
+        if hasattr(student, '_validated_profile'):
+            is_valid, errors, completion_score = student._validated_profile
+        else:
+            validator = ProfileCompletionValidator()
+            is_valid, errors, completion_score = validator.validate_profile(profile)
+            student._validated_profile = (is_valid, errors, completion_score)
+
+        if profile.completion_score != completion_score:
+            profile.completion_score = completion_score
+            profile.save(update_fields=['completion_score'])
+
+        if not is_valid:
             if not ignore_profile_resume:
-                 failing_checks.append({
-                    'check_name': 'profile_complete',
-                    'reason': f'Your resume profile is only {completion_score:.0%} complete.',
-                    'how_to_fix': 'Complete your professional summary, skills, and experience in your profile.'
-                })
+                # Add all missing sections/errors to failing checks
+                for err in errors:
+                    failing_checks.append({
+                        'check_name': 'profile_complete',
+                        'reason': f'Profile incomplete: {err}',
+                        'how_to_fix': 'Go to My Profile and complete all sections.'
+                    })
         else:
             passing_checks.append('profile_complete')
-    except StudentProfile.DoesNotExist:
+    else:
         if not ignore_profile_resume:
             failing_checks.append({
                 'check_name': 'profile_complete',
                 'reason': 'You have not created a professional resume profile.',
                 'how_to_fix': 'Go to My Profile to set up your resume data.'
             })
-        profile = None
 
     # 1.5 Active/Primary Resume Check
     from apps.resumes.models import BuiltResume, ResumeUpload
-    has_primary_built = BuiltResume.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
-    has_primary_uploaded = ResumeUpload.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
+    if hasattr(student, '_has_primary_built'):
+        has_primary_built = student._has_primary_built
+    else:
+        if hasattr(student, '_prefetched_objects_cache') and 'built_resumes' in student._prefetched_objects_cache:
+            has_primary_built = any(r.is_primary and not r.is_deleted for r in student.built_resumes.all())
+        else:
+            has_primary_built = BuiltResume.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
+        student._has_primary_built = has_primary_built
+
+    if hasattr(student, '_has_primary_uploaded'):
+        has_primary_uploaded = student._has_primary_uploaded
+    else:
+        if hasattr(student, '_prefetched_objects_cache') and 'resume_uploads' in student._prefetched_objects_cache:
+            has_primary_uploaded = any(r.is_primary and not r.is_deleted for r in student.resume_uploads.all())
+        else:
+            has_primary_uploaded = ResumeUpload.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
+        student._has_primary_uploaded = has_primary_uploaded
+
     if not (has_primary_built or has_primary_uploaded):
         if not ignore_profile_resume:
             failing_checks.append({
@@ -158,7 +269,12 @@ def check_eligibility(student, job, ignore_profile_resume=False):
     # Check against the Skill model related to StudentProfile
     required_skills = [s.lower() for s in rules.get('required_skills', [])]
     if profile:
-        student_skills = [s.name.lower() for s in profile.skills.all()]
+        if hasattr(student, '_skills_list'):
+            student_skills = student._skills_list
+        else:
+            student_skills = [s.name.lower() for s in profile.skills.all()]
+            student._skills_list = student_skills
+        
         missing_skills = [s for s in required_skills if s not in student_skills]
         
         if missing_skills:

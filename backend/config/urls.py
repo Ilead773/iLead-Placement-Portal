@@ -24,6 +24,9 @@ urlpatterns = [
     
     # Career OS — AI Career Skill Intelligence System
     path('api/v1/career-os/', include('apps.career_os.urls')),
+    
+    # LinkedIn Job Scraper Endpoint
+    path('api/v1/job_scraper/', include('job_scraper.urls')),
 ]
 
 if settings.DEBUG:

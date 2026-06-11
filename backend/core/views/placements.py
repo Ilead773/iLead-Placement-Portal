@@ -115,9 +115,9 @@ class PlacementViewSet(viewsets.ViewSet):
         ).select_related('student', 'placement', 'assigned_by')
         return Response(PlacementAssignmentSerializer(assignments, many=True).data)
 
-    @action(detail=True, methods=['get'], url_path='selected-csv')
-    def selected_csv(self, request, pk=None):
-        """Download CSV of selected students for this placement."""
+    @action(detail=True, methods=['get'], url_path='selected-excel')
+    def selected_excel(self, request, pk=None):
+        """Download Excel of selected students for this placement."""
         try:
             placement = Placement.objects.get(pk=pk)
         except Placement.DoesNotExist:
@@ -132,15 +132,14 @@ class PlacementViewSet(viewsets.ViewSet):
         safe_company = slugify(placement.company_name or 'company')[:40] or 'company'
         safe_position = slugify(placement.position or 'position')[:40] or 'position'
         date_tag = timezone.localtime(timezone.now()).strftime('%Y-%m-%d')
-        filename = f"selected_students_{safe_company}_{safe_position}_{date_tag}.csv"
+        filename = f"selected_students_{safe_company}_{safe_position}_{date_tag}.xlsx"
 
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response['Cache-Control'] = 'no-store'
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Selected Students"
 
-        response.write('\ufeff')
-        writer = csv.writer(response)
-        writer.writerow([
+        headers = [
             'Company',
             'Position',
             'Student Name',
@@ -152,11 +151,12 @@ class PlacementViewSet(viewsets.ViewSet):
             'CGPA',
             'Status',
             'Assigned Date',
-        ])
+        ]
+        ws.append(headers)
 
         for a in assignments:
             s = a.student
-            writer.writerow([
+            ws.append([
                 placement.company_name or '',
                 placement.position or '',
                 s.name or '',
@@ -170,4 +170,9 @@ class PlacementViewSet(viewsets.ViewSet):
                 timezone.localtime(a.assigned_date).isoformat() if a.assigned_date else '',
             ])
 
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Cache-Control'] = 'no-store'
+        wb.save(response)
         return response
+

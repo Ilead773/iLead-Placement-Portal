@@ -14,7 +14,6 @@ import {
   UserCircle, 
   GraduationCap,
   LogOut,
-  Search,
   Command,
   Settings,
   Plus,
@@ -44,6 +43,7 @@ const ADMIN_NAV = [
   ]},
   { section: 'Operations', items: [
     { to: '/admin/pipeline', icon: <Workflow size={18} strokeWidth={2} />, label: 'Job Tracking' },
+    { to: '/admin/csv-upload', icon: <Users size={18} strokeWidth={2} />, label: 'Import Students' },
     { to: '/admin/jobs', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'Manage Jobs' },
     { to: '/admin/internships', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'Manage Internships' },
     { to: '/admin/send-resumes', icon: <Send size={18} strokeWidth={2} />, label: 'Send Resumes' },
@@ -76,6 +76,7 @@ const STUDENT_NAV = [
     { to: '/student/saved-jobs', icon: <Bookmark size={18} strokeWidth={2} />, label: 'Saved Jobs' },
   ]},
   { section: 'Preparation', items: [
+    { to: '/student/assignments', icon: <GraduationCap size={18} strokeWidth={2} />, label: 'Assignments' },
     { to: '/student/mock-interview', icon: <Mic size={18} strokeWidth={2} />, label: 'Mock Interview', badge: 'NEW' },
   ]},
   { section: 'Support', items: [
@@ -132,21 +133,41 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   // Track window resize to toggle between mobile and desktop styles dynamically
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
+      setIsMobile(window.innerWidth < 768);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const handleMenuClick = () => {
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      setCollapsed(!collapsed);
+    }
+  };
+
   // Close mobile menu on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobile && mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen, isMobile]);
 
   useEffect(() => {
     initTheme();
@@ -173,17 +194,23 @@ export default function Layout() {
       if (['/students'].includes(item.to)) {
         return user?.can_manage_students === true;
       }
-      if (['/admin/pipeline', '/admin/jobs', '/admin/internships', '/jobs/create', '/internships/create', '/placements', '/assignments'].includes(item.to)) {
+      if (['/admin/pipeline', '/admin/jobs', '/admin/internships', '/jobs/create', '/internships/create', '/placements'].includes(item.to)) {
         return user?.can_manage_placements === true;
+      }
+      if (['/assignments'].includes(item.to)) {
+        return user?.can_manage_assignments === true;
       }
       if (['/admin/send-resumes'].includes(item.to)) {
         return user?.can_manage_resumes === true;
       }
-      if (['/admin/scraping'].includes(item.to)) {
-        return false; // Only admin can access scraping dashboard
+      if (['/admin/notifications'].includes(item.to)) {
+        return user?.can_send_notifications === true;
+      }
+      if (['/admin/scraping', '/admin/linkedin-scraper'].includes(item.to)) {
+        return user?.can_view_scraping === true;
       }
       if (['/admin/clicks'].includes(item.to)) {
-        return false; // Only admin can access external clicks log
+        return user?.can_view_clicks === true;
       }
 
       return true; // default show
@@ -282,15 +309,13 @@ export default function Layout() {
         <header className="topbar">
           <div className="topbar-left flex items-center gap-4">
             <button 
-              className="mobile-menu-toggle lg:hidden flex items-center justify-center text-primary"
-              onClick={() => setMobileOpen(!mobileOpen)}
+              className="menu-toggle-btn flex items-center justify-center text-primary"
+              onClick={handleMenuClick}
+              title={isMobile ? "Toggle Menu" : (collapsed ? "Expand Sidebar" : "Collapse Sidebar")}
             >
-              <Menu size={24} />
-            </button>
-            <button className="menu-toggle hidden lg:flex items-center justify-center text-primary" onClick={() => setCollapsed(!collapsed)}>
               <Menu size={20} />
             </button>
-            {!isStudent && <div className="breadcrumb hidden sm:block text-sm opacity-60">Admin / {location.pathname.split('/').pop()}</div>}
+            {!isStudent && <div className="breadcrumb text-sm opacity-60">Admin / {location.pathname.split('/').pop()}</div>}
             <button className="theme-toggle flex items-center justify-center ml-2 w-10 h-10 rounded-xl hover:bg-card-hover transition-all text-primary" onClick={toggleTheme}>
               {isDarkMode ? <Sun size={20} className="text-orange-500" /> : <Moon size={20} />}
             </button>

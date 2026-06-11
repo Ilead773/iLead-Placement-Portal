@@ -75,7 +75,7 @@ const Jobs = () => {
       setError(null);
       // Cache-busting: always fetch fresh data from backend
       const response = await axios.get('/jobs/jobs/', {
-        params: { _t: Date.now() }
+        params: { _t: Date.now(), listing_type: 'job' }
       });
       // Sort by most recently updated so admin edits surface immediately
       const sorted = (response.data || []).sort(
@@ -125,8 +125,8 @@ const Jobs = () => {
         toast.dismiss(loadingToast);
         toast.error((t) => (
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-sm text-red-600 dark:text-red-400">Application Failed: Not Eligible</span>
-            <ul className="list-disc pl-4 text-xs font-semibold text-slate-700 dark:text-slate-200 mt-1 space-y-1">
+            <span className="font-bold text-sm text-red-600">Application Failed: Not Eligible</span>
+            <ul className="list-disc pl-4 text-xs font-semibold text-slate-800 mt-1 space-y-1">
               {data.reasons.map((r, i) => (
                 <li key={i}>{r.reason}</li>
               ))}

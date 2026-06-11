@@ -21,6 +21,8 @@ class JobSerializer(serializers.ModelSerializer):
                   'category', 'openings_count', 'hr_email', 'created_at', 'updated_at']
 
     def get_applications_count(self, obj):
+        if hasattr(obj, 'applications_count_annotated'):
+            return obj.applications_count_annotated
         return obj.applications.filter(is_deleted=False).count()
 
 class JobCreateSerializer(serializers.ModelSerializer):

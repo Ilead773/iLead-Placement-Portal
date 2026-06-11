@@ -63,21 +63,34 @@ const useNotificationStore = create((set, get) => ({
       
       // Filter for new unread notifications that were not present in our store yet
       const previousNotifications = get().notifications;
+      // Triggering popup toasts for new unread notifications has been disabled per user request
+      /*
       if (previousNotifications.length > 0) {
         const newUnread = data.filter(note => 
           !note.is_read && 
           !previousNotifications.some(prev => prev.id === note.id)
         );
-        // Trigger beautiful custom toasts for any new unread notification
         newUnread.forEach(note => {
           showNotificationToast(note);
         });
       }
+      */
+
+      // Check if notifications have actually changed to avoid triggering unnecessary re-renders
+      const isIdentical = previousNotifications.length === data.length &&
+        previousNotifications.every((note, idx) => 
+          note.id === data[idx].id && 
+          note.is_read === data[idx].is_read && 
+          note.title === data[idx].title &&
+          note.message === data[idx].message
+        );
       
-      set({ 
-        notifications: data,
-        unreadCount: data.filter(n => !n.is_read).length
-      });
+      if (!isIdentical) {
+        set({ 
+          notifications: data,
+          unreadCount: data.filter(n => !n.is_read).length
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch notifications', error);
     }
@@ -97,6 +110,23 @@ const useNotificationStore = create((set, get) => ({
       });
     } catch (error) {
       console.error('Failed to mark notification as read', error);
+    }
+  },
+
+  markUnread: async (id) => {
+    try {
+      await axios.patch(`/applications/notifications/${id}/`, { is_read: false });
+      set(state => {
+        const updated = state.notifications.map(n => 
+          n.id === id ? { ...n, is_read: false } : n
+        );
+        return {
+          notifications: updated,
+          unreadCount: updated.filter(n => !n.is_read).length
+        };
+      });
+    } catch (error) {
+      console.error('Failed to mark notification as unread', error);
     }
   },
 

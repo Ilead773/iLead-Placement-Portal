@@ -6,7 +6,7 @@ Each file handles one responsibility.
 from .auth import AuthViewSet
 from .students import StudentViewSet
 from .placements import PlacementViewSet
-from .assignments import AssignmentViewSet
+from .assignments import AssignmentViewSet, LearningAssignmentAdminViewSet, StudentLearningAssignmentViewSet
 from .student_self import StudentSelfViewSet
 from .dashboard import DashboardViewSet, AuditLogViewSet
 from .admin_ops import AdminOpsViewSet
@@ -16,6 +16,8 @@ __all__ = [
     'StudentViewSet',
     'PlacementViewSet',
     'AssignmentViewSet',
+    'LearningAssignmentAdminViewSet',
+    'StudentLearningAssignmentViewSet',
     'StudentSelfViewSet',
     'DashboardViewSet',
     'AuditLogViewSet',

@@ -12,6 +12,23 @@ from .serializers import JobSerializer, JobCreateSerializer, EligibilityCheckSer
 from apps.applications.eligibility_engine import check_eligibility
 from apps.applications.serializers import ApplicationSerializer
 
+from django.core.cache import cache
+
+def get_serialized_job_data(job):
+    from apps.applications.eligibility_engine import IS_TESTING
+    if IS_TESTING:
+        return JobSerializer(job).data
+
+    app_count = getattr(job, 'applications_count_annotated', 0)
+    cache_key = f"serialized_job_{job.id}_{job.updated_at.timestamp()}_{app_count}"
+    
+    data = cache.get(cache_key)
+    if data is None:
+        data = JobSerializer(job).data
+        cache.set(cache_key, data, 86400)  # cache for 24 hours
+    return data
+
+
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.exclude(status='draft')
     permission_classes = [permissions.IsAuthenticated]
@@ -22,6 +39,7 @@ class JobViewSet(viewsets.ModelViewSet):
         return JobSerializer
 
     def get_queryset(self):
+        from django.db.models import Count, Q
         if self.request.user and (self.request.user.role == 'admin' or (self.request.user.role == 'coordinator' and getattr(self.request.user, 'can_manage_placements', False))):
             qs = Job.objects.all().order_by('-updated_at')
         else:
@@ -35,6 +53,11 @@ class JobViewSet(viewsets.ModelViewSet):
         listing_type = self.request.query_params.get('listing_type')
         if listing_type in ('job', 'internship'):
             qs = qs.filter(listing_type=listing_type)
+        
+        # Optimize queries by prefetching rounds and annotating applications count
+        qs = qs.prefetch_related('rounds').annotate(
+            applications_count_annotated=Count('applications', filter=Q(applications__is_deleted=False))
+        )
         return qs
 
     def perform_create(self, serializer):
@@ -65,13 +88,41 @@ class JobViewSet(viewsets.ModelViewSet):
         jobs = self.get_queryset()
         student_profile = getattr(request.user, 'student_profile', None)
         
+        applied_job_ids = set()
+        if student_profile:
+            from apps.applications.models import Application
+            # 1. Fetch applied job IDs once
+            applied_job_ids = set(
+                Application.objects.filter(student=student_profile, is_deleted=False).values_list('job_id', flat=True)
+            )
+            
+            # 2. Pre-populate resume profile validation & resume checks to avoid N+1 queries
+            try:
+                profile = student_profile.resume_profile
+            except Exception:
+                profile = None
+            
+            if profile:
+                from apps.profiles.rules import ProfileCompletionValidator
+                validator = ProfileCompletionValidator()
+                is_valid, errors, completion_score = validator.validate_profile(profile)
+                student_profile._validated_profile = (is_valid, errors, completion_score)
+                
+                # Fetch skills list once
+                skills_list = list(profile.skills.all())
+                student_profile._skills_list = [s.name.lower() for s in skills_list]
+                
+            from apps.resumes.models import BuiltResume, ResumeUpload
+            student_profile._has_primary_built = BuiltResume.objects.filter(student=student_profile, is_primary=True, is_deleted=False).exists()
+            student_profile._has_primary_uploaded = ResumeUpload.objects.filter(student=student_profile, is_primary=True, is_deleted=False).exists()
+        
         results = []
         for job in jobs:
-            data = JobSerializer(job).data
+            data = get_serialized_job_data(job).copy()
             if student_profile:
                 eligibility = check_eligibility(student_profile, job, ignore_profile_resume=True)
                 data['eligibility'] = eligibility
-                data['has_applied'] = job.applications.filter(student=student_profile, is_deleted=False).exists()
+                data['has_applied'] = job.id in applied_job_ids
             results.append(data)
         
         response = Response(results)
@@ -105,10 +156,29 @@ class JobViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def recommended(self, request):
-        jobs = Job.objects.filter(status='active')
+        jobs = Job.objects.filter(status='active').prefetch_related('rounds')
         student_profile = getattr(request.user, 'student_profile', None)
         if not student_profile:
             return Response([])
+        
+        # Pre-populate validation and resume cache to avoid N+1 queries in recommended listing
+        try:
+            profile = student_profile.resume_profile
+        except Exception:
+            profile = None
+        
+        if profile:
+            from apps.profiles.rules import ProfileCompletionValidator
+            validator = ProfileCompletionValidator()
+            is_valid, errors, completion_score = validator.validate_profile(profile)
+            student_profile._validated_profile = (is_valid, errors, completion_score)
+            
+            skills_list = list(profile.skills.all())
+            student_profile._skills_list = [s.name.lower() for s in skills_list]
+            
+        from apps.resumes.models import BuiltResume, ResumeUpload
+        student_profile._has_primary_built = BuiltResume.objects.filter(student=student_profile, is_primary=True, is_deleted=False).exists()
+        student_profile._has_primary_uploaded = ResumeUpload.objects.filter(student=student_profile, is_primary=True, is_deleted=False).exists()
         
         ranked_jobs = []
         for job in jobs:
@@ -149,10 +219,10 @@ class JobViewSet(viewsets.ModelViewSet):
         serializer = ApplicationSerializer(apps, many=True, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='selected-csv')
-    def selected_csv(self, request, pk=None):
+    @action(detail=True, methods=['get'], url_path='selected-excel')
+    def selected_excel(self, request, pk=None):
         """
-        Download CSV of selected students for this job.
+        Download Excel of selected students for this job.
 
         Default statuses: selected + accepted.
         Optional query: ?status=selected&status=accepted (repeatable)
@@ -176,16 +246,14 @@ class JobViewSet(viewsets.ModelViewSet):
         safe_company = slugify(job.company_name or 'company')[:40] or 'company'
         safe_role = slugify(getattr(job, 'role', '') or getattr(job, 'title', '') or 'role')[:40] or 'role'
         date_tag = timezone.localtime(timezone.now()).strftime('%Y-%m-%d')
-        filename = f"selected_students_{safe_company}_{safe_role}_{date_tag}.csv"
+        filename = f"selected_students_{safe_company}_{safe_role}_{date_tag}.xlsx"
 
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response['Cache-Control'] = 'no-store'
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Selected Students"
 
-        # Add UTF-8 BOM for better Excel compatibility.
-        response.write('\ufeff')
-        writer = csv.writer(response)
-        writer.writerow([
+        headers = [
             'Company',
             'Role',
             'Student Name',
@@ -197,11 +265,12 @@ class JobViewSet(viewsets.ModelViewSet):
             'CGPA',
             'Status',
             'Applied At',
-        ])
+        ]
+        ws.append(headers)
 
         for app in apps:
             student = app.student
-            writer.writerow([
+            ws.append([
                 job.company_name or '',
                 getattr(job, 'role', '') or getattr(job, 'title', '') or '',
                 student.name or '',
@@ -215,12 +284,16 @@ class JobViewSet(viewsets.ModelViewSet):
                 timezone.localtime(app.applied_at).isoformat() if app.applied_at else '',
             ])
 
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Cache-Control'] = 'no-store'
+        wb.save(response)
         return response
 
-    @action(detail=False, methods=['get'], url_path='cycle-selected-csv')
-    def cycle_selected_csv(self, request):
+    @action(detail=False, methods=['get'], url_path='cycle-selected-excel')
+    def cycle_selected_excel(self, request):
         """
-        Download CSV of selected students across a placement cycle (all companies).
+        Download Excel of selected students across a placement cycle (all companies).
 
         Uses the same season buckets as the frontend:
         - all
@@ -263,15 +336,14 @@ class JobViewSet(viewsets.ModelViewSet):
         )
 
         date_tag = timezone.localtime(timezone.now()).strftime('%Y-%m-%d')
-        filename = f"selected_students_cycle_{season}_{date_tag}.csv"
+        filename = f"selected_students_cycle_{season}_{date_tag}.xlsx"
 
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        response['Cache-Control'] = 'no-store'
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Cycle Selected"
 
-        response.write('\ufeff')
-        writer = csv.writer(response)
-        writer.writerow([
+        headers = [
             'Cycle',
             'Company',
             'Role',
@@ -285,12 +357,13 @@ class JobViewSet(viewsets.ModelViewSet):
             'Status',
             'Applied At',
             'Job Created At',
-        ])
+        ]
+        ws.append(headers)
 
         for app in apps:
             job = app.job
             student = app.student
-            writer.writerow([
+            ws.append([
                 season,
                 job.company_name or '',
                 job.role or '',
@@ -306,4 +379,9 @@ class JobViewSet(viewsets.ModelViewSet):
                 timezone.localtime(job.created_at).isoformat() if job.created_at else '',
             ])
 
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Cache-Control'] = 'no-store'
+        wb.save(response)
         return response
+

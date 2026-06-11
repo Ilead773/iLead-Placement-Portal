@@ -60,13 +60,19 @@ class StudentSelfViewSet(viewsets.ViewSet):
             
         upcoming = upcoming_qs.order_by('application_deadline')[:5]  # nearest deadline first
         
+        applied_job_ids = set()
+        if student:
+            applied_job_ids = set(
+                Application.objects.filter(student=student, is_deleted=False).values_list('job_id', flat=True)
+            )
+
         user_data['upcoming_jobs'] = [{
             'id': job.id,
             'company_name': job.company_name,
             'role': job.role,
             'deadline': job.application_deadline,
             'package': job.package,
-            'has_applied': job.applications.filter(student=student, is_deleted=False).exists() if student else False
+            'has_applied': job.id in applied_job_ids if student else False
         } for job in upcoming]
 
         # Add job applications (new system)
@@ -117,13 +123,18 @@ class StudentSelfViewSet(viewsets.ViewSet):
         deleted_job_ids = Application.objects.filter(student=student, is_deleted=True).values_list('job_id', flat=True)
         upcoming_qs = upcoming_qs.exclude(id__in=deleted_job_ids)
         upcoming = upcoming_qs.order_by('application_deadline')[:5]  # nearest deadline first
+        
+        applied_job_ids = set(
+            Application.objects.filter(student=student, is_deleted=False).values_list('job_id', flat=True)
+        )
+
         data['upcoming_jobs'] = [{
             'id': job.id,
             'company_name': job.company_name,
             'role': job.role,
             'deadline': job.application_deadline,
             'package': job.package,
-            'has_applied': job.applications.filter(student=student, is_deleted=False).exists()
+            'has_applied': job.id in applied_job_ids
         } for job in upcoming]
         
         response = Response(data)

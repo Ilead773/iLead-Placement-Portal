@@ -31,13 +31,31 @@ class Application(models.Model):
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'png'])]
     )
     offer_letter_uploaded = models.BooleanField(default=False)
+
+    OFFER_LETTER_STATUS_CHOICES = [
+        ('pending_upload', 'Pending Upload'),
+        ('pending_verification', 'Pending Verification'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    offer_letter_status = models.CharField(
+        max_length=20,
+        choices=OFFER_LETTER_STATUS_CHOICES,
+        default='pending_upload'
+    )
+    offer_letter_feedback = models.TextField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.offer_letter_file:
             self.offer_letter_uploaded = True
+            if self.offer_letter_status in ['pending_upload', 'rejected']:
+                self.offer_letter_status = 'pending_verification'
         else:
             self.offer_letter_uploaded = False
+            self.offer_letter_status = 'pending_upload'
+            self.offer_letter_feedback = None
         super().save(*args, **kwargs)
 
     class Meta:

@@ -63,11 +63,54 @@ const ManageJobs = () => {
     }
   };
 
-  if (loading) return <div className="flex justify-center p-10"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+  if (loading) {
+    return (
+      <div className="animate-pulse">
+        <div className="page-header mb-8 flex justify-between items-center">
+          <div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-2"></div>
+            <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-96 hidden sm:block"></div>
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-32 hidden sm:block"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="job-card bg-card border border-border-color p-5 rounded-xl flex flex-col min-h-[380px]">
+              <div className="flex justify-between items-start mb-4">
+                <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+              </div>
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-6"></div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-auto">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+              </div>
+              
+              <div className="flex flex-col gap-2 mt-6">
+                <div className="flex gap-2">
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded flex-1"></div>
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-10"></div>
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-10"></div>
+                </div>
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="page-header mb-8 flex justify-between items-center">
+      <div className="page-header mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
             Manage Placement Jobs
@@ -76,7 +119,7 @@ const ManageJobs = () => {
             Track all active recruitment drives and student applications.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 self-start sm:self-auto">
           <Link to="/admin/pipeline" className="btn btn-secondary">
             <Activity size={18} /> Job Pipeline
           </Link>
@@ -303,7 +346,7 @@ const ManageJobs = () => {
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Role / Position</label>
                 <input required type="text" name="role" defaultValue={editingOffCampusJob.role} className="input-field" style={{ width: '100%' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                 <div className="input-group">
                   <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Package (LPA)</label>
                   <input required type="number" step="0.1" name="package" defaultValue={editingOffCampusJob.package} className="input-field" style={{ width: '100%' }} />

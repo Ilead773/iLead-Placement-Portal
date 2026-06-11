@@ -215,12 +215,25 @@ export default function JobPipeline() {
   };
 
   // Filter out mismatched candidates from active tracking
+  // NOTE: Always include placed (selected/accepted) students regardless of current eligibility,
+  // since they have already been selected and must appear in the Placed tab.
   const eligibleApplications = useMemo(() => {
-    return applications.filter(app => app.job_type === 'external' || app.current_eligibility?.eligible !== false);
+    return applications.filter(app =>
+      app.status === 'selected' ||
+      app.status === 'accepted' ||
+      app.job_type === 'external' ||
+      app.current_eligibility?.eligible !== false
+    );
   }, [applications]);
 
+  // Only count as mismatched if not already placed (selected/accepted students should never show as mismatched)
   const mismatchedApplicationsCount = useMemo(() => {
-    return applications.filter(app => app.job_type !== 'external' && app.current_eligibility?.eligible === false).length;
+    return applications.filter(app =>
+      app.job_type !== 'external' &&
+      app.status !== 'selected' &&
+      app.status !== 'accepted' &&
+      app.current_eligibility?.eligible === false
+    ).length;
   }, [applications]);
 
   // 7. Partition applications by Tab categories (including rejected)
@@ -357,7 +370,7 @@ export default function JobPipeline() {
     });
 
     return list;
-  }, [applications, searchTerm, tableStatusFilter, tableEligibilityFilter, sortField, sortDirection]);
+  }, [eligibleApplications, searchTerm, tableStatusFilter, tableEligibilityFilter, sortField, sortDirection]);
 
   const paginatedApps = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
@@ -882,19 +895,19 @@ export default function JobPipeline() {
         </button>
       </div>
 
-      {/* Immersive Job Selector Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
+      {/* Immersive Job Selector Card (refined visual) */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card p-6 md:p-8 mb-8 border border-blue-500/20 bg-gradient-to-r from-card via-card to-red-500/[0.02] rounded-3xl shadow-sm relative overflow-hidden group job-pipeline-selector-card animate-in"
+        className="card p-6 md:p-6 mb-6 rounded-xl shadow-md relative overflow-hidden group job-pipeline-selector-card animate-in"
       >
-        <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
-        
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-6">
-          <div className="flex-shrink-0 bg-gradient-to-tr from-blue-600 to-red-600 p-4 rounded-2xl text-white flex items-center justify-center">
-            {selectedListingType === 'internship' ? <Award size={32} /> : <Building size={32} />}
+        <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 rounded-bl-full pointer-events-none transition-transform duration-500" />
+
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+          <div className="flex-shrink-0 bg-gradient-to-tr from-blue-600 to-indigo-600 p-3 rounded-lg text-white flex items-center justify-center">
+            {selectedListingType === 'internship' ? <Award size={28} /> : <Building size={28} />}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <label className="text-xs font-black uppercase text-secondary tracking-widest block mb-2">
               Currently Selected {selectedListingType === 'internship' ? 'Internship' : 'Job'}
@@ -902,33 +915,35 @@ export default function JobPipeline() {
             {jobs.length === 0 ? (
               <p className="text-error font-bold">No active {selectedListingType === 'internship' ? 'internships' : 'jobs'} found. Create {selectedListingType === 'internship' ? 'internships' : 'placement jobs'} first.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', smDirection: 'row', gap: '12px' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <input 
-                    type="text" 
-                    placeholder="Search company or role..." 
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search company or role..."
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
-                    className="input-field"
-                    style={{ padding: '12px 12px 12px 36px', fontSize: '13px', borderRadius: '12px', border: '1px solid var(--border-color)', width: '100%' }}
+                    className="input-field pl-10 pr-10 py-3 text-sm"
                   />
-                  <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <div className="search-input-icon" style={{ left: 12 }}>
+                    <Search size={14} />
+                  </div>
                   {jobSearch && (
-                    <button 
-                      onClick={() => setJobSearch('')} 
-                      style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    <button
+                      onClick={() => setJobSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+                      style={{ background: 'none', border: 'none' }}
                     >
                       <X size={12} />
                     </button>
                   )}
                 </div>
 
-                <div style={{ position: 'relative', flex: 1.5 }}>
-                  <select 
-                    value={selectedJobId} 
+                <div className="relative" style={{ flex: 1.5 }}>
+                  <select
+                    value={selectedJobId}
                     onChange={(e) => setSelectedJobId(e.target.value)}
-                    className="input-field"
-                    style={{ padding: '12px 32px 12px 16px', fontSize: '13px', fontWeight: '600', borderRadius: '12px', border: '1px solid var(--border-color)', appearance: 'none', width: '100%' }}
+                    className="input-field pl-4 pr-10 py-3 text-sm font-semibold"
+                    style={{ appearance: 'none', cursor: 'pointer' }}
                   >
                     <option value="">-- Choose Listing ({filteredJobs.length} matches) --</option>
                     {filteredJobs.map(job => (
@@ -937,7 +952,7 @@ export default function JobPipeline() {
                       </option>
                     ))}
                   </select>
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none flex items-center">
                     <ChevronDown size={18} />
                   </div>
                 </div>
@@ -946,11 +961,11 @@ export default function JobPipeline() {
           </div>
 
           {selectedJob && (
-            <div className="md:border-l border-border-color/80 md:pl-6 flex flex-col justify-center min-w-[180px]" style={{ gap: '2px' }}>
-              <span className="text-secondary uppercase tracking-widest block" style={{ fontSize: '10px', fontWeight: '900', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
+            <div className="md:border-l border-border-color/80 md:pl-6 flex flex-col justify-center min-w-[180px] space-y-1">
+              <span className="text-secondary uppercase tracking-widest block" style={{ fontSize: '10px', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
                 Submission Deadline
               </span>
-              <span className="text-primary font-black tracking-tight" style={{ fontSize: '15px', color: 'var(--accent-primary-dark)', margin: '2px 0' }}>
+              <span className="text-primary font-extrabold" style={{ fontSize: '18px', color: 'var(--accent-primary-dark)', margin: '2px 0' }}>
                 {new Date(selectedJob.application_deadline).toLocaleDateString(undefined, {
                   month: 'short', day: 'numeric', year: 'numeric'
                 })}

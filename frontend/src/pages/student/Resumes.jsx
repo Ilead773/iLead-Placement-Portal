@@ -344,26 +344,128 @@ export default function StudentResumes() {
           <div className="template-grid">
             {templates.map((tpl) => (
               <div key={tpl.id} className="template-card">
-                <div className="template-preview">
-                   <div className="template-mock-line accent" style={{ height: '8px' }}></div>
-                   <div className="template-mock-line short" style={{ height: '6px' }}></div>
-                   <div className="flex gap-2 mt-4">
-                      <div className="template-mock-circle"></div>
-                      <div className="template-mock-line accent"></div>
-                   </div>
-                   <div className="template-mock-line"></div>
-                   <div className="template-mock-line"></div>
-                   
-                   <div className="template-overlay">
-                      <button 
-                        onClick={() => handleGenerate(tpl.id)}
-                        disabled={isGenerating}
-                        className="btn btn-primary"
-                        style={{ background: 'white', color: '#ea580c', border: 'none', padding: '12px 24px' }}
-                      >
-                        {isGenerating ? 'Generating...' : 'Use This Template'}
-                      </button>
-                   </div>
+                <div className="template-preview" style={{ padding: '16px', background: 'white', position: 'relative', overflow: 'hidden' }}>
+
+                  {/* ── Classic Professional Preview ── */}
+                  {(tpl.name === 'Classic Professional') && (
+                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'serif', color: '#1e293b', lineHeight: 1.4 }}>
+                      <div style={{ textAlign: 'center', borderBottom: '1.5px solid #1e293b', paddingBottom: '8px', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>JOHN SMITH</div>
+                        <div style={{ fontSize: '8px', color: '#64748b', display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '4px' }}>
+                          <span>john@email.com</span><span>|</span><span>+91 9876543210</span><span>|</span><span>Kolkata, India</span>
+                        </div>
+                        <div style={{ fontSize: '7px', color: '#94a3b8', marginTop: '2px' }}>LinkedIn • GitHub • Portfolio</div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Professional Summary</div>
+                        <div style={{ fontSize: '7px', color: '#334155' }}>Detail-oriented BCA student with strong fundamentals in Python, Django, and React. Passionate about building real-world applications.</div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Education</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '8px', fontWeight: 700 }}>iLEAD Institute</span>
+                          <span style={{ fontSize: '7px', color: '#64748b' }}>Grad: 2026</span>
+                        </div>
+                        <div style={{ fontSize: '7px', color: '#475569' }}>Bachelor of Computer Applications</div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Technical Skills</div>
+                        <div style={{ fontSize: '7px' }}><strong>Technical:</strong> Python, Django, React, PostgreSQL</div>
+                        <div style={{ fontSize: '7px', marginTop: '2px' }}><strong>Tools:</strong> Git, Docker, VS Code</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Modern Clean Preview ── */}
+                  {(tpl.name === 'Modern Clean') && (
+                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'Inter, sans-serif', color: '#1e293b', lineHeight: 1.4 }}>
+                      <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.5px' }}>John Smith</div>
+                        <div style={{ fontSize: '8px', color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '5px' }}>
+                          <span>📧 john@email.com</span><span>📱 +91 9876543210</span><span>📍 Kolkata</span>
+                        </div>
+                        <div style={{ fontSize: '7px', color: '#64748b', marginTop: '3px' }}>🔗 LinkedIn &nbsp;&nbsp; 💻 GitHub</div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Professional Summary</div>
+                        <div style={{ fontSize: '7px', color: '#334155' }}>Detail-oriented BCA student with strong fundamentals in Python, Django, and React. Passionate about building real-world applications.</div>
+                      </div>
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Skills & Capabilities</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {['Python','Django','React','PostgreSQL','Git'].map(s => (
+                            <span key={s} style={{ background: '#f8fafc', border: '1px solid #f1f5f9', padding: '2px 6px', borderRadius: '3px', fontSize: '7px', fontWeight: 600 }}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Education</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '8px', fontWeight: 700 }}>iLEAD Institute</span>
+                          <span style={{ fontSize: '7px', color: '#64748b' }}>Grad: 2026</span>
+                        </div>
+                        <div style={{ fontSize: '7px', color: '#475569' }}>Bachelor of Computer Applications</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Modern Professional Preview (Sidebar layout) ── */}
+                  {(tpl.name === 'Modern Professional') && (
+                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'Inter, sans-serif', color: '#1e293b', lineHeight: 1.4 }}>
+                      <div style={{ background: '#1e3a8a', color: 'white', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.5px' }}>John Smith</div>
+                        <div style={{ fontSize: '7.5px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: '2px' }}>Software Engineer</div>
+                      </div>
+                      <div style={{ display: 'flex', minHeight: '130px' }}>
+                        <div style={{ width: '72px', background: '#f8fafc', padding: '8px', borderRight: '1px solid #cbd5e1', flexShrink: 0 }}>
+                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '5px' }}>Contact</div>
+                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '3px' }}>john@email.com</div>
+                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '3px' }}>+91 9876543210</div>
+                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '8px' }}>Kolkata, India</div>
+                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '5px' }}>Skills</div>
+                          {['Python','Django','React','PostgreSQL'].map(s => (
+                            <div key={s} style={{ fontSize: '6.5px', color: '#334155' }}>{s}</div>
+                          ))}
+                        </div>
+                        <div style={{ flex: 1, padding: '8px 10px' }}>
+                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Profile Summary</div>
+                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '8px' }}>Detail-oriented BCA student passionate about building real-world applications and delivering impact.</div>
+                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Experience</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '7px', fontWeight: 700 }}>Software Intern</span>
+                            <span style={{ fontSize: '6.5px', color: '#64748b' }}>Jan — May 2026</span>
+                          </div>
+                          <div style={{ fontSize: '6.5px', color: '#475569' }}>Tech Corp Ltd.</div>
+                          <div style={{ fontSize: '6.5px', color: '#334155', marginTop: '2px' }}>Built REST APIs with Django REST Framework and PostgreSQL integration.</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fallback for any other template */}
+                  {(tpl.name !== 'Classic Professional' && tpl.name !== 'Modern Clean' && tpl.name !== 'Modern Professional') && (
+                    <div style={{ padding: '8px' }}>
+                      <div className="template-mock-line accent" style={{ height: '8px' }}></div>
+                      <div className="template-mock-line short" style={{ height: '6px', marginTop: '6px' }}></div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <div className="template-mock-circle"></div>
+                        <div className="template-mock-line accent"></div>
+                      </div>
+                      <div className="template-mock-line" style={{ marginTop: '6px' }}></div>
+                      <div className="template-mock-line" style={{ marginTop: '4px' }}></div>
+                    </div>
+                  )}
+
+                  <div className="template-overlay">
+                     <button
+                       onClick={() => handleGenerate(tpl.id)}
+                       disabled={isGenerating}
+                       className="btn btn-primary"
+                       style={{ background: 'white', color: '#ea580c', border: 'none', padding: '12px 24px' }}
+                     >
+                       {isGenerating ? 'Generating...' : 'Use This Template'}
+                     </button>
+                  </div>
                 </div>
                 <div className="p-5">
                   <div className="flex justify-between items-center mb-1">

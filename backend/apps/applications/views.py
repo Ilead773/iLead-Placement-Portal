@@ -20,11 +20,29 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user.role in ['admin', 'coordinator']:
-            return Application.objects.filter(is_deleted=False)
-        student_profile = getattr(self.request.user, 'student_profile', None)
-        if student_profile:
-            return Application.objects.filter(student=student_profile)
-        return Application.objects.none()
+            qs = Application.objects.filter(is_deleted=False)
+        else:
+            student_profile = getattr(self.request.user, 'student_profile', None)
+            if student_profile:
+                qs = Application.objects.filter(student=student_profile)
+            else:
+                return Application.objects.none()
+        
+        # Optimize queries by selecting and prefetching related attributes needed by serializer / eligibility check
+        return qs.select_related(
+            'student', 
+            'job', 
+            'student__resume_profile'
+        ).prefetch_related(
+            'rounds__job_round',
+            'student__resume_profile__skills',
+            'student__resume_profile__experiences',
+            'student__resume_profile__projects',
+            'student__resume_profile__education_entries',
+            'student__resume_profile__certifications',
+            'student__built_resumes',
+            'student__resume_uploads'
+        )
 
     def destroy(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
@@ -69,14 +87,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = self.get_object()
         old_status = instance.status
-        new_status = serializer.validated_data.get('status', old_status)
+        old_ol_status = instance.offer_letter_status
         
-        # Save the updated status
+        # Check if offer_letter_status is being updated to approved
+        new_ol_status = serializer.validated_data.get('offer_letter_status', old_ol_status)
+        
+        if new_ol_status == 'approved' and old_ol_status != 'approved':
+            # Auto-transition status to accepted
+            serializer.validated_data['status'] = 'accepted'
+            
         application = serializer.save()
         
-        # If status changed, log history and send notification
+        # After save, get the actual updated values
+        new_status = application.status
+        new_ol_status = application.offer_letter_status
+        
+        # 1. Handle status history logs and revert notifications
         if old_status != new_status:
-            # 1. Log in history
             ApplicationStatusHistory.objects.create(
                 application=application,
                 old_status=old_status,
@@ -84,7 +111,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 changed_by=self.request.user
             )
             
-            # 2. Build custom high-fidelity notification only on reverting placement
             if old_status in ['selected', 'accepted'] and new_status not in ['selected', 'accepted']:
                 company_name = application.job.company_name
                 role = application.job.role
@@ -97,6 +123,35 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     title=title,
                     message=message,
                     priority='high',
+                    action_url=f"/student/applications/{application.id}"
+                )
+                
+        # 2. Handle offer letter status notifications
+        if old_ol_status != new_ol_status:
+            company_name = application.job.company_name
+            role = application.job.role
+            
+            if new_ol_status == 'approved':
+                title = f"🎉 Offer Letter Approved: {company_name}"
+                message = f"Your offer letter for the {role} position at {company_name} has been approved. Your placement is officially finalized!"
+                Notification.objects.create(
+                    user=application.student.user,
+                    notification_type='OFFER_LETTER_APPROVED',
+                    title=title,
+                    message=message,
+                    priority='high',
+                    action_url=f"/student/applications/{application.id}"
+                )
+            elif new_ol_status == 'rejected':
+                feedback = application.offer_letter_feedback or "No feedback provided."
+                title = f"❌ Offer Letter Rejected: {company_name}"
+                message = f"Your offer letter for the {role} position at {company_name} was rejected. Reason: {feedback}. Please re-upload a valid document."
+                Notification.objects.create(
+                    user=application.student.user,
+                    notification_type='OFFER_LETTER_REJECTED',
+                    title=title,
+                    message=message,
+                    priority='critical',
                     action_url=f"/student/applications/{application.id}"
                 )
 
@@ -208,8 +263,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='admin/create')
     def admin_create(self, request):
         """POST — Admin creates bulk notifications for all, selected course, or selected student list."""
-        if request.user.role not in ['admin', 'coordinator']:
-            return Response({'error': 'Only admins and coordinators can dispatch notifications.'}, status=status.HTTP_403_FORBIDDEN)
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_send_notifications', False))):
+            return Response({'error': 'Only admins and authorized coordinators can dispatch notifications.'}, status=status.HTTP_403_FORBIDDEN)
 
         target_type = request.data.get('target_type') # 'all', 'course', 'students'
         title = request.data.get('title')
@@ -241,6 +296,23 @@ class NotificationViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error': 'Invalid target type.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        import uuid
+        broadcast_id = str(uuid.uuid4())
+        
+        target_value = 'All Students'
+        if target_type == 'course':
+            target_value = request.data.get('course', 'Unknown Course')
+        elif target_type == 'students':
+            target_value = f"{len(student_profiles)} Students"
+
+        metadata = {
+            'broadcast_id': broadcast_id,
+            'sender_id': str(request.user.id),
+            'sender_email': request.user.email,
+            'target_type': target_type,
+            'target_value': target_value
+        }
+
         # Bulk create notifications
         notifications_to_create = [
             Notification(
@@ -249,7 +321,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
                 title=title,
                 message=message,
                 priority=priority,
-                action_url=action_url
+                action_url=action_url,
+                metadata=metadata
             )
             for user in users
         ]
@@ -271,6 +344,54 @@ class NotificationViewSet(viewsets.ModelViewSet):
             'message': f'Successfully dispatched notifications to {len(users)} student(s). Email/push queued for {email_queued}/{len(users)} recipients.'
         })
 
+    @action(detail=False, methods=['get'], url_path='admin/history')
+    def admin_history(self, request):
+        """GET — Admin lists history of sent notification broadcasts with recipient read stats."""
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_send_notifications', False))):
+            return Response({'error': 'Only admins and authorized coordinators can view notification history.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Query notifications that have a broadcast_id key in metadata
+        notifications = Notification.objects.filter(metadata__has_key='broadcast_id').order_by('-created_at')
+        
+        # Group by broadcast_id in memory
+        batches = {}
+        for notif in notifications:
+            b_id = notif.metadata.get('broadcast_id')
+            if not b_id:
+                continue
+            if b_id not in batches:
+                batches[b_id] = {
+                    'broadcast_id': b_id,
+                    'title': notif.title,
+                    'message': notif.message,
+                    'priority': notif.priority,
+                    'action_url': notif.action_url,
+                    'created_at': notif.created_at,
+                    'sender_email': notif.metadata.get('sender_email', 'System'),
+                    'target_type': notif.metadata.get('target_type', 'unknown'),
+                    'target_value': notif.metadata.get('target_value', ''),
+                    'recipient_count': 0,
+                    'read_count': 0
+                }
+            batches[b_id]['recipient_count'] += 1
+            if notif.is_read:
+                batches[b_id]['read_count'] += 1
+                
+        return Response(list(batches.values()))
+
+    @action(detail=False, methods=['delete'], url_path='admin/delete-broadcast')
+    def delete_broadcast(self, request):
+        """DELETE — Admin deletes (retracts) a broadcast of notifications."""
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_send_notifications', False))):
+            return Response({'error': 'Only admins and authorized coordinators can retract notifications.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        broadcast_id = request.query_params.get('broadcast_id')
+        if not broadcast_id:
+            return Response({'error': 'broadcast_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        deleted_count, _ = Notification.objects.filter(metadata__broadcast_id=broadcast_id).delete()
+        return Response({'status': 'success', 'message': f'Successfully retracted notification. Deleted {deleted_count} alerts.'})
+
 class SendResumesToCompanyView(APIView):
     """
     POST /api/v1/admin/jobs/{job_id}/send-resumes/
@@ -278,8 +399,8 @@ class SendResumesToCompanyView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, job_id):
-        if request.user.role not in ['admin', 'coordinator']:
-            return Response({'error': 'Only admins and coordinators can send resumes.'}, status=status.HTTP_403_FORBIDDEN)
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_resumes', False))):
+            return Response({'error': 'Only admins and authorized coordinators can send resumes.'}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = SendResumesSerializer(data=request.data)
         if not serializer.is_valid():
@@ -364,8 +485,8 @@ class ResumeEmailLogView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, job_id=None):
-        if request.user.role not in ['admin', 'coordinator']:
-            return Response({'error': 'Only admins and coordinators can view logs.'}, status=status.HTTP_403_FORBIDDEN)
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_resumes', False))):
+            return Response({'error': 'Only admins and authorized coordinators can view logs.'}, status=status.HTTP_403_FORBIDDEN)
             
         from .models import ResumeEmailLog
         

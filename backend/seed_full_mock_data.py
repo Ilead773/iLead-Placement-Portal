@@ -23,6 +23,9 @@ from core.models import (
     Placement,
     PlacementAssignment,
     ExternalClickLog,
+    LearningAssignment,
+    LearningQuestion,
+    StudentLearningAssignment,
 )
 from apps.jobs.models import Job, JobRound
 from apps.applications.models import (
@@ -77,6 +80,10 @@ def _create_users_and_students():
             "can_manage_students": True,
             "can_manage_placements": True,
             "can_manage_resumes": True,
+            "can_manage_assignments": True,
+            "can_send_notifications": True,
+            "can_view_scraping": True,
+            "can_view_clicks": True,
             "temp_password_flag": False,
             "password_reset_required": False,
         },
@@ -430,6 +437,73 @@ def _create_interview_data(student):
         )
 
 
+def _create_learning_assignments(admin):
+    courses = list(Student.objects.exclude(course='').values_list('course', flat=True).distinct())
+    if not courses:
+        courses = ["BCA", "BBA"]
+    
+    for course in courses:
+        clean_course = course.strip()
+        title = f"{clean_course} MCQ Assessment"
+        assignment, _ = LearningAssignment.objects.get_or_create(
+            course=clean_course,
+            title=title,
+            defaults={
+                "description": f"Evaluate your competency in core topics and professional placement preparation for {clean_course}.",
+                "duration_minutes": 25,
+                "created_by": admin,
+            }
+        )
+        
+        questions_data = [
+            {
+                "prompt": f"Which of the following is a vital skill or domain of expertise in {clean_course}?",
+                "options": ["Aptitude & Analytical Logic", "Core domain expertise", "Professional Communication", "All of the above"],
+                "correct_option": 3,
+                "points": 5,
+            },
+            {
+                "prompt": "If a trainer conducts classes on Monday, Wednesday, and Friday, and another conducts on Tuesday and Thursday, how many combined sessions are held in 4 weeks?",
+                "options": ["12 sessions", "16 sessions", "20 sessions", "24 sessions"],
+                "correct_option": 2,
+                "points": 5,
+            },
+            {
+                "prompt": "What is the primary role of self-evaluations and mock interviews?",
+                "options": ["To check theoretical memory", "To identify skill gaps and build interview confidence", "To get a high score only", "None of the above"],
+                "correct_option": 1,
+                "points": 5,
+            }
+        ]
+        
+        total_points = 0
+        for idx, q_data in enumerate(questions_data):
+            q, _ = LearningQuestion.objects.get_or_create(
+                assignment=assignment,
+                order=idx,
+                defaults={
+                    "prompt": q_data["prompt"],
+                    "options": q_data["options"],
+                    "correct_option": q_data["correct_option"],
+                    "points": q_data["points"],
+                }
+            )
+            total_points += q.points
+            
+        students = Student.objects.filter(course=clean_course)
+        for student in students:
+            StudentLearningAssignment.objects.get_or_create(
+                assignment=assignment,
+                student=student,
+                defaults={
+                    "assigned_by": admin,
+                    "due_at": datetime.now(timezone.utc) + timedelta(days=14),
+                    "total_points": total_points,
+                    "status": "assigned",
+                }
+            )
+
+
 def seed():
     admin, _coord, student = _create_users_and_students()
     _create_profile_data(student)
@@ -437,6 +511,7 @@ def seed():
     _create_jobs_and_applications(admin, student)
     _create_placement_data(admin, student)
     _create_interview_data(student)
+    _create_learning_assignments(admin)
 
     print("\n=== MOCK DATA SEEDED SUCCESSFULLY ===")
     print("Admin Login:")

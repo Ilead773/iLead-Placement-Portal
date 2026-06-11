@@ -1,7 +1,10 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Student, Placement, PlacementAssignment, CSVUploadLog, AuditLog
+from .models import (
+    AuditLog, CSVUploadLog, LearningAssignment, LearningQuestion, Placement,
+    PlacementAssignment, Student, StudentLearningAssignment, User,
+)
 
 
 @admin.register(User)
@@ -39,6 +42,26 @@ class PlacementAdmin(admin.ModelAdmin):
 class PlacementAssignmentAdmin(admin.ModelAdmin):
     list_display = ['student', 'placement', 'status', 'assigned_by', 'assigned_date']
     list_filter = ['status']
+
+
+class LearningQuestionInline(admin.TabularInline):
+    model = LearningQuestion
+    extra = 1
+
+
+@admin.register(LearningAssignment)
+class LearningAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['title', 'course', 'duration_minutes', 'created_by', 'created_at']
+    list_filter = ['course', 'created_at']
+    search_fields = ['title', 'course']
+    inlines = [LearningQuestionInline]
+
+
+@admin.register(StudentLearningAssignment)
+class StudentLearningAssignmentAdmin(admin.ModelAdmin):
+    list_display = ['student', 'assignment', 'status', 'score', 'total_points', 'due_at', 'submitted_at']
+    list_filter = ['status', 'assignment__course']
+    search_fields = ['student__name', 'student__registration_number', 'assignment__title']
 
 
 @admin.register(CSVUploadLog)

@@ -16,6 +16,16 @@ const EditJob = () => {
   const [courseSearch, setCourseSearch] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState({});
 
+  // ── Advanced Targeting State ──
+  const [targetingOpen, setTargetingOpen] = useState(false);
+  const [targetingSearch, setTargetingSearch] = useState('');
+  const [targetingCourse, setTargetingCourse] = useState('');
+  const [targetingCgpa, setTargetingCgpa] = useState('');
+  const [targetingSkillInput, setTargetingSkillInput] = useState('');
+  const [targetingSkills, setTargetingSkills] = useState([]);
+  const [targetingResults, setTargetingResults] = useState([]);
+  const [targetingLoading, setTargetingLoading] = useState(false);
+
   const setCategoryCollapseState = (catName, isCollapsed) => {
     setCollapsedCategories(prev => ({
       ...prev,
@@ -75,7 +85,8 @@ const EditJob = () => {
       max_backlogs: '',
       allowed_branches: [],
       allowed_years: [],
-      allowed_categories: []
+      allowed_categories: [],
+      allowed_students: []
     },
     rounds: []
   });
@@ -128,6 +139,23 @@ const EditJob = () => {
         },
         rounds: data.rounds || []
       });
+
+      // Pre-fill allowed_students: resolve saved IDs back to {id, name, registration_number} objects
+      const savedIds = data.eligibility_rules?.allowed_students || [];
+      if (savedIds.length > 0) {
+        try {
+          const { data: studData } = await axios.get(`/students/?ids=${savedIds.join(',')}&limit=200`);
+          const studentObjs = (studData.results || []).map(s => ({
+            id: s.id, name: s.name, registration_number: s.registration_number
+          }));
+          setFormData(prev => ({
+            ...prev,
+            eligibility_rules: { ...prev.eligibility_rules, allowed_students: studentObjs }
+          }));
+        } catch (e) {
+          console.error('Failed to pre-fill allowed_students', e);
+        }
+      }
     } catch (err) {
       setError('Failed to fetch job details.');
     } finally {
@@ -232,6 +260,46 @@ Return only the JSON object.`;
     handleEligibilityChange('allowed_branches', newSelected);
   };
 
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const searchTargetStudents = async () => {
+    setTargetingLoading(true);
+    setHasSearched(true);
+    try {
+      const params = new URLSearchParams({ limit: 10000 });
+      if (targetingSearch) params.set('search', targetingSearch);
+      if (targetingCourse) params.set('course', targetingCourse);
+      if (targetingCgpa) params.set('cgpa_min', targetingCgpa);
+      if (targetingSkills.length > 0) params.set('skill', targetingSkills.join(','));
+      const { data } = await axios.get(`/students/?${params}`);
+      setTargetingResults(data.results || []);
+    } catch (err) {
+      console.error('Failed to search students', err);
+    } finally {
+      setTargetingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!targetingOpen) return;
+    const delayDebounceFn = setTimeout(() => {
+      searchTargetStudents();
+    }, 450);
+    return () => clearTimeout(delayDebounceFn);
+  }, [targetingSearch, targetingCgpa, targetingCourse, targetingSkills, targetingOpen]);
+
+  const toggleTargetStudent = (student) => {
+    const already = (formData.eligibility_rules.allowed_students || []).some(s => s.id === student.id);
+    if (already) {
+      handleEligibilityChange('allowed_students', formData.eligibility_rules.allowed_students.filter(s => s.id !== student.id));
+    } else {
+      handleEligibilityChange('allowed_students', [
+        ...(formData.eligibility_rules.allowed_students || []),
+        { id: student.id, name: student.name, registration_number: student.registration_number }
+      ]);
+    }
+  };
+
   const addRound = () => {
     setFormData(prev => ({
       ...prev,
@@ -267,7 +335,8 @@ Return only the JSON object.`;
           min_attendance: parseInt(formData.eligibility_rules.min_attendance) || 0,
           max_backlogs: formData.eligibility_rules.max_backlogs === '' || formData.eligibility_rules.max_backlogs === null
             ? null
-            : parseInt(formData.eligibility_rules.max_backlogs)
+            : parseInt(formData.eligibility_rules.max_backlogs),
+          allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id)
         }
       };
       if (payload.application_deadline) {
@@ -544,7 +613,7 @@ Return only the JSON object.`;
                   </div>
 
                   {/* Grouped Target Courses Grid */}
-                  <div className="flex flex-col gap-3 mt-2" style={{ maxHeight: '450px', overflowY: 'auto', paddingRight: '6px' }}>
+                  <div className="flex flex-col gap-3 mt-2" style={{ maxHeight: '550px', overflowY: 'auto', paddingRight: '6px' }}>
                     {(() => {
                       const filteredCourses = availableCourses.filter(c => 
                         c.name.toLowerCase().includes(courseSearch.toLowerCase()) || 
@@ -581,7 +650,8 @@ Return only the JSON object.`;
                               borderRadius: '12px',
                               boxShadow: 'var(--shadow-sm)',
                               overflow: 'hidden',
-                              transition: 'all 0.2s ease'
+                              transition: 'all 0.2s ease',
+                              flexShrink: 0
                             }}
                           >
                             {/* Category Header (Clicking it toggles collapse) */}
@@ -705,7 +775,17 @@ Return only the JSON object.`;
 
                             {/* Category Courses (Expanded Panel) */}
                             {!isCollapsed && (
-                              <div className="p-4 pt-1 flex flex-wrap gap-2 border-t" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-card-hover)' }}>
+                              <div 
+                                className="border-t" 
+                                style={{ 
+                                  borderColor: 'var(--border-color)', 
+                                  background: 'var(--bg-card-hover)',
+                                  display: 'grid',
+                                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                                  gap: '10px',
+                                  padding: '16px 20px'
+                                }}
+                              >
                                 {courses.map(course => {
                                   const isChecked = (formData.eligibility_rules.allowed_branches || []).includes(course.name);
                                   return (
@@ -714,21 +794,26 @@ Return only the JSON object.`;
                                       type="button"
                                       onClick={() => handleCourseToggle(course.name)}
                                       style={{
-                                        display: 'inline-flex',
+                                        display: 'flex',
                                         alignItems: 'center',
-                                        gap: '8px',
-                                        padding: '6px 12px',
-                                        borderRadius: '20px',
+                                        gap: '10px',
+                                        padding: '10px 16px',
+                                        borderRadius: '12px',
                                         border: '1px solid',
                                         borderColor: isChecked ? 'var(--accent-primary)' : 'var(--border-color)',
                                         background: isChecked ? 'var(--accent-soft)' : 'var(--bg-card)',
                                         color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                        fontSize: '11.5px',
+                                        fontSize: '12px',
                                         fontWeight: isChecked ? '700' : '500',
                                         cursor: 'pointer',
                                         transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                                         boxShadow: isChecked ? '0 2px 8px rgba(59, 130, 246, 0.08)' : 'var(--shadow-sm)',
-                                        outline: 'none'
+                                        outline: 'none',
+                                        width: '100%',
+                                        justifyContent: 'flex-start',
+                                        textAlign: 'left',
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'normal'
                                       }}
                                       onMouseEnter={(e) => {
                                         if (!isChecked) {
@@ -750,24 +835,27 @@ Return only the JSON object.`;
                                       }}
                                     >
                                       {/* Micro Checkbox indicator */}
-                                      <span style={{
-                                        width: '14px',
-                                        height: '14px',
-                                        borderRadius: '50%',
-                                        background: isChecked ? 'var(--accent-primary)' : 'transparent',
-                                        border: isChecked ? 'none' : '1.5px solid var(--text-muted)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.15s ease',
-                                        flexShrink: 0
-                                      }}>
+                                      <div 
+                                        style={{
+                                          width: '16px',
+                                          height: '16px',
+                                          borderRadius: '50%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          flexShrink: 0,
+                                          transition: 'all 0.15s ease',
+                                          background: isChecked ? 'var(--accent-primary)' : 'transparent',
+                                          border: isChecked ? 'none' : '2px solid var(--border-color)',
+                                          color: '#ffffff'
+                                        }}
+                                      >
                                         {isChecked && (
                                           <svg width="8" height="6" viewBox="0 0 10 8" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                             <polyline points="1.5 4 4 6.5 8.5 1.5" />
                                           </svg>
                                         )}
-                                      </span>
+                                      </div>
                                       <span style={{ transition: 'color 0.15s ease' }}>{course.name}</span>
                                     </button>
                                   );
@@ -781,6 +869,174 @@ Return only the JSON object.`;
                   </div>
                 </div>
               </div>
+          </div>
+
+          {/* ─── Advanced Targeting Section ─── */}
+          <div className="col-span-2 mt-6">
+            <div
+              onClick={() => setTargetingOpen(!targetingOpen)}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '14px 20px', background: targetingOpen ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                border: '1px solid var(--border-color)', borderRadius: targetingOpen ? '12px 12px 0 0' : '12px',
+                cursor: 'pointer', userSelect: 'none', transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { if (!targetingOpen) e.currentTarget.style.background = 'var(--bg-card-hover)'; }}
+              onMouseLeave={e => { if (!targetingOpen) e.currentTarget.style.background = 'var(--bg-card)'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '16px' }}>🎯</span>
+                <span style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Advanced Targeting</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-card-hover)', padding: '2px 8px', borderRadius: '100px', border: '1px solid var(--border-color)' }}>Optional</span>
+                {(formData.eligibility_rules.allowed_students || []).length > 0 && !targetingOpen && (
+                  <span style={{ fontSize: '10px', fontWeight: 800, color: 'white', background: 'var(--accent-primary)', padding: '2px 10px', borderRadius: '100px' }}>
+                    {formData.eligibility_rules.allowed_students.length} student{formData.eligibility_rules.allowed_students.length !== 1 ? 's' : ''} targeted
+                  </span>
+                )}
+              </div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: targetingOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', color: 'var(--text-secondary)' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+
+            {targetingOpen && (
+              <div style={{ border: '1px solid var(--border-color)', borderTop: 'none', borderRadius: '0 0 12px 12px', background: 'var(--bg-card)', overflow: 'hidden' }}>
+                <div style={{ padding: '10px 20px', background: 'rgba(59,130,246,0.04)', borderBottom: '1px solid var(--border-color)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                    Filter students below, then tick checkboxes to select.
+                    <strong style={{ color: 'var(--accent-primary)' }}> If any students are selected, only they will be eligible</strong> for this job. Leave empty for normal eligibility.
+                  </p>
+                </div>
+
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🔍 Name / Reg No</label>
+                    <input type="text" placeholder="Search student..." value={targetingSearch}
+                      onChange={e => setTargetingSearch(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchTargetStudents(); } }}
+                      className="input-field" style={{ fontSize: '12px', padding: '8px 12px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>📚 Course</label>
+                    <select value={targetingCourse} onChange={e => setTargetingCourse(e.target.value)}
+                      className="input-field" style={{ fontSize: '12px', padding: '8px 12px' }}>
+                      <option value="">All Courses</option>
+                      {availableCourses.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>📊 Min CGPA</label>
+                    <input type="number" placeholder="e.g. 7.0" step="0.1" min="0" max="10"
+                      value={targetingCgpa} onChange={e => setTargetingCgpa(e.target.value)}
+                      className="input-field" style={{ fontSize: '12px', padding: '8px 12px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🛠 Skills (Enter to add)</label>
+                    <input type="text" placeholder="e.g. Python..." value={targetingSkillInput}
+                      onChange={e => setTargetingSkillInput(e.target.value)}
+                      onKeyDown={e => {
+                        if ((e.key === 'Enter' || e.key === ',') && targetingSkillInput.trim()) {
+                          e.preventDefault();
+                          const val = targetingSkillInput.trim().replace(/,$/, '');
+                          if (val && !targetingSkills.includes(val)) setTargetingSkills(prev => [...prev, val]);
+                          setTargetingSkillInput('');
+                        }
+                      }}
+                      className="input-field" style={{ fontSize: '12px', padding: '8px 12px' }} />
+                    {targetingSkills.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                        {targetingSkills.map(skill => (
+                          <span key={skill} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(139,92,246,0.1)', color: '#7c3aed', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '100px', padding: '2px 8px', fontSize: '11px', fontWeight: 600 }}>
+                            {skill}
+                            <button type="button" onClick={() => setTargetingSkills(targetingSkills.filter(s => s !== skill))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', padding: 0, lineHeight: 1, display: 'flex' }}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <button type="button" onClick={searchTargetStudents} disabled={targetingLoading}
+                    style={{ background: 'linear-gradient(135deg,#3b82f6 0%,#8b5cf6 100%)', border: 'none', color: 'white', padding: '8px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', cursor: targetingLoading ? 'not-allowed' : 'pointer', opacity: targetingLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {targetingLoading ? '⏳ Searching...' : '⚡ Search Students'}
+                  </button>
+                  {targetingResults.length > 0 && <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{targetingResults.length} found</span>}
+                </div>
+
+                {targetingLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: '12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <div className="spinner" style={{ width: '28px', height: '28px' }}></div>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Searching matching students...</span>
+                  </div>
+                ) : targetingResults.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <div style={{ maxHeight: '300px', overflowY: 'auto', minWidth: '600px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 160px 72px', padding: '8px 20px', background: 'var(--bg-card-hover)', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 2 }}>
+                        <input type="checkbox" style={{ cursor: 'pointer', width: 15, height: 15 }}
+                          checked={targetingResults.length > 0 && targetingResults.every(s => (formData.eligibility_rules.allowed_students || []).some(sel => sel.id === s.id))}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              const newOnes = targetingResults.filter(s => !(formData.eligibility_rules.allowed_students || []).some(sel => sel.id === s.id));
+                              handleEligibilityChange('allowed_students', [...(formData.eligibility_rules.allowed_students || []), ...newOnes.map(s => ({ id: s.id, name: s.name, registration_number: s.registration_number }))]);
+                            } else {
+                              const rIds = new Set(targetingResults.map(s => s.id));
+                              handleEligibilityChange('allowed_students', (formData.eligibility_rules.allowed_students || []).filter(s => !rIds.has(s.id)));
+                            }
+                          }} />
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Student</span>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Course</span>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>CGPA</span>
+                      </div>
+                      {targetingResults.map(student => {
+                        const isSel = (formData.eligibility_rules.allowed_students || []).some(s => s.id === student.id);
+                        return (
+                          <div key={student.id} onClick={() => toggleTargetStudent(student)}
+                            style={{ display: 'grid', gridTemplateColumns: '44px 1fr 160px 72px', padding: '10px 20px', borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.15s', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent' }}
+                            onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg-card-hover)'; }}
+                            onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}>
+                            <input type="checkbox" checked={isSel} onChange={() => toggleTargetStudent(student)} onClick={e => e.stopPropagation()} style={{ cursor: 'pointer', width: 15, height: 15, marginTop: 2 }} />
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>{student.name}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 1 }}>{student.registration_number}</div>
+                            </div>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', alignSelf: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{student.course || '—'}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, alignSelf: 'center', color: student.cgpa >= 7 ? '#10b981' : student.cgpa >= 5 ? '#f59e0b' : '#ef4444' }}>
+                              {student.cgpa != null ? Number(student.cgpa).toFixed(1) : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : hasSearched ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: '8px', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ fontSize: '1.8rem' }}>🔍</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>No students found</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '280px', textAlign: 'center', lineHeight: '1.4' }}>Try broadening your search term, changing the course filter, or removing skill tags.</span>
+                  </div>
+                ) : null}
+
+                {(formData.eligibility_rules.allowed_students || []).length > 0 && (
+                  <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border-color)', background: 'rgba(59,130,246,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✅ {formData.eligibility_rules.allowed_students.length} Student{formData.eligibility_rules.allowed_students.length !== 1 ? 's' : ''} Selected</span>
+                      <button type="button" onClick={() => handleEligibilityChange('allowed_students', [])} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Clear All</button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {formData.eligibility_rules.allowed_students.map(s => (
+                        <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--accent-soft)', color: 'var(--accent-primary)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '100px', padding: '4px 10px 4px 6px', fontSize: '12px', fontWeight: 700 }}>
+                          <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900, flexShrink: 0 }}>{s.name?.charAt(0)?.toUpperCase()}</span>
+                          {s.name} <span style={{ fontSize: '10px', opacity: 0.65 }}>({s.registration_number})</span>
+                          <button type="button" onClick={() => handleEligibilityChange('allowed_students', formData.eligibility_rules.allowed_students.filter(x => x.id !== s.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', padding: 0, display: 'flex', alignItems: 'center', opacity: 0.75, lineHeight: 1 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-8 flex justify-end">

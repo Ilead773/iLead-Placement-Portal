@@ -21,4 +21,8 @@ export const jobFeedAPI = {
   // Admin — edit
   getJobForEdit: (jobId) => api.get(`/scraped-jobs/admin/scraping/jobs/${jobId}/edit/`),
   editScrapedJob: (jobId, data) => api.patch(`/scraped-jobs/admin/scraping/jobs/${jobId}/edit/`, data),
+
+  // LinkedIn Scraper
+  getLinkedInStatus: () => api.get('/job_scraper/status/'),
+  triggerLinkedInScrape: (data) => api.post('/job_scraper/trigger/', data),
 };

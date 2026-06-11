@@ -42,7 +42,7 @@ npm run dev
 # (or use 'npm start' if this is a Create React App project)
 ```
 
-The frontend will typically be available at `http://localhost:5173/` or `http://localhost:3000/`.
+The frontend will typically be available at `http://localhost:3000/`.
 
 ---
 

@@ -25,6 +25,10 @@ class AdminOpsViewSet(viewsets.ViewSet):
         can_manage_students = request.data.get('can_manage_students', False)
         can_manage_placements = request.data.get('can_manage_placements', False)
         can_manage_resumes = request.data.get('can_manage_resumes', False)
+        can_manage_assignments = request.data.get('can_manage_assignments', False)
+        can_send_notifications = request.data.get('can_send_notifications', False)
+        can_view_scraping = request.data.get('can_view_scraping', False)
+        can_view_clicks = request.data.get('can_view_clicks', False)
 
         if not all([name, email, login_id]):
             return Response({'error': 'Name, email, and login_id are required.'}, status=status.HTTP_400_BAD_VALUE)
@@ -45,7 +49,11 @@ class AdminOpsViewSet(viewsets.ViewSet):
                 temp_password_flag=True,
                 can_manage_students=can_manage_students,
                 can_manage_placements=can_manage_placements,
-                can_manage_resumes=can_manage_resumes
+                can_manage_resumes=can_manage_resumes,
+                can_manage_assignments=can_manage_assignments,
+                can_send_notifications=can_send_notifications,
+                can_view_scraping=can_view_scraping,
+                can_view_clicks=can_view_clicks
             )
 
             # Send Email
@@ -62,10 +70,10 @@ class AdminOpsViewSet(viewsets.ViewSet):
             Please log in at {settings.FRONTEND_URL} and change your password immediately.
             """
             
-            send_mail(
+            from core.tasks import async_send_mail
+            async_send_mail.delay(
                 subject,
                 message,
-                settings.DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=False,
             )
@@ -81,7 +89,8 @@ class AdminOpsViewSet(viewsets.ViewSet):
         """List all coordinators."""
         coordinators = User.objects.filter(role='coordinator').values(
             'id', 'login_id', 'email', 'name', 'created_at',
-            'can_manage_students', 'can_manage_placements', 'can_manage_resumes'
+            'can_manage_students', 'can_manage_placements', 'can_manage_resumes',
+            'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks'
         )
         return Response(list(coordinators))
 
@@ -93,6 +102,10 @@ class AdminOpsViewSet(viewsets.ViewSet):
             coordinator.can_manage_students = request.data.get('can_manage_students', coordinator.can_manage_students)
             coordinator.can_manage_placements = request.data.get('can_manage_placements', coordinator.can_manage_placements)
             coordinator.can_manage_resumes = request.data.get('can_manage_resumes', coordinator.can_manage_resumes)
+            coordinator.can_manage_assignments = request.data.get('can_manage_assignments', coordinator.can_manage_assignments)
+            coordinator.can_send_notifications = request.data.get('can_send_notifications', coordinator.can_send_notifications)
+            coordinator.can_view_scraping = request.data.get('can_view_scraping', coordinator.can_view_scraping)
+            coordinator.can_view_clicks = request.data.get('can_view_clicks', coordinator.can_view_clicks)
             coordinator.save()
             log_audit(request.user, 'coordinator_permissions_updated', f'Updated {coordinator.login_id}', request)
             return Response({'message': 'Permissions updated successfully.'})
@@ -102,6 +115,9 @@ class AdminOpsViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='external-clicks')
     def external_clicks(self, request):
         """List external outbound clicks and show click aggregations."""
+        if request.user.role == 'coordinator' and not getattr(request.user, 'can_view_clicks', False):
+            return Response({'error': 'You do not have permission to view external clicks log.'}, status=status.HTTP_403_FORBIDDEN)
+
         clicks = ExternalClickLog.objects.select_related('user', 'user__student_profile').all()
 
         search = request.query_params.get('search')
@@ -137,6 +153,9 @@ class AdminOpsViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'], url_path='mark-selected')
     def mark_selected(self, request, pk=None):
         """Mark a student from an external click log as selected for that external job."""
+        if request.user.role == 'coordinator' and not getattr(request.user, 'can_view_clicks', False):
+            return Response({'error': 'You do not have permission to mark selections from click logs.'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             click = ExternalClickLog.objects.select_related('user', 'user__student_profile').get(id=pk)
         except ExternalClickLog.DoesNotExist:

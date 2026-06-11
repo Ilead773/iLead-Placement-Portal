@@ -115,8 +115,7 @@ function EditJobModal({ job, onClose, onSaved }) {
           background: 'var(--bg-primary)',
           border: '1px solid var(--border-color)',
           borderRadius: 16,
-          width: '100%',
-          maxWidth: 720,
+          width: 'min(720px, 95vw)',
           maxHeight: '90vh',
           overflow: 'hidden',
           display: 'flex',
@@ -148,7 +147,7 @@ function EditJobModal({ job, onClose, onSaved }) {
         <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Row: Title + Company */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Job Title *</label>
               <input className="form-control" name="title" value={form.title} onChange={handleChange} required />
@@ -160,7 +159,7 @@ function EditJobModal({ job, onClose, onSaved }) {
           </div>
 
           {/* Row: Location + Job Type */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Location</label>
               <input className="form-control" name="location" value={form.location} onChange={handleChange} />
@@ -180,7 +179,7 @@ function EditJobModal({ job, onClose, onSaved }) {
           </div>
 
           {/* Row: Salary Display + Experience */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Salary Display</label>
               <input className="form-control" name="salary_display" value={form.salary_display} onChange={handleChange} placeholder="e.g. ₹8–12 LPA" />

@@ -25,17 +25,26 @@ urlpatterns = [
     path('placements/<uuid:pk>/', views.PlacementViewSet.as_view({'get': 'get_placement', 'put': 'update_placement', 'delete': 'delete_placement'})),
     path('placements/<uuid:pk>/assign-students/', views.PlacementViewSet.as_view({'post': 'assign_students'})),
     path('placements/<uuid:pk>/assignments/', views.PlacementViewSet.as_view({'get': 'list_assignments'})),
-    path('placements/<uuid:pk>/selected-csv/', views.PlacementViewSet.as_view({'get': 'selected_csv'})),
+    path('placements/<uuid:pk>/selected-excel/', views.PlacementViewSet.as_view({'get': 'selected_excel'})),
 
     # Assignments
     path('assignments/', views.AssignmentViewSet.as_view({'get': 'list_all'})),
     path('assignments/<uuid:pk>/status/', views.AssignmentViewSet.as_view({'patch': 'update_status'})),
+    path('learning-assignments/courses/', views.LearningAssignmentAdminViewSet.as_view({'get': 'courses'})),
+    path('learning-assignments/students/', views.LearningAssignmentAdminViewSet.as_view({'get': 'students'})),
+    path('learning-assignments/bank/', views.LearningAssignmentAdminViewSet.as_view({'get': 'bank', 'post': 'bank'})),
+    path('learning-assignments/bank/<uuid:pk>/', views.LearningAssignmentAdminViewSet.as_view({'put': 'bank_detail', 'patch': 'bank_detail', 'delete': 'bank_detail'})),
+    path('learning-assignments/assign/', views.LearningAssignmentAdminViewSet.as_view({'post': 'assign'})),
+    path('learning-assignments/results/', views.LearningAssignmentAdminViewSet.as_view({'get': 'results'})),
 
     # Student self-service
     path('me/', views.StudentSelfViewSet.as_view({'get': 'get_me'})),
     path('me/profile/', views.StudentSelfViewSet.as_view({'get': 'get_profile'})),
     path('me/placements/', views.StudentSelfViewSet.as_view({'get': 'my_placements'})),
     path('me/log-click/', views.StudentSelfViewSet.as_view({'post': 'log_click'})),
+    path('me/learning-assignments/', views.StudentLearningAssignmentViewSet.as_view({'get': 'list_assignments'})),
+    path('me/learning-assignments/<uuid:pk>/', views.StudentLearningAssignmentViewSet.as_view({'get': 'get_assignment_detail'})),
+    path('me/learning-assignments/<uuid:pk>/submit/', views.StudentLearningAssignmentViewSet.as_view({'post': 'submit'})),
 
     # Dashboard
     path('dashboard/stats/', views.DashboardViewSet.as_view({'get': 'stats'})),

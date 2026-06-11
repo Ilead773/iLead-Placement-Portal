@@ -75,7 +75,8 @@ def main():
     users = serialize_model(User, [
         'id', 'login_id', 'email', 'name', 'role', 'is_staff', 'is_superuser',
         'temp_password_flag', 'password_reset_required', 'can_manage_students',
-        'can_manage_placements', 'can_manage_resumes'
+        'can_manage_placements', 'can_manage_resumes',
+        'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks'
     ])
     
     # Set passwords for known users or default passwords
@@ -109,6 +110,10 @@ def main():
             'can_manage_students': False,
             'can_manage_placements': False,
             'can_manage_resumes': False,
+            'can_manage_assignments': False,
+            'can_send_notifications': False,
+            'can_view_scraping': False,
+            'can_view_clicks': False,
             'password': csv_student['password']
         })
         print(f"Added CSV student {csv_student['login_id']} to User seed list")
@@ -322,7 +327,11 @@ def seed_database():
                 is_superuser=u['is_superuser'],
                 can_manage_students=u['can_manage_students'],
                 can_manage_placements=u['can_manage_placements'],
-                can_manage_resumes=u['can_manage_resumes']
+                can_manage_resumes=u['can_manage_resumes'],
+                can_manage_assignments=u.get('can_manage_assignments', False),
+                can_send_notifications=u.get('can_send_notifications', False),
+                can_view_scraping=u.get('can_view_scraping', False),
+                can_view_clicks=u.get('can_view_clicks', False)
             )
             
         # 2. Create Students

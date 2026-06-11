@@ -197,6 +197,12 @@ class AdminScrapingDashboardView(APIView):
     """GET /api/v1/scraped-jobs/admin/scraping/status/"""
     permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
 
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user and request.user.is_authenticated and request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_view_scraping', False):
+                self.permission_denied(request, message="You do not have permission to access scraping tools.")
+
     def get(self, request):
         last_run = ScrapingRun.objects.order_by('-started_at').first()
         recent_runs = ScrapingRun.objects.order_by('-started_at')[:5]
@@ -232,6 +238,12 @@ class AdminTriggerScrapeView(APIView):
     """POST /api/v1/scraped-jobs/admin/scraping/trigger/"""
     permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
 
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user and request.user.is_authenticated and request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_view_scraping', False):
+                self.permission_denied(request, message="You do not have permission to access scraping tools.")
+
     def post(self, request):
         from django.core.cache import cache
         if cache.get('nightly_scrape_lock') or ScrapingRun.objects.filter(status='running').exists():
@@ -255,6 +267,12 @@ class AdminTriggerScrapeView(APIView):
 class AdminScrapedJobsListView(APIView):
     """GET /api/v1/scraped-jobs/admin/scraping/jobs/"""
     permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user and request.user.is_authenticated and request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_view_scraping', False):
+                self.permission_denied(request, message="You do not have permission to access scraping tools.")
 
     def get(self, request):
         qs = ScrapedJob.objects.filter(is_active=True).order_by('-scraped_at')
@@ -294,6 +312,12 @@ class AdminApproveJobView(APIView):
     """
     permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
 
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user and request.user.is_authenticated and request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_view_scraping', False):
+                self.permission_denied(request, message="You do not have permission to access scraping tools.")
+
     def post(self, request, job_id):
         job = ScrapedJob.objects.filter(id=job_id, is_active=True).first()
         if not job:
@@ -323,6 +347,12 @@ class AdminEditJobView(APIView):
     PATCH /api/v1/scraped-jobs/admin/scraping/jobs/<id>/edit/  -> partial update
     """
     permission_classes = [IsAuthenticated, IsAdminOrCoordinator]
+
+    def check_permissions(self, request):
+        super().check_permissions(request)
+        if request.user and request.user.is_authenticated and request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_view_scraping', False):
+                self.permission_denied(request, message="You do not have permission to access scraping tools.")
 
     def get(self, request, job_id):
         job = ScrapedJob.objects.filter(id=job_id, is_active=True).first()

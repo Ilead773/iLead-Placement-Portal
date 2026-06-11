@@ -3,6 +3,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import { Briefcase, Users, DollarSign, Award, Calendar, FileText, CheckCircle, XCircle, Send, Download, ChevronDown } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { OfferLetterModal } from './JobApplications';
 
 export default function Placements() {
   const navigate = useNavigate();
@@ -13,43 +15,39 @@ export default function Placements() {
   const [selectedCampusType, setSelectedCampusType] = useState('all'); // 'all', 'internal', 'external'
   const [toast, setToast] = useState(null);
 
-  // States for viewing assigned students modal
+  // States for viewing placed students modal
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobApplications, setJobApplications] = useState([]);
   const [loadingApps, setLoadingApps] = useState(false);
-  const [modalActiveTab, setModalActiveTab] = useState('placed');
+  const [modalActiveTab, setModalActiveTab] = useState('applied');
   const [editingOffCampusPlacement, setEditingOffCampusPlacement] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [expandedCourseRows, setExpandedCourseRows] = useState(new Set());
+  const [selectedAppForOffer, setSelectedAppForOffer] = useState(null);
+
+  const toggleCourseRow = (e, id) => {
+    e.stopPropagation();
+    setExpandedCourseRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
 
   // Compute filtered candidates and counts by status tab for the interactive modal
   const modalTabsData = useMemo(() => {
-    const counts = { all: 0, placed: 0, assigned: 0, applied: 0, rejected: 0, offer_pending: 0 };
-    const items = { all: [], placed: [], assigned: [], applied: [], rejected: [], offer_pending: [] };
+    const counts = { applied: 0, placed: 0 };
+    const items = { applied: [], placed: [] };
 
     jobApplications.forEach(app => {
-      counts.all++;
-      items.all.push(app);
-
       if (app.status === 'selected' || app.status === 'accepted') {
         counts.placed++;
         items.placed.push(app);
-        
-        if (!app.offer_letter_file) {
-          counts.offer_pending++;
-          items.offer_pending.push(app);
-        }
-      } else if (app.status === 'assigned' || app.status === 'shortlisted' || app.status === 'interviewing') {
-        counts.assigned++;
-        items.assigned.push(app);
-      } else if (app.status === 'applied') {
+      } else {
         counts.applied++;
         items.applied.push(app);
-      } else if (app.status === 'rejected') {
-        counts.rejected++;
-        items.rejected.push(app);
-      } else {
-        // Fallback for custom or unrecognized statuses
-        counts.assigned++;
-        items.assigned.push(app);
       }
     });
 
@@ -83,9 +81,18 @@ export default function Placements() {
       const matchesSeason = isInSeason(p, activeTab);
       const matchesType = selectedListingType === 'all' || p.listing_type === selectedListingType;
       const matchesCampus = selectedCampusType === 'all' || p.job_type === selectedCampusType;
-      return matchesSeason && matchesType && matchesCampus;
+      
+      const company = p.company_name || '';
+      const position = p.role || p.position || '';
+      const matchesSearch = searchQuery === '' || 
+        company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        position.toLowerCase().includes(searchQuery.toLowerCase());
+        
+      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      
+      return matchesSeason && matchesType && matchesCampus && matchesSearch && matchesCategory;
     });
-  }, [placements, activeTab, selectedListingType, selectedCampusType]);
+  }, [placements, activeTab, selectedListingType, selectedCampusType, searchQuery, selectedCategory]);
 
   const stats = useMemo(() => {
     const total = filteredPlacements.length;
@@ -166,7 +173,7 @@ export default function Placements() {
   // Fetch student details in real time
   const handleViewStudents = async (job) => {
     setSelectedJob(job);
-    setModalActiveTab('placed');
+    setModalActiveTab('applied');
     setLoadingApps(true);
     try {
       const { data } = await api.get(`/jobs/admin/jobs/${job.id}/applications/`, {
@@ -180,20 +187,20 @@ export default function Placements() {
     }
   };
 
-  const downloadSelectedCsv = async (job) => {
+  const downloadSelectedExcel = async (job) => {
     if (!job?.id) return;
     try {
-      const res = await api.get(`/jobs/admin/jobs/${job.id}/selected-csv/`, {
+      const res = await api.get(`/jobs/admin/jobs/${job.id}/selected-excel/`, {
         responseType: 'blob',
         params: { status: ['selected', 'accepted'] },
       });
 
       const disposition = res.headers?.['content-disposition'] || '';
       const match = disposition.match(/filename=\"([^\"]+)\"/i);
-      const fallbackName = `selected_students_${(job.company_name || 'company').replaceAll(' ', '_')}.csv`;
+      const fallbackName = `selected_students_${(job.company_name || 'company').replaceAll(' ', '_')}.xlsx`;
       const filename = match?.[1] || fallbackName;
 
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = filename;
@@ -203,22 +210,22 @@ export default function Placements() {
       window.URL.revokeObjectURL(blobUrl);
     } catch (e) {
       console.error(e);
-      showToast('Failed to download CSV.', 'error');
+      showToast('Failed to download Excel.', 'error');
     }
   };
 
-  const downloadCycleSelectedCsv = async () => {
+  const downloadCycleSelectedExcel = async () => {
     try {
-      const res = await api.get('/jobs/admin/jobs/cycle-selected-csv/', {
+      const res = await api.get('/jobs/admin/jobs/cycle-selected-excel/', {
         responseType: 'blob',
         params: { season: activeTab, status: ['selected', 'accepted'] },
       });
 
       const disposition = res.headers?.['content-disposition'] || '';
       const match = disposition.match(/filename=\"([^\"]+)\"/i);
-      const filename = match?.[1] || `selected_students_cycle_${activeTab}.csv`;
+      const filename = match?.[1] || `selected_students_cycle_${activeTab}.xlsx`;
 
-      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = filename;
@@ -228,8 +235,49 @@ export default function Placements() {
       window.URL.revokeObjectURL(blobUrl);
     } catch (e) {
       console.error(e);
-      showToast('Failed to download cycle CSV.', 'error');
+      showToast('Failed to download cycle Excel.', 'error');
     }
+  };
+
+  const downloadFilteredPlacementsExcel = () => {
+    if (filteredPlacements.length === 0) {
+      showToast('No opportunities to export.', 'error');
+      return;
+    }
+
+    const headers = ['Company', 'Position', 'Type', 'Campus Type', 'Salary', 'Category', 'Eligible Courses', 'Deadline', 'Date Created', 'Placed Students'];
+    const rows = filteredPlacements.map(p => {
+      const branches = p.eligibility_rules?.allowed_branches;
+      const courses = Array.isArray(branches) ? branches.join('; ') : (p.eligible_courses || 'All');
+      const assignedCount = p.applications_count ?? p.assignment_count ?? 0;
+      
+      let pkgVal = '—';
+      if (p.package || p.salary) {
+        const rawPkg = Number(p.package || p.salary);
+        const lpa = rawPkg < 100 ? rawPkg : rawPkg / 100000;
+        pkgVal = `${lpa.toFixed(2).replace(/\.00$/, '')} LPA`;
+      }
+
+      return [
+        p.company_name || '—',
+        p.role || p.position || '—',
+        p.listing_type === 'internship' ? 'Internship' : 'Job Placement',
+        p.job_type === 'external' ? 'Off-Campus' : 'On-Campus',
+        pkgVal,
+        p.category || '—',
+        courses,
+        p.application_deadline ? new Date(p.application_deadline).toLocaleDateString() : '—',
+        p.created_at ? new Date(p.created_at).toLocaleDateString() : '—',
+        assignedCount
+      ];
+    });
+
+    const worksheetData = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Placements Report");
+    XLSX.writeFile(wb, `placements_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    showToast('Exported filtered placements successfully!');
   };
 
   return (
@@ -533,43 +581,103 @@ export default function Placements() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '24px' }}>
-        {/* Dynamic Category Switcher (All / Jobs / Internships) */}
-        <div className="premium-toggle-container" style={{ marginBottom: 0 }}>
-          <button
-            onClick={() => setSelectedListingType('all')}
-            className={`premium-toggle-button ${selectedListingType === 'all' ? 'active' : ''}`}
-          >
-            All Opportunities
-          </button>
-          <button
-            onClick={() => setSelectedListingType('job')}
-            className={`premium-toggle-button ${selectedListingType === 'job' ? 'active' : ''}`}
-          >
-            Jobs
-          </button>
-          <button
-            onClick={() => setSelectedListingType('internship')}
-            className={`premium-toggle-button ${selectedListingType === 'internship' ? 'active' : ''}`}
-          >
-            Internships
-          </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Dynamic Category Switcher (All / Jobs / Internships) */}
+          <div className="premium-toggle-container" style={{ marginBottom: 0 }}>
+            <button
+              onClick={() => setSelectedListingType('all')}
+              className={`premium-toggle-button ${selectedListingType === 'all' ? 'active' : ''}`}
+            >
+              All Opportunities
+            </button>
+            <button
+              onClick={() => setSelectedListingType('job')}
+              className={`premium-toggle-button ${selectedListingType === 'job' ? 'active' : ''}`}
+            >
+              Jobs
+            </button>
+            <button
+              onClick={() => setSelectedListingType('internship')}
+              className={`premium-toggle-button ${selectedListingType === 'internship' ? 'active' : ''}`}
+            >
+              Internships
+            </button>
+          </div>
+
+          {/* Campus Type Switcher (All / On-Campus / Off-Campus Dropdown) */}
+          <div className="premium-select-container">
+            <select
+              value={selectedCampusType}
+              onChange={(e) => setSelectedCampusType(e.target.value)}
+              className="premium-select"
+            >
+              <option value="all">All Placements</option>
+              <option value="internal">On-Campus</option>
+              <option value="external">Off-Campus</option>
+            </select>
+            <div className="premium-select-arrow">
+              <ChevronDown size={14} />
+            </div>
+          </div>
+
+          {/* Category Filter Dropdown */}
+          <div className="premium-select-container">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="premium-select"
+              style={{ minWidth: '165px' }}
+            >
+              <option value="all">All Categories</option>
+              <option value="A">Category A</option>
+              <option value="B">Category B</option>
+              <option value="C">Category C</option>
+              <option value="Own">Own Category</option>
+            </select>
+            <div className="premium-select-arrow">
+              <ChevronDown size={14} />
+            </div>
+          </div>
         </div>
 
-        {/* Campus Type Switcher (All / On-Campus / Off-Campus Dropdown) */}
-        <div className="premium-select-container">
-          <select
-            value={selectedCampusType}
-            onChange={(e) => setSelectedCampusType(e.target.value)}
-            className="premium-select"
-          >
-            <option value="all">All Placements</option>
-            <option value="internal">On-Campus</option>
-            <option value="external">Off-Campus</option>
-          </select>
-          <div className="premium-select-arrow">
-            <ChevronDown size={14} />
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Search Input */}
+          <div style={{ flex: '1 1 300px', position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search company or position..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-field"
+              style={{ 
+                width: '100%', 
+                borderRadius: '100px', 
+                paddingLeft: '18px',
+                paddingRight: '18px',
+                height: '38px',
+                fontSize: '0.85rem'
+              }}
+            />
           </div>
+
+          {/* Export Filtered Excel Button */}
+          <button
+            className="btn btn-primary"
+            onClick={downloadFilteredPlacementsExcel}
+            style={{ 
+              borderRadius: '100px', 
+              height: '38px', 
+              padding: '0 20px', 
+              fontSize: '0.8rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Download size={14} />
+            Export Filtered Excel
+          </button>
         </div>
       </div>
 
@@ -611,11 +719,11 @@ export default function Placements() {
           </div>
         </div>
 
-        {/* Card 2: Students Assigned */}
+        {/* Card 2: Students Placed */}
         <div className="premium-stats-card theme-emerald">
           <div className="ambient-glow" style={{ background: '#10b981' }} />
           <div className="card-top">
-            <span className="card-label">Assigned Students</span>
+            <span className="card-label">Placed Students</span>
             <div className="card-icon-wrapper" style={{
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(4, 120, 87, 0.05) 100%)',
               color: '#10b981'
@@ -720,13 +828,13 @@ export default function Placements() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
         <button
           className="btn btn-secondary"
-          onClick={downloadCycleSelectedCsv}
+          onClick={downloadCycleSelectedExcel}
           disabled={loading}
           title="Download selected/accepted students across all companies for the current cycle tab"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
         >
           <Download size={16} />
-          Download Cycle Selected CSV
+          Download Cycle Selected Excel
         </button>
       </div>
 
@@ -738,28 +846,33 @@ export default function Placements() {
                 <th>Company</th>
                 <th>Position</th>
                 <th>Salary</th>
-                <th>CGPA</th>
+                <th>Category</th>
                 <th>Courses</th>
                 <th>Deadline</th>
                 <th>Date Created</th>
-                <th>Assigned</th>
+                <th>Placed</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredPlacements.map((p) => {
                 const branches = p.eligibility_rules?.allowed_branches;
-                const formattedBranches = Array.isArray(branches) ? branches.join(', ') : (p.eligible_courses || 'All');
-                const minCgpa = p.eligibility_rules?.min_cgpa ?? p.required_cgpa ?? '—';
+                const branchList = Array.isArray(branches) 
+                  ? branches 
+                  : (p.eligible_courses ? p.eligible_courses.split(',').map(s => s.trim()).filter(Boolean) : []);
+                
+                const rawCgpa = p.eligibility_rules?.min_cgpa ?? p.required_cgpa;
+                const minCgpa = (rawCgpa === 0 || rawCgpa === '0' || rawCgpa === '0.0' || !rawCgpa) ? '—' : rawCgpa;
+                
                 const positionName = p.role || p.position || '—';
                 const assignedCount = p.applications_count ?? p.assignment_count ?? 0;
                 
-                // Format package to absolute rupees presentation
+                // Format package to Lakhs Per Annum (LPA) presentation
                 let pkgValue = '—';
                 if (p.package || p.salary) {
                   const rawPkg = Number(p.package || p.salary);
-                  const absoluteRupees = rawPkg < 100 ? rawPkg * 100000 : rawPkg;
-                  pkgValue = `₹${absoluteRupees.toLocaleString()}`;
+                  const lpa = rawPkg < 100 ? rawPkg : rawPkg / 100000;
+                  pkgValue = `₹${lpa.toFixed(2).replace(/\.00$/, '')} LPA`;
                 }
 
                 return (
@@ -807,11 +920,84 @@ export default function Placements() {
                         )}
                       </div>
                     </td>
-                    <td style={{ color: 'var(--text-primary)' }}>{pkgValue}</td>
-                    <td style={{ color: 'var(--text-primary)' }}>{minCgpa}</td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>{formattedBranches}</td>
+                    <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{pkgValue}</td>
+                    <td style={{ color: 'var(--text-primary)' }}>
+                      {p.category ? (
+                        <span className={`badge ${
+                          p.category === 'A' ? 'badge-success' :
+                          p.category === 'B' ? 'badge-info' :
+                          p.category === 'C' ? 'badge-neutral' : 'badge-warning'
+                        }`} style={{ fontSize: '0.72rem', padding: '3px 8px', fontWeight: 700 }}>
+                          Category {p.category}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      {branchList.length === 0 ? (
+                        <span className="badge badge-neutral" style={{ fontSize: '0.7rem', padding: '3px 8px' }}>All Courses</span>
+                      ) : (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '240px', alignItems: 'center' }}>
+                          {branchList.slice(0, expandedCourseRows.has(p.id) ? branchList.length : 2).map((course, idx) => {
+                            const displayLabel = course.length > 20 ? course.substring(0, 18) + '...' : course;
+                            return (
+                              <span 
+                                key={idx} 
+                                className="badge badge-neutral" 
+                                style={{ 
+                                  fontSize: '0.7rem', 
+                                  padding: '2px 6px',
+                                  whiteSpace: 'nowrap'
+                                }}
+                                title={course}
+                              >
+                                {displayLabel}
+                              </span>
+                            );
+                          })}
+                          {branchList.length > 2 && !expandedCourseRows.has(p.id) && (
+                            <span 
+                              className="badge badge-info" 
+                              style={{ 
+                                fontSize: '0.7rem', 
+                                padding: '2px 6px', 
+                                cursor: 'pointer',
+                                background: 'var(--accent-soft, rgba(37, 99, 235, 0.12))',
+                                color: 'var(--accent-primary, #1d4ed8)',
+                                fontWeight: 700
+                              }}
+                              onClick={(e) => toggleCourseRow(e, p.id)}
+                              title="Click to view all courses"
+                            >
+                              +{branchList.length - 2} more
+                            </span>
+                          )}
+                          {branchList.length > 2 && expandedCourseRows.has(p.id) && (
+                            <span 
+                              className="badge badge-neutral" 
+                              style={{ 
+                                fontSize: '0.7rem', 
+                                padding: '2px 6px', 
+                                cursor: 'pointer',
+                                fontWeight: 700
+                              }}
+                              onClick={(e) => toggleCourseRow(e, p.id)}
+                            >
+                              Show Less
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {p.application_deadline ? new Date(p.application_deadline).toLocaleDateString() : '—'}
+                      {p.application_deadline ? (
+                        new Date(p.application_deadline).toLocaleDateString(undefined, { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })
+                      ) : '—'}
                     </td>
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       {p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
@@ -845,11 +1031,6 @@ export default function Placements() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {p.job_type === 'external' ? (
-                          <button className="btn btn-secondary btn-sm" onClick={() => setEditingOffCampusPlacement(p)}>Edit Info</button>
-                        ) : (
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(p)}>Edit</button>
-                        )}
                         <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>Delete</button>
                       </div>
                     </td>
@@ -869,7 +1050,7 @@ export default function Placements() {
       )}
       {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
 
-      {/* Interactive Modal to view Assigned Students */}
+      {/* Interactive Modal to view Placed Students */}
       {selectedJob && (
         <div className="modal-backdrop" style={{
           position: 'fixed',
@@ -908,7 +1089,7 @@ export default function Placements() {
               alignItems: 'center'
             }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>Assigned Candidates</h2>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>Placed Candidates</h2>
                 <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   {selectedJob.company_name} — {selectedJob.role || selectedJob.position}
                 </p>
@@ -944,7 +1125,7 @@ export default function Placements() {
                 </div>
               ) : jobApplications.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  No students are currently assigned or applied to this placement drive.
+                  No students are currently placed or applied to this placement drive.
                 </div>
               ) : (
                 <>
@@ -959,8 +1140,8 @@ export default function Placements() {
                     overflowX: 'auto'
                   }}>
                     {[
-                      { id: 'placed', label: 'Placed', count: modalTabsData.counts.placed, color: '#10b981', icon: CheckCircle },
-                      { id: 'offer_pending', label: 'Offer Letter Pending', count: modalTabsData.counts.offer_pending, color: '#f59e0b', icon: FileText }
+                      { id: 'applied', label: 'Applied Candidates', count: modalTabsData.counts.applied, color: '#3b82f6', icon: Send },
+                      { id: 'placed', label: 'Placed Candidates', count: modalTabsData.counts.placed, color: '#10b981', icon: CheckCircle }
                     ].map(tab => {
                       const isActive = modalActiveTab === tab.id;
                       const TabIcon = tab.icon;
@@ -1001,14 +1182,11 @@ export default function Placements() {
                         </button>
                       );
                     })}
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600, paddingRight: '10px' }}>
-                      <Send size={14} /> Total Applied: {modalTabsData.counts.applied}
-                    </div>
                   </div>
 
                   {modalTabsData.items[modalActiveTab].length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-                      No {modalActiveTab === 'offer_pending' ? 'offer pending' : modalActiveTab} candidates for this placement drive.
+                      No {modalActiveTab === 'placed' ? 'placed' : 'applied'} records found for this placement drive.
                     </div>
                   ) : (
                     <div className="table-container" style={{ margin: 0, boxShadow: 'none', border: 'none', background: 'transparent' }}>
@@ -1019,7 +1197,6 @@ export default function Placements() {
                             <th>Course/Stream</th>
                             <th>CGPA</th>
                             <th>Status</th>
-                            <th>Current Stage</th>
                             <th>Date Applied</th>
                             <th>Offer Letter</th>
                           </tr>
@@ -1039,38 +1216,48 @@ export default function Placements() {
                                   {app.status}
                                 </span>
                               </td>
-                              <td style={{ color: 'var(--text-primary)' }}>
-                                {app.current_round ? app.current_round.round_name : 'Initial Stage'}
-                              </td>
                               <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                 {app.applied_at ? new Date(app.applied_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                               </td>
                               <td>
-                                {app.offer_letter_file ? (
-                                  <a 
-                                    href={app.offer_letter_file} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="badge badge-success"
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                      fontWeight: 'bold',
-                                      textDecoration: 'none',
-                                      padding: '4px 10px',
-                                      borderRadius: '6px',
-                                      transition: 'all 0.2s ease',
-                                    }}
-                                  >
-                                    <FileText size={12} /> View Offer
-                                  </a>
-                                ) : app.status === 'selected' || app.status === 'accepted' ? (
-                                  <span className="badge badge-warning" style={{ padding: '4px 10px', borderRadius: '6px' }}>
-                                    Pending
-                                  </span>
+                                {['selected', 'accepted'].includes(app.status) ? (
+                                  app.offer_letter_status === 'pending_upload' ? (
+                                    <button
+                                      onClick={() => setSelectedAppForOffer(app)}
+                                      className="text-warning bg-warning/10 border border-warning/20 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-warning/20 transition-colors cursor-pointer"
+                                      style={{ border: '1px solid rgba(245,158,11,0.2)' }}
+                                    >
+                                      📂 Upload Pending
+                                    </button>
+                                  ) : app.offer_letter_status === 'pending_verification' ? (
+                                    <button
+                                      onClick={() => setSelectedAppForOffer(app)}
+                                      className="text-info bg-info/10 border border-info/20 text-xs font-extrabold px-2.5 py-1 rounded-lg hover:bg-info/20 transition-all animate-pulse cursor-pointer"
+                                      style={{ border: '1px solid rgba(59,130,246,0.3)', boxShadow: '0 0 10px rgba(59,130,246,0.1)' }}
+                                    >
+                                      ⏳ Review Offer
+                                    </button>
+                                  ) : app.offer_letter_status === 'approved' ? (
+                                    <button
+                                      onClick={() => setSelectedAppForOffer(app)}
+                                      className="text-success bg-success/10 border border-success/20 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-success/20 transition-colors cursor-pointer"
+                                      style={{ border: '1px solid rgba(16,185,129,0.2)' }}
+                                    >
+                                      ✅ Approved
+                                    </button>
+                                  ) : app.offer_letter_status === 'rejected' ? (
+                                    <button
+                                      onClick={() => setSelectedAppForOffer(app)}
+                                      className="text-danger bg-danger/10 border border-danger/20 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-danger/20 transition-colors cursor-pointer"
+                                      style={{ border: '1px solid rgba(239,68,68,0.2)' }}
+                                    >
+                                      ❌ Rejected
+                                    </button>
+                                  ) : (
+                                    <span className="text-secondary">—</span>
+                                  )
                                 ) : (
-                                  <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                  <span className="text-secondary">—</span>
                                 )}
                               </td>
                             </tr>
@@ -1094,13 +1281,13 @@ export default function Placements() {
             }}>
               <button
                 className="btn btn-secondary"
-                onClick={() => downloadSelectedCsv(selectedJob)}
+                onClick={() => downloadSelectedExcel(selectedJob)}
                 disabled={loadingApps}
-                title="Download selected/accepted students as CSV"
+                title="Download selected/accepted students as Excel"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
               >
                 <Download size={16} />
-                Download Selected CSV
+                Download Selected Excel
               </button>
               <button 
                 className="btn btn-secondary" 
@@ -1271,6 +1458,16 @@ export default function Placements() {
             </div>
           </form>
         </div>
+      )}
+      {selectedAppForOffer && (
+        <OfferLetterModal 
+          application={selectedAppForOffer}
+          onClose={() => setSelectedAppForOffer(null)}
+          onSave={() => {
+            handleViewStudents(selectedJob);
+            fetchPlacements();
+          }}
+        />
       )}
     </div>
   );

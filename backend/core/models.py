@@ -48,6 +48,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     can_manage_students = models.BooleanField(default=False)
     can_manage_placements = models.BooleanField(default=False)
     can_manage_resumes = models.BooleanField(default=False)
+    can_manage_assignments = models.BooleanField(default=False)
+    can_send_notifications = models.BooleanField(default=False)
+    can_view_scraping = models.BooleanField(default=False)
+    can_view_clicks = models.BooleanField(default=False)
 
     # Rate limiting
     failed_login_attempts = models.IntegerField(default=0)
@@ -91,8 +95,8 @@ class Student(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(10)],
     )
     
-    # Newly added fields
     phone_number = models.CharField(max_length=20, blank=True, default='')
+    upload_log = models.ForeignKey('CSVUploadLog', null=True, blank=True, on_delete=models.SET_NULL, related_name='students_created')
     
     YEAR_CHOICES = [
         ('1st', '1st Year'),
@@ -178,8 +182,8 @@ class Student(models.Model):
         # Training attendance 0-100 (weight 25%)
         training_score = training_val
         
-        # Standing score: 100 - 25 per backlog, minimum 0 (weight 15%)
-        standing_score = max(0.0, 100.0 - (backlog_count * 25.0))
+        # Standing score: 100 - 20 per backlog, minimum 0 (weight 15%)
+        standing_score = max(0.0, 100.0 - (backlog_count * 20.0))
 
         score = (
             (performance_score * 0.35) +
@@ -266,12 +270,94 @@ class PlacementAssignment(models.Model):
     def __str__(self):
         return f'{self.student.name} → {self.placement.company_name} ({self.status})'
 
+class LearningAssignment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course = models.CharField(max_length=100, db_index=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default='')
+    duration_minutes = models.PositiveIntegerField(default=30)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='learning_assignments_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'learning_assignments'
+        ordering = ['course', 'title']
+
+    def __str__(self):
+        return f'{self.course} - {self.title}'
+
+
+class LearningQuestion(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(LearningAssignment, on_delete=models.CASCADE, related_name='questions')
+    prompt = models.TextField()
+    options = models.JSONField(default=list)
+    correct_option = models.PositiveSmallIntegerField(default=0)
+    points = models.PositiveIntegerField(default=1)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'learning_questions'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.assignment.title} Q{self.order + 1}'
+
+
+class StudentLearningAssignment(models.Model):
+    STATUS_CHOICES = [
+        ('assigned', 'Assigned'),
+        ('submitted', 'Submitted'),
+        ('expired', 'Expired'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(LearningAssignment, on_delete=models.CASCADE, related_name='student_assignments')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='learning_assignments')
+    assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='learning_assignments_assigned')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='assigned')
+    due_at = models.DateTimeField(null=True, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    total_points = models.PositiveIntegerField(default=0)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'student_learning_assignments'
+        unique_together = [('assignment', 'student')]
+        ordering = ['-assigned_at']
+
+    @property
+    def percentage(self):
+        if not self.total_points:
+            return None
+        return round((self.score or 0) * 100 / self.total_points, 1)
+
+    def __str__(self):
+        return f'{self.student.name} - {self.assignment.title} ({self.status})'
+
+
+class StudentLearningAnswer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student_assignment = models.ForeignKey(StudentLearningAssignment, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(LearningQuestion, on_delete=models.CASCADE, related_name='student_answers')
+    selected_option = models.PositiveSmallIntegerField(null=True, blank=True)
+    is_correct = models.BooleanField(default=False)
+    awarded_points = models.FloatField(default=0)
+
+    class Meta:
+        db_table = 'student_learning_answers'
+        unique_together = [('student_assignment', 'question')]
+
 
 class CSVUploadLog(models.Model):
     STATUS_CHOICES = [
         ('success', 'Success'),
         ('partial', 'Partial'),
         ('failed', 'Failed'),
+        ('reverted', 'Reverted'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

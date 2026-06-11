@@ -67,7 +67,7 @@ class DashboardViewSet(viewsets.ViewSet):
         total_jobs = jobs_qs.count()
         total_companies = 0  # Will be populated accurately after company_details is built below
 
-        # Placements and Placed Student IDs (Union of PlacementAssignment and Application)
+        # Unique learners placed across all channels.
         placed_students_assignments = set()
         if not is_internship_view:
             placed_students_assignments = set(
@@ -80,8 +80,8 @@ class DashboardViewSet(viewsets.ViewSet):
         placed_count = len(placed_student_ids)
         placement_rate = round((placed_count / total_students * 100), 1) if total_students else 0.0
 
-        # Total placements count (non-unique offers)
-        total_placements = len(placed_students_applications)
+        # Total placements count (raw offer records, not unique students)
+        total_placements = applications_qs.filter(status__in=['selected', 'accepted']).count()
         if not is_internship_view:
             total_placements += PlacementAssignment.objects.filter(status='selected').count()
 
@@ -90,22 +90,18 @@ class DashboardViewSet(viewsets.ViewSet):
         # Total Openings Count (sum of openings across all jobs)
         total_openings = jobs_qs.aggregate(total=Sum('openings_count'))['total'] or 0
 
-        # On-Campus vs Off-Campus Placed Learners
-        placed_on_campus_assignments = set()
-        if not is_internship_view:
-            placed_on_campus_assignments = set(
-                PlacementAssignment.objects.filter(status='selected').values_list('student_id', flat=True)
-            )
-        placed_on_campus_applications = set(
-            applications_qs.filter(status__in=['selected', 'accepted'], job__job_type='internal').values_list('student_id', flat=True)
-        )
-        placed_on_campus_ids = placed_on_campus_assignments | placed_on_campus_applications
-        placed_on_campus_count = len(placed_on_campus_ids)
+        # Channel counts should be additive and reflect raw offer records.
+        placed_off_campus_count = applications_qs.filter(
+            status__in=['selected', 'accepted'],
+            job__job_type='external',
+        ).count()
 
-        placed_off_campus_ids = set(
-            applications_qs.filter(status__in=['selected', 'accepted'], job__job_type='external').values_list('student_id', flat=True)
-        ) - placed_on_campus_ids
-        placed_off_campus_count = len(placed_off_campus_ids)
+        placed_on_campus_count = applications_qs.filter(
+            status__in=['selected', 'accepted'],
+            job__job_type='internal',
+        ).count()
+        if not is_internship_view:
+            placed_on_campus_count += PlacementAssignment.objects.filter(status='selected').count()
 
         # Job statuses (Active, COMPLETE/Closed, On Hold/Draft)
         jobs_active = jobs_qs.filter(status='active').count()
@@ -534,12 +530,16 @@ class DashboardViewSet(viewsets.ViewSet):
         students_by_sem = Student.objects.values('semester').annotate(total=Count('id'))
         semester_wise_stats = []
         for item in students_by_sem:
-            sem = item['semester'] or 'Unknown'
+            sem = item['semester']
+            sem_label = sem or 'Unknown'
             total = item['total']
-            placed_in_sem = Student.objects.filter(id__in=placed_student_ids, semester=sem).count()
+            if sem is None:
+                placed_in_sem = Student.objects.filter(id__in=placed_student_ids, semester__isnull=True).count()
+            else:
+                placed_in_sem = Student.objects.filter(id__in=placed_student_ids, semester=sem).count()
             rate = round((placed_in_sem / total * 100), 1) if total else 0.0
             semester_wise_stats.append({
-                'semester': sem,
+                'semester': sem_label,
                 'total': total,
                 'placed': placed_in_sem,
                 'placement_rate': rate
@@ -549,12 +549,16 @@ class DashboardViewSet(viewsets.ViewSet):
         students_by_year = Student.objects.values('passing_year').annotate(total=Count('id'))
         year_wise_stats = []
         for item in students_by_year:
-            year = item['passing_year'] or 'Unknown'
+            year = item['passing_year']
+            year_label = year or 'Unknown'
             total = item['total']
-            placed_in_year = Student.objects.filter(id__in=placed_student_ids, passing_year=year).count()
+            if year is None:
+                placed_in_year = Student.objects.filter(id__in=placed_student_ids, passing_year__isnull=True).count()
+            else:
+                placed_in_year = Student.objects.filter(id__in=placed_student_ids, passing_year=year).count()
             rate = round((placed_in_year / total * 100), 1) if total else 0.0
             year_wise_stats.append({
-                'year': year,
+                'year': year_label,
                 'total': total,
                 'placed': placed_in_year,
                 'placement_rate': rate
@@ -740,30 +744,8 @@ class DashboardViewSet(viewsets.ViewSet):
             if student.attendance is not None:
                 stats_entry['attendances'].append(student.attendance)
 
-            # Eligibility checks
+            # Eligibility checks - all students are eligible
             eligible = True
-            if student.cgpa is not None and student.cgpa < 6.0:
-                ineligible_reasons['CGPA Below 6.0'] += 1
-                cgpa_not_met += 1
-                eligible = False
-            elif student.cgpa is None:
-                ineligible_reasons['CGPA Below 6.0'] += 1
-                cgpa_not_met += 1
-                eligible = False
-
-            if student.attendance is not None and student.attendance < 75:
-                ineligible_reasons['Attendance Below 75%'] += 1
-                attendance_not_met += 1
-                eligible = False
-            elif student.attendance is None:
-                ineligible_reasons['Attendance Below 75%'] += 1
-                attendance_not_met += 1
-                eligible = False
-
-            if student.backlogs:
-                ineligible_reasons['Has Backlogs'] += 1
-                backlog_disqualified += 1
-                eligible = False
 
             if eligible:
                 eligible_student_ids.add(student.id)
@@ -885,7 +867,8 @@ class DashboardViewSet(viewsets.ViewSet):
         placed_eligible_count = len(placed_student_ids & eligible_student_ids)
 
         # ──────────── FINAL RESPONSE ────────────
-        return Response({
+        # ──────────── FINAL RESPONSE ────────────
+        response_data = {
             # Legacy fields (kept for backward compat with old Dashboard.jsx)
             'total_students': total_students,
             'placed_students': placed_count,
@@ -1054,34 +1037,109 @@ class DashboardViewSet(viewsets.ViewSet):
                     'deadline': job.application_deadline,
                 } for job in upcoming_deadlines],
             },
-        })
+        }
+
+        # Filter response based on coordinator permissions
+        if request.user.role == 'coordinator':
+            if not getattr(request.user, 'can_manage_students', False):
+                response_data['total_students'] = 0
+                response_data['student_demographics'] = {}
+                response_data['cgpa_stats'] = {}
+                response_data['cgpa_distribution'] = {}
+                response_data['cgpa_placement_rates'] = {}
+                response_data['attendance_stats'] = {}
+                response_data['backlog_distribution'] = {}
+                response_data['category_distribution'] = {}
+                response_data['course_wise_stats'] = []
+                response_data['year_wise_stats'] = []
+                response_data['semester_wise_stats'] = []
+                response_data['eligibility'] = {}
+                if 'overview' in response_data:
+                    response_data['overview']['total_students'] = 0
+                    response_data['overview']['total_not_placed'] = 0
+                    response_data['overview']['not_applied'] = 0
+                if 'placement_overview' in response_data:
+                    response_data['placement_overview']['total_students'] = 0
+                    response_data['placement_overview']['unique_learners_applying'] = 0
+                    response_data['placement_overview']['learners_not_applying'] = 0
+                    response_data['placement_overview']['placed_learners_pct'] = 0.0
+                    response_data['placement_overview']['placed_on_campus_pct'] = 0.0
+                    response_data['placement_overview']['placed_off_campus_pct'] = 0.0
+                    response_data['placement_overview']['learners_not_placed'] = 0
+                    response_data['placement_overview']['learners_not_placed_pct'] = 0.0
+                    response_data['placement_overview']['placement_rate_eligible'] = 0.0
+
+            if not getattr(request.user, 'can_manage_placements', False):
+                response_data['placed_students'] = 0
+                response_data['placement_rate'] = 0.0
+                response_data['total_companies'] = 0
+                response_data['total_job_applications'] = 0
+                response_data['salary_stats'] = {}
+                response_data['salary_distribution'] = {}
+                response_data['companies_list'] = []
+                response_data['recent_applications'] = []
+                response_data['overview'] = {}
+                response_data['placement_overview'] = {}
+                response_data['funnel_breakdown'] = {}
+                response_data['status_metrics'] = {}
+                response_data['salary_analysis'] = {}
+                response_data['company_analysis'] = {}
+                response_data['interview_rounds'] = []
+                response_data['timeline_trends'] = {}
+                response_data['course_performance'] = []
+                response_data['participation_metrics'] = {}
+                response_data['job_distribution'] = {}
+                response_data['recent_jobs'] = []
+                response_data['upcoming_deadlines'] = []
+                response_data['location_distribution'] = []
+                response_data['role_distribution'] = []
+
+        return Response(response_data)
 
     @action(detail=False, methods=['get'], url_path='reports')
     def reports(self, request):
-        """Export comprehensive placement report as CSV data."""
+        """Export comprehensive placement report as Excel data."""
+        if request.user.role == 'coordinator' and not getattr(request.user, 'can_manage_placements', False):
+            return Response({'error': 'You do not have permission to export reports.'}, status=403)
+
         applications = Application.objects.filter(is_deleted=False).select_related('student', 'job').all()
         
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow([
+        import openpyxl
+        import base64
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Placement Report"
+        ws.append([
             'Student Name', 'Reg No', 'Course', 'CGPA',
             'Company', 'Position', 'Salary', 'Status', 'Drive Type'
         ])
         
-        # Write external applications
+        # Write applications
         for app in applications:
-            writer.writerow([
-                app.student.name, app.student.registration_number,
-                app.student.course, app.student.cgpa,
-                app.job.company_name, app.job.role,
-                self._to_lpa(app.job.package) if app.job.package else '', app.status,
+            ws.append([
+                app.student.name or '', 
+                app.student.registration_number or '',
+                app.student.course or '', 
+                app.student.cgpa if app.student.cgpa is not None else '',
+                app.job.company_name or '', 
+                app.job.role or '',
+                self._to_lpa(app.job.package) if app.job.package else '', 
+                app.status or '',
                 'External Application' if app.job.job_type == 'external' else 'Internal Job Posting'
             ])
             
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        excel_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
+        
         return Response({
-            'csv': output.getvalue(),
-            'filename': 'placement_report.csv',
+            'excel': excel_base64,
+            'filename': 'placement_report.xlsx',
         })
+
 
 
 class AuditLogViewSet(viewsets.ViewSet):

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'apps.interviews',
     'apps.career_os',
     'django_celery_beat',
+    'job_scraper',
 ]
 
 MIDDLEWARE = [
@@ -162,7 +163,8 @@ REST_FRAMEWORK = {
 
 # JWT Config
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    # Increased to 600 minutes (10 hours) for temporary testing convenience
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=600),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -225,13 +227,18 @@ LOGIN_RATE_LIMIT_LOCKOUT_MINUTES = 1
 
 # ─── Resume Engine: Celery / Async (Layer 2) ────────────────────
 CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = False
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0'))
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0'))
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_ROUTES = {
+    'apps.applications.tasks.send_job_alert_task': {'queue': 'notifications'},
+    'apps.applications.tasks.send_notification_email': {'queue': 'notifications'},
+    'core.tasks.async_send_mail': {'queue': 'notifications'},
+}
 # Cache backend (used by rate limiting + scraper query caching)
 CACHES = {
     'default': {
@@ -248,7 +255,9 @@ ONESIGNAL_REST_API_KEY = os.environ.get('ONESIGNAL_REST_API_KEY', '')
 
 # ─── Scraped Jobs: External API Keys ─────────────────────────────
 JSEARCH_API_KEY = os.environ.get('JSEARCH_API_KEY', '')
+APIFY_API_TOKEN = os.environ.get('APIFY_API_TOKEN', '')
 ADZUNA_APP_ID = os.environ.get('ADZUNA_APP_ID', '')
+
 ADZUNA_APP_KEY = os.environ.get('ADZUNA_APP_KEY', '')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'shahithu2004@gmail.com')
 MAX_JOBS_AGE_HOURS = 48

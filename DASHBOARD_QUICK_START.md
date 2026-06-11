@@ -67,7 +67,7 @@ Update your routing configuration to use `DashboardNew` instead of `Dashboard`.
 
 ### Step 3: Test the Dashboard
 1. Start frontend: `npm run dev`
-2. Navigate to admin dashboard: `http://localhost:5173/admin`
+2. Navigate to admin dashboard: `http://localhost:3000/admin`
 3. You should see the new comprehensive KPI dashboard
 
 ---

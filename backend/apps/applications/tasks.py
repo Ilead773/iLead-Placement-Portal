@@ -135,7 +135,7 @@ def send_push_for_notification_object(notification):
     }
     
     if notification.action_url:
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
         action_path = notification.action_url
         if not action_path.startswith('/') and not action_path.startswith('http'):
             action_path = f"/{action_path}"
@@ -246,17 +246,9 @@ def send_job_alert_task(job_id):
         if notifications_to_create:
             created_notifications = Notification.objects.bulk_create(notifications_to_create)
             
-            # Send emails and push notifications for all en-routed notifications
+            # Queue celery task to send email and push notification asynchronously for each student
             for notification in created_notifications:
-                try:
-                    send_email_for_notification_object(notification)
-                except Exception as mail_err:
-                    logger.error(f"Failed to email job alert to {notification.user.email}: {mail_err}")
-                
-                try:
-                    send_push_for_notification_object(notification)
-                except Exception as push_err:
-                    logger.error(f"Failed to send push job alert to {notification.user.email}: {push_err}")
+                send_notification_email.delay(notification.id)
                     
         logger.info(f"Dispatched bulk job alert for job {job_id} to {len(notifications_to_create)} students.")
         

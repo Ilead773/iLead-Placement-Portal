@@ -7,7 +7,7 @@ import {
   BarChart3, ArrowRight, MessageSquare, Play, 
   Edit, Bell, Sparkles, AlertCircle, 
   Clock, CheckCircle2, Compass, ArrowUpRight, ShieldAlert,
-  Flame, ListChecks, Building2
+  Flame, ListChecks, Building2, X
 } from 'lucide-react';
 import useNotificationStore from '../../store/notificationStore';
 import { motion } from 'framer-motion';
@@ -178,8 +178,16 @@ export default function StudentDashboard() {
   const [roadmaps, setRoadmaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllApplications, setShowAllApplications] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const { notifications, fetchNotifications, markRead } = useNotificationStore();
+
+  useEffect(() => {
+    if (profile?.id) {
+      const isDismissed = localStorage.getItem(`placed_banner_dismissed_${profile.id}`) === 'true';
+      setBannerDismissed(isDismissed);
+    }
+  }, [profile]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -246,9 +254,7 @@ export default function StudentDashboard() {
     if (!note.is_read) {
       await markRead(note.id);
     }
-    if (note.action_url) {
-      navigate(note.action_url);
-    }
+    navigate('/student/notifications', { state: { selectedId: note.id } });
   };
 
   if (loading) return <DashboardSkeleton />;
@@ -300,13 +306,28 @@ export default function StudentDashboard() {
       </motion.div>
 
       {/* 🎉 Placement Celebration Banner */}
-      {placedOffer && (
+      {placedOffer && !bannerDismissed && (
         <motion.div 
           className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg relative overflow-hidden"
           variants={itemVariants}
         >
           <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-40 h-40 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          
+          {/* Close/Dismiss Button */}
+          <button
+            onClick={() => {
+              if (profile?.id) {
+                localStorage.setItem(`placed_banner_dismissed_${profile.id}`, 'true');
+              }
+              setBannerDismissed(true);
+            }}
+            className="absolute right-4 top-4 text-white/70 hover:text-white transition-colors cursor-pointer bg-white/10 hover:bg-white/20 p-1.5 rounded-full border-none flex items-center justify-center"
+            title="Dismiss banner"
+          >
+            <X size={14} />
+          </button>
+
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pr-6">
             <div>
               <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase bg-white/20 text-white tracking-wider">
                 🎉 SELECTED OFFER RECEIVED
@@ -689,23 +710,47 @@ export default function StudentDashboard() {
               ) : (
                 notifications.slice(0, 3).map((note) => {
                   const prio = note.priority || 'medium';
+                  const isUnread = !note.is_read;
                   
                   return (
                     <div 
                       key={note.id} 
                       onClick={() => handleNotificationClick(note)}
-                      className="notif-card"
+                      className={`relative group cursor-pointer p-4 rounded-xl transition-all duration-300 flex items-start gap-3 border ${
+                        isUnread ? 'bg-accent-soft' : 'bg-card hover:bg-card-hover'
+                      }`}
+                      style={{
+                        borderColor: isUnread ? 'rgba(37, 99, 235, 0.25)' : 'var(--border-color)'
+                      }}
                     >
-                      <div className={`notif-accent-strip notif-accent-${prio}`} />
-                      {!note.is_read && <span className="notif-dot-pulse" />}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-start gap-1">
-                          <span className="text-xs font-bold text-primary truncate">{note.title}</span>
-                          <span className="text-[8px] text-muted whitespace-nowrap">
+                      {/* Left accent strip */}
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 w-[4px] rounded-l-xl" 
+                        style={{
+                          backgroundColor: isUnread ? 'var(--accent-primary)' : 'var(--border-color)'
+                        }}
+                      />
+
+                      <div className="min-w-0 flex-1 pl-1">
+                        <div className="flex justify-between items-center gap-2 mb-1.5">
+                          <h4 className={`text-xs truncate text-primary ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                            {note.title}
+                          </h4>
+                          <span className="text-[10px] text-muted font-medium whitespace-nowrap shrink-0">
                             {new Date(note.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
                           </span>
                         </div>
-                        <p className="text-[10px] text-secondary line-clamp-2 mt-0.5 leading-relaxed">{note.message}</p>
+                        <p className={`text-[11px] line-clamp-2 leading-relaxed ${isUnread ? 'text-secondary' : 'text-muted'}`}>
+                          {note.message}
+                        </p>
+                        
+                        {isUnread && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-accent-soft text-primary"
+                               style={{ border: '1px solid rgba(37, 99, 235, 0.2)' }}>
+                            <span className="w-1.5 h-1.5 rounded-full animate-pulse" 
+                                  style={{ backgroundColor: 'var(--accent-primary)' }} /> New
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

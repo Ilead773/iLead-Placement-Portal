@@ -1,11 +1,19 @@
 from rest_framework import serializers
-from .models import User, Student, Placement, PlacementAssignment, CSVUploadLog, AuditLog, ExternalClickLog
+from .models import (
+    User, Student, Placement, PlacementAssignment, CSVUploadLog, AuditLog,
+    ExternalClickLog, LearningAssignment, LearningQuestion,
+    StudentLearningAssignment, StudentLearningAnswer,
+)
 import re
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'login_id', 'email', 'name', 'role', 'temp_password_flag', 'password_reset_required', 'can_manage_students', 'can_manage_placements', 'can_manage_resumes']
+        fields = [
+            'id', 'login_id', 'email', 'name', 'role', 'temp_password_flag', 'password_reset_required',
+            'can_manage_students', 'can_manage_placements', 'can_manage_resumes',
+            'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks'
+        ]
 
 class LoginSerializer(serializers.Serializer):
     login_id = serializers.CharField()
@@ -182,6 +190,100 @@ class BulkAssignSerializer(serializers.Serializer):
 
 class AssignmentStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=['assigned', 'applied', 'shortlisted', 'rejected', 'selected'])
+
+
+class LearningQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LearningQuestion
+        fields = ['id', 'prompt', 'options', 'correct_option', 'points', 'order']
+
+    def validate(self, attrs):
+        options = attrs.get('options') or []
+        correct_option = attrs.get('correct_option', 0)
+        if len(options) < 2:
+            raise serializers.ValidationError({'options': 'Add at least two options.'})
+        if correct_option < 0 or correct_option >= len(options):
+            raise serializers.ValidationError({'correct_option': 'Correct option must match one of the options.'})
+        return attrs
+
+
+class LearningAssignmentSerializer(serializers.ModelSerializer):
+    questions = LearningQuestionSerializer(many=True)
+    question_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LearningAssignment
+        fields = ['id', 'course', 'title', 'description', 'duration_minutes', 'questions', 'question_count', 'created_at', 'updated_at']
+
+    def get_question_count(self, obj):
+        prefetched = getattr(obj, '_prefetched_objects_cache', {})
+        if 'questions' in prefetched:
+            return len(prefetched['questions'])
+        return obj.questions.count()
+
+    def create(self, validated_data):
+        questions = validated_data.pop('questions', [])
+        assignment = LearningAssignment.objects.create(**validated_data)
+        for index, question in enumerate(questions):
+            question.pop('order', None)
+            LearningQuestion.objects.create(assignment=assignment, order=index, **question)
+        return assignment
+
+    def update(self, instance, validated_data):
+        questions = validated_data.pop('questions', None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        instance.save()
+        if questions is not None:
+            instance.questions.all().delete()
+            for index, question in enumerate(questions):
+                question.pop('order', None)
+                LearningQuestion.objects.create(assignment=instance, order=index, **question)
+        return instance
+
+
+class StudentLearningAnswerSerializer(serializers.ModelSerializer):
+    question_prompt = serializers.CharField(source='question.prompt', read_only=True)
+    options = serializers.JSONField(source='question.options', read_only=True)
+    correct_option = serializers.IntegerField(source='question.correct_option', read_only=True)
+
+    class Meta:
+        model = StudentLearningAnswer
+        fields = ['id', 'question', 'question_prompt', 'options', 'selected_option', 'correct_option', 'is_correct', 'awarded_points']
+
+
+class StudentLearningAssignmentSerializer(serializers.ModelSerializer):
+    assignment_title = serializers.CharField(source='assignment.title', read_only=True)
+    assignment_description = serializers.CharField(source='assignment.description', read_only=True)
+    course = serializers.CharField(source='assignment.course', read_only=True)
+    duration_minutes = serializers.IntegerField(source='assignment.duration_minutes', read_only=True)
+    student_name = serializers.CharField(source='student.name', read_only=True)
+    student_reg = serializers.CharField(source='student.registration_number', read_only=True)
+    student_course = serializers.CharField(source='student.course', read_only=True)
+    percentage = serializers.ReadOnlyField()
+    answers = StudentLearningAnswerSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = StudentLearningAssignment
+        fields = [
+            'id', 'assignment', 'assignment_title', 'assignment_description', 'course',
+            'duration_minutes', 'student', 'student_name', 'student_reg', 'student_course',
+            'status', 'due_at', 'score', 'total_points', 'percentage', 'submitted_at',
+            'assigned_at', 'answers',
+        ]
+
+
+class LearningAssignmentSubmitSerializer(serializers.Serializer):
+    answers = serializers.DictField(
+        child=serializers.IntegerField(min_value=0),
+        help_text='Map question id to selected option index.',
+    )
+
+
+class LearningAssignmentBulkAssignSerializer(serializers.Serializer):
+    assignment_id = serializers.UUIDField()
+    student_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=False)
+    due_at = serializers.DateTimeField(required=False, allow_null=True)
 
 class CSVUploadLogSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.name', read_only=True)

@@ -63,6 +63,48 @@ class AIInterviewEvaluator:
 
     MAX_TOKENS = 800
 
+    def _is_silence_or_empty(self, answer_text: str) -> bool:
+        """Check if the answer text indicates the candidate remained silent or didn't answer."""
+        if not answer_text or not answer_text.strip():
+            return True
+        normalized = answer_text.strip().lower().rstrip('.')
+        
+        # 1. Direct silence descriptions
+        silence_phrases = {
+            "the candidate remained silent and did not provide an answer",
+            "the candidate remained silent and provided no answer",
+            "the candidate was silent",
+            "candidate remained silent",
+            "the candidate was silent and only said 'hi'",
+            "the candidate was silent and only said hi",
+            "the candidate remained silent",
+            "i don't know",
+            "idk",
+            "no answer",
+            "no response",
+            "silent",
+        }
+        if normalized in silence_phrases:
+            return True
+        if "remained silent" in normalized or "was silent" in normalized:
+            return True
+            
+        # 2. Greetings and conversational noise that are not real answers
+        greetings_and_noise = {
+            "hi", "hey", "heya", "hello", "yo", "greetings", "test", "testing",
+            "ok", "okay", "yes", "no", "nothing", "none", "fine", "good", "thanks", "thank you"
+        }
+        if normalized in greetings_and_noise:
+            return True
+            
+        # 3. Extremely brief noise (e.g., "just hi")
+        words = normalized.split()
+        if len(words) <= 2:
+            if all(w in greetings_and_noise for w in words) or len(normalized) < 5:
+                return True
+                
+        return False
+
     def evaluate(
         self,
         question_text: str,
@@ -74,8 +116,8 @@ class AIInterviewEvaluator:
         Run AI evaluation. Returns structured dict.
         Raises exception on failure to handle in background task.
         """
-        if not answer_text or not answer_text.strip():
-            return self._zero_score_result("Empty answer submitted.")
+        if self._is_silence_or_empty(answer_text):
+            return self._zero_score_result("Candidate remained silent or did not provide a response.")
 
         prompt = self._build_prompt(
             question_text, ideal_answer, evaluation_rubric, answer_text
@@ -100,17 +142,17 @@ class AIInterviewEvaluator:
 
     def _system_prompt(self) -> str:
         return (
-            "You are a supportive, warm, and professional job interviewer dedicated to helping candidates learn. "
-            "Your goal is to build candidate confidence while giving constructive, accurate, and fair evaluations. "
+            "You are a professional, objective, and mildly encouraging job interviewer dedicated to helping candidates learn. "
+            "Your goal is to provide realistic, accurate, and fair evaluations. "
             "You assess candidate answers on 2 dimensions: technical_accuracy, depth. "
             "SCORING RULES:\n"
             "- If the answer is completely silent, blank, or states 'I don't know', score exactly 0 or 1.\n"
-            "- If the candidate makes an honest attempt and demonstrates basic understanding or mentions relevant technical keywords/terms, be highly encouraging: award at least 4 to 5 points to reward their effort.\n"
+            "- If the candidate makes an honest attempt and demonstrates basic understanding or mentions relevant technical keywords/terms, be mildly encouraging: award at least 4 to 5 points to reward their effort.\n"
             "- If they demonstrate a solid understanding of the core concepts, award a good score of 6 to 7.\n"
             "- If they provide a clear, accurate, and comprehensive explanation, reward them with a score of 8 to 9.\n"
             "- Reserve 9.5 to 10 for exceptionally deep answers with trade-offs or professional examples.\n"
             "- BREVITY EXEMPTION: Do NOT penalize short answers if the content is correct. If they say the right things in a single sentence, grade them on correctness and accuracy, not length.\n"
-            "Each dimension is scored 0–10. Be positive, fair, and constructive. Always return valid JSON only."
+            "Each dimension is scored 0–10. Be objective, fair, and constructive. Always return valid JSON only."
         )
 
     def _build_prompt(
@@ -150,12 +192,12 @@ Evaluate the candidate's answer. Return ONLY a JSON object with this exact struc
   "score_explanation": "<2-3 sentences in plain English explaining exactly why they got this score — what they did right, what was missing, what would have pushed it higher>"
 }}
 
-Score fairly and constructively. If the candidate tried, reward them with encouraging marks. If completely silent, they must be penalized.
+Score fairly and objectively. If the candidate tried, reward them with mildly encouraging marks. If completely silent, they must be penalized.
 """.strip()
 
     def generate_final_summary(self, answers, total_score: float) -> str:
         """
-        Generate a cohesive, encouraging performance summary for the entire session.
+        Generate a cohesive, mildly encouraging performance summary for the entire session.
         """
         if not answers:
             return "No performance data available."
@@ -164,7 +206,7 @@ Score fairly and constructively. If the candidate tried, reward them with encour
         for a in answers:
             performance_data.append({
                 "question": a.question.text,
-                "score": a.score,
+                "score": f"{a.score}/100" if a.score is not None else "N/A",
                 "feedback": a.ai_feedback
             })
 
@@ -172,19 +214,19 @@ Score fairly and constructively. If the candidate tried, reward them with encour
         Evaluate the overall performance of a candidate who completed a mock interview.
         OVERALL SCORE: {total_score:.1f}/100
         
-        DETAILED PERFORMANCE BY QUESTION:
+        DETAILED PERFORMANCE BY QUESTION (Scores are out of 100):
         {json.dumps(performance_data, indent=2)}
         
         You MUST write your evaluation using this exact structure and headings. Do NOT add other headings or text:
         
         **Performance Summary:**
-        [Write a warm, highly encouraging, and professional 2-3 sentence summary of their overall attempt. Highlight their effort and positive potential.]
+        [Write a professional, objective, and mildly encouraging 2-3 sentence summary of their overall attempt. Highlight their actual attempt and potential.]
         
         **Single Biggest Strength:**
-        [Identify their absolute best technical understanding, concept, or communication strength in 1-2 positive, highly encouraging sentences.]
+        [Identify their best attempt, concept, or communication strength from the session in 1-2 positive, mildly encouraging sentences. IMPORTANT: If all question scores are very low (e.g., under 35/100) or they remained silent, do NOT invent or hallucinate high-level technical expertise; instead, note that they took the step to participate and encourage them to attempt the questions fully next time.]
         
         **Single Biggest Area for Improvement:**
-        [Provide a highly constructive, positive suggestion for their main growth area in 1-2 encouraging sentences, framing it as an exciting learning opportunity.]
+        [Provide an objective, constructive suggestion for their main growth area in 1-2 mildly encouraging sentences, framing it as a clear improvement opportunity.]
         """
 
         try:
@@ -192,7 +234,7 @@ Score fairly and constructively. If the candidate tried, reward them with encour
             response = client.chat.completions.create(
                 model=self.MODEL,
                 messages=[
-                    {"role": "system", "content": "You are a supportive senior hiring manager providing final feedback to a candidate."},
+                    {"role": "system", "content": "You are a professional senior hiring manager providing objective feedback to a candidate."},
                     {"role": "user",   "content": prompt},
                 ],
                 max_tokens=350,

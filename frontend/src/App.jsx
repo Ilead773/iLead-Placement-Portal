@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import AdminDashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
+import CSVUploadPage from './pages/admin/CSVUploadPage';
 import Placements from './pages/admin/Placements';
 import Assignments from './pages/admin/Assignments';
 import Coordinators from './pages/admin/Coordinators';
@@ -34,12 +35,14 @@ import Internships from './pages/student/Internships.jsx';
 import ExternalJobFeed from './pages/student/ExternalJobFeed.jsx';
 import SavedJobs from './pages/student/SavedJobs.jsx';
 import MockInterview from './pages/student/MockInterview.jsx';
+import StudentAssignments from './pages/student/Assignments.jsx';
 import ScrapingDashboard from './pages/admin/ScrapingDashboard.jsx';
 import ExternalClicks from './pages/admin/ExternalClicks.jsx';
 import Notifications from './pages/student/Notifications.jsx';
 import SendNotifications from './pages/admin/SendNotifications.jsx';
 import FAQ from './pages/FAQ.jsx';
 import SharedResumes from './pages/SharedResumes.jsx';
+import LinkedInScraper from './pages/admin/LinkedInScraper.jsx';
 
 export default function App() {
   const { initAuth, isAuthenticated, user, passwordChangeRequired } = useAuthStore();
@@ -95,6 +98,7 @@ export default function App() {
         <Route element={<PrivateRoute roles={['admin', 'coordinator']}><Layout /></PrivateRoute>}>
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/students" element={<Students />} />
+          <Route path="/admin/csv-upload" element={<CSVUploadPage />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/admin/jobs" element={<ManageJobs />} />
           <Route path="/admin/internships" element={<ManageInternships />} />
@@ -109,8 +113,10 @@ export default function App() {
           <Route path="/admin/send-resumes" element={<BulkSendResumes />} />
           <Route path="/admin/email-history" element={<EmailHistoryPage />} />
           <Route path="/admin/scraping" element={<ScrapingDashboard />} />
+          <Route path="/admin/linkedin-scraper" element={<LinkedInScraper />} />
           <Route path="/admin/clicks" element={<ExternalClicks />} />
           <Route path="/admin/notifications" element={<SendNotifications />} />
+          <Route path="/admin/inbox" element={<Notifications />} />
           <Route path="/admin/faq" element={<FAQ />} />
         </Route>
 
@@ -126,6 +132,7 @@ export default function App() {
           <Route path="/student/applications" element={<Applications />} />
           <Route path="/student/applications/:id" element={<ApplicationDetail />} />
           <Route path="/student/mock-interview" element={<MockInterview />} />
+          <Route path="/student/assignments" element={<StudentAssignments />} />
           <Route path="/student/notifications" element={<Notifications />} />
           <Route path="/student/faq" element={<FAQ />} />
         </Route>

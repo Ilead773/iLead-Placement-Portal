@@ -714,7 +714,7 @@ const BulkSendResumes = () => {
               </div>
             </div>
             
-            <div className="overflow-y-auto" style={{ flex: 1, position: 'relative' }}>
+            <div className="overflow-y-auto" style={{ flex: 1, position: 'relative', overflowX: 'auto' }}>
               {loadingApps ? (
                 <div style={{ padding: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                   <div className="spinner" style={{ width: '32px', height: '32px' }}></div>

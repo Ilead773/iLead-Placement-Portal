@@ -505,7 +505,7 @@ export default function StudentProfile() {
 
   return (
     <div className="profile-container p-6 animate-in">
-      <div className="flex justify-between items-start mb-8">
+      <div className="responsive-header-flex mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Professional Profile</h1>
           <p className="text-muted">Keep your profile updated to get better placement opportunities.</p>
@@ -872,7 +872,7 @@ export default function StudentProfile() {
           <div className="modal">
             <div className="modal-header"><h2>Edit Basic Info</h2><button className="modal-close" onClick={() => setShowBasicModal(false)}>&times;</button></div>
             <form onSubmit={handleUpdateBasic}>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
                   <label>Location</label>
                   <input className="input-field" value={basicInfo.location} onChange={e => setBasicInfo({...basicInfo, location: e.target.value})} />
@@ -883,7 +883,7 @@ export default function StudentProfile() {
                   <span className="text-[10px] text-muted block mt-1">Synced from academic records (read-only)</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
                   <label>Year</label>
                   <select className="input-field cursor-not-allowed bg-dark-200 opacity-60" disabled value={basicInfo.year}>
@@ -903,7 +903,7 @@ export default function StudentProfile() {
                 </div>
               </div>
               <div className="input-group"><label>Professional Summary</label><textarea className="input-field" rows="3" value={basicInfo.professional_summary} onChange={e => setBasicInfo({...basicInfo, professional_summary: e.target.value})} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group"><label>LinkedIn</label><input className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} /></div>
                 <div className="input-group"><label>GitHub</label><input className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} /></div>
               </div>
@@ -921,7 +921,7 @@ export default function StudentProfile() {
             <form onSubmit={handleAddExperience}>
               <div className="input-group"><label>Company</label><input className="input-field" required value={newExp.company} onChange={e => setNewExp({...newExp, company: e.target.value})} /></div>
               <div className="input-group"><label>Position</label><input className="input-field" required value={newExp.position} onChange={e => setNewExp({...newExp, position: e.target.value})} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group"><label>Start Date</label><input type="date" className="input-field" required value={newExp.start_date} onChange={e => setNewExp({...newExp, start_date: e.target.value})} /></div>
                 {!newExp.is_current && <div className="input-group"><label>End Date</label><input type="date" className="input-field" value={newExp.end_date} onChange={e => setNewExp({...newExp, end_date: e.target.value})} /></div>}
               </div>
@@ -940,7 +940,7 @@ export default function StudentProfile() {
             <div className="modal-header"><h2>{editingSkillId ? 'Edit Skill' : 'Add New Skill'}</h2><button className="modal-close" onClick={() => { setShowSkillModal(false); setEditingSkillId(null); setNewSkill({ name: '', category: 'Technical', proficiency: 'Beginner' }); }}>&times;</button></div>
             <form onSubmit={handleAddSkill}>
               <div className="input-group"><label>Skill Name</label><input className="input-field" required value={newSkill.name} onChange={e => setNewSkill({...newSkill, name: e.target.value})} /></div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group"><label>Category</label><select className="input-field" value={newSkill.category} onChange={e => setNewSkill({...newSkill, category: e.target.value})}><option>Technical</option><option>Soft Skill</option><option>Language</option></select></div>
                 <div className="input-group"><label>Proficiency</label><select className="input-field" value={newSkill.proficiency} onChange={e => setNewSkill({...newSkill, proficiency: e.target.value})}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
               </div>
@@ -990,7 +990,7 @@ export default function StudentProfile() {
                 <label>Field of Study (e.g. Computer Science)</label>
                 <input className="input-field" value={newEdu.field} onChange={e => setNewEdu({...newEdu, field: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
                   <label>Graduation Date</label>
                   <input type="date" className="input-field" value={newEdu.graduation_date} onChange={e => setNewEdu({...newEdu, graduation_date: e.target.value})} />
@@ -1033,7 +1033,7 @@ export default function StudentProfile() {
                 <label>Issuer (e.g. AWS, Coursera)</label>
                 <input className="input-field" required value={newCert.issuer} onChange={e => setNewCert({...newCert, issuer: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
                   <label>Date Earned</label>
                   <input type="date" className="input-field" value={newCert.date} onChange={e => setNewCert({...newCert, date: e.target.value})} />
@@ -1186,7 +1186,7 @@ export default function StudentProfile() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="crop-control-group">
                   <div className="crop-control-label">
                     <span>X Offset</span>
