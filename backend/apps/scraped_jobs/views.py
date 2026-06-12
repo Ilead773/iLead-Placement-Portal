@@ -204,6 +204,12 @@ class AdminScrapingDashboardView(APIView):
                 self.permission_denied(request, message="You do not have permission to access scraping tools.")
 
     def get(self, request):
+        # Auto-fail any scraping runs stuck in 'running' state for more than 15 minutes
+        stuck_cutoff = timezone.now() - timedelta(minutes=15)
+        ScrapingRun.objects.filter(status='running', started_at__lt=stuck_cutoff).update(
+            status='failed', completed_at=timezone.now()
+        )
+
         last_run = ScrapingRun.objects.order_by('-started_at').first()
         recent_runs = ScrapingRun.objects.order_by('-started_at')[:5]
         total_active = ScrapedJob.objects.filter(is_active=True).count()
@@ -245,6 +251,12 @@ class AdminTriggerScrapeView(APIView):
                 self.permission_denied(request, message="You do not have permission to access scraping tools.")
 
     def post(self, request):
+        # Auto-fail any scraping runs stuck in 'running' state for more than 15 minutes
+        stuck_cutoff = timezone.now() - timedelta(minutes=15)
+        ScrapingRun.objects.filter(status='running', started_at__lt=stuck_cutoff).update(
+            status='failed', completed_at=timezone.now()
+        )
+
         from django.core.cache import cache
         if cache.get('nightly_scrape_lock') or ScrapingRun.objects.filter(status='running').exists():
             return Response({'error': 'already_running', 'message': 'A run is already in progress.'}, status=409)
