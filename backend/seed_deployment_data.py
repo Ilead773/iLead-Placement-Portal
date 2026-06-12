@@ -28,6 +28,8 @@ from apps.interviews.models import (
 )
 from apps.scraped_jobs.models import CourseSearchConfig
 from apps.scraped_jobs.course_config import COURSE_SEARCH_CONFIG
+from apps.career_os.models import Course
+from django.core.management import call_command
 
 # JSON DATA REPRESENTATION
 USERS = json.loads(r'''[
@@ -15162,6 +15164,14 @@ def seed_database():
                 feedback_summary=fb['feedback_summary']
             )
 
+        # Seed career_os courses if they don't exist (e.g. on fresh Railway deployments)
+        if not Course.objects.exists():
+            print("Course table is empty. Running load_kb to populate courses and skills...")
+            try:
+                call_command('load_kb')
+            except Exception as e:
+                print(f"Error running load_kb: {e}")
+
         # 8. Seed Course Search Configurations
         print("Seeding Course Search Configurations...")
         for idx, (course_name, cfg) in enumerate(COURSE_SEARCH_CONFIG.items()):
@@ -15176,14 +15186,21 @@ def seed_database():
 
         # 9. Seed MCQ Learning Assessments
         print("Seeding MCQ Assessments...")
-        courses_in_db = list(Student.objects.exclude(course='').values_list('course', flat=True).distinct())
+        # order_by() is crucial here to clear default ordering and ensure true distinct values in Django
+        courses_in_db = list(Student.objects.exclude(course='').order_by().values_list('course', flat=True).distinct())
         if not courses_in_db:
             courses_in_db = ["BSc in Computer Application (BCA)", "BBA"]
         
         admin_user = User.objects.filter(role='admin').first()
+        all_students = list(Student.objects.exclude(course=''))
         
+        seeded_courses = set()
         for course_name in courses_in_db:
             clean_course = course_name.strip()
+            if not clean_course or clean_course.lower() in seeded_courses:
+                continue
+            seeded_courses.add(clean_course.lower())
+            
             title = f"{clean_course} MCQ Assessment"
             assignment = LearningAssignment.objects.create(
                 course=clean_course,
@@ -15226,7 +15243,7 @@ def seed_database():
                 )
                 total_points += q.points
                 
-            students = Student.objects.filter(course=clean_course)
+            students = [s for s in all_students if s.course.strip().lower() == clean_course.lower()]
             for student in students:
                 StudentLearningAssignment.objects.create(
                     assignment=assignment,
