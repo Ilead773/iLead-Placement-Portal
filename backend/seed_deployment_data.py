@@ -16,9 +16,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.db import transaction
-from core.models import User, Student, Placement, PlacementAssignment
+from core.models import User, Student, Placement, PlacementAssignment, LearningAssignment, LearningQuestion, StudentLearningAssignment, AuditLog, ExternalClickLog
 from apps.jobs.models import Job, JobRound
-from apps.applications.models import Application, ApplicationRound, ApplicationStatusHistory
+from apps.applications.models import Application, ApplicationRound, ApplicationStatusHistory, Notification
 from apps.profiles.models import StudentProfile, Skill, Project, Education, Certification, Achievement, Experience
 from apps.templates_engine.models import ResumeTemplate
 from apps.resumes.models import BuiltResume
@@ -26,6 +26,8 @@ from apps.interviews.models import (
     InterviewDomain, InterviewType, Competency, Question,
     MockInterviewSession, InterviewAnswer, InterviewFeedback
 )
+from apps.scraped_jobs.models import CourseSearchConfig
+from apps.scraped_jobs.course_config import COURSE_SEARCH_CONFIG
 
 # JSON DATA REPRESENTATION
 USERS = json.loads(r'''[
@@ -14805,6 +14807,14 @@ def seed_database():
             else:
                 model.objects.all().delete()
 
+        clear_model(AuditLog)
+        clear_model(ExternalClickLog)
+        clear_model(Notification)
+        clear_model(CourseSearchConfig)
+        clear_model(StudentLearningAssignment)
+        clear_model(LearningQuestion)
+        clear_model(LearningAssignment)
+
         clear_model(InterviewFeedback)
         clear_model(InterviewAnswer)
         clear_model(MockInterviewSession)
@@ -15150,6 +15160,139 @@ def seed_database():
                 strengths=fb['strengths'],
                 weaknesses=fb['weaknesses'],
                 feedback_summary=fb['feedback_summary']
+            )
+
+        # 8. Seed Course Search Configurations
+        print("Seeding Course Search Configurations...")
+        for idx, (course_name, cfg) in enumerate(COURSE_SEARCH_CONFIG.items()):
+            CourseSearchConfig.objects.create(
+                course_name=course_name,
+                keywords=cfg.get('keywords', []),
+                internship_keywords=cfg.get('internship_keywords', []),
+                exclude_keywords=cfg.get('exclude_keywords', []),
+                is_active=True,
+                priority=idx + 1
+            )
+
+        # 9. Seed MCQ Learning Assessments
+        print("Seeding MCQ Assessments...")
+        courses_in_db = list(Student.objects.exclude(course='').values_list('course', flat=True).distinct())
+        if not courses_in_db:
+            courses_in_db = ["BSc in Computer Application (BCA)", "BBA"]
+        
+        admin_user = User.objects.filter(role='admin').first()
+        
+        for course_name in courses_in_db:
+            clean_course = course_name.strip()
+            title = f"{clean_course} MCQ Assessment"
+            assignment = LearningAssignment.objects.create(
+                course=clean_course,
+                title=title,
+                description=f"Evaluate your competency in core topics and professional placement preparation for {clean_course}.",
+                duration_minutes=25,
+                created_by=admin_user
+            )
+            
+            questions_data = [
+                {
+                    "prompt": f"Which of the following is a vital skill or domain of expertise in {clean_course}?",
+                    "options": ["Aptitude & Analytical Logic", "Core domain expertise", "Professional Communication", "All of the above"],
+                    "correct_option": 3,
+                    "points": 5,
+                },
+                {
+                    "prompt": "If a trainer conducts classes on Monday, Wednesday, and Friday, and another conducts on Tuesday and Thursday, how many combined sessions are held in 4 weeks?",
+                    "options": ["12 sessions", "16 sessions", "20 sessions", "24 sessions"],
+                    "correct_option": 2,
+                    "points": 5,
+                },
+                {
+                    "prompt": "What is the primary role of self-evaluations and mock interviews?",
+                    "options": ["To check theoretical memory", "To identify skill gaps and build interview confidence", "To get a high score only", "None of the above"],
+                    "correct_option": 1,
+                    "points": 5,
+                }
+            ]
+            
+            total_points = 0
+            for q_idx, q_data in enumerate(questions_data):
+                q = LearningQuestion.objects.create(
+                    assignment=assignment,
+                    order=q_idx,
+                    prompt=q_data["prompt"],
+                    options=q_data["options"],
+                    correct_option=q_data["correct_option"],
+                    points=q_data["points"]
+                )
+                total_points += q.points
+                
+            students = Student.objects.filter(course=clean_course)
+            for student in students:
+                StudentLearningAssignment.objects.create(
+                    assignment=assignment,
+                    student=student,
+                    assigned_by=admin_user,
+                    due_at=timezone.now() + timezone.timedelta(days=14),
+                    total_points=total_points,
+                    status="assigned"
+                )
+
+        # 10. Seed Mock Notifications
+        print("Seeding mock notifications...")
+        demo_student_user = User.objects.filter(login_id='demo.student').first()
+        if demo_student_user:
+            Notification.objects.create(
+                user=demo_student_user,
+                title="System Initialized",
+                notification_type="PLACEMENT_UPDATE",
+                message="Welcome to the iLEAD Placement Portal. Your profile is active and ready.",
+                priority="medium",
+                is_read=False
+            )
+            
+            demo_student = Student.objects.filter(user=demo_student_user).first()
+            if demo_student:
+                apps = Application.objects.filter(student=demo_student)
+                for app in apps:
+                    Notification.objects.create(
+                        user=demo_student_user,
+                        title=f"Application Update for {app.job.company_name}",
+                        notification_type="APPLICATION_UPDATE",
+                        message=f"Your application status for the {app.job.role} position has been updated to '{app.status}'.",
+                        priority="high",
+                        action_url=f"/student/applications/{app.id}",
+                        is_read=False
+                    )
+
+        # 11. Seed Mock Activity and Click Logs
+        print("Seeding activity logs...")
+        coordinator = User.objects.filter(role='coordinator').first()
+        if coordinator:
+            AuditLog.objects.create(
+                user=coordinator,
+                action="Imported Student CSV Data",
+                details="Successfully imported 135 student records from placement_list_2026.csv",
+                ip_address="127.0.0.1"
+            )
+            AuditLog.objects.create(
+                user=coordinator,
+                action="Created Job Placement",
+                details="Published recruitment drive for Alliance Vission",
+                ip_address="127.0.0.1"
+            )
+            
+        if demo_student_user:
+            ExternalClickLog.objects.create(
+                user=demo_student_user,
+                external_url="https://careers.google.com/jobs/results/12345",
+                job_title="Software Engineer Intern",
+                company_name="Google"
+            )
+            ExternalClickLog.objects.create(
+                user=demo_student_user,
+                external_url="https://jobs.netflix.com/jobs/98765",
+                job_title="Frontend Developer",
+                company_name="Netflix"
             )
 
     print("\n=== DATABASE SEEDED SUCCESSFULLY ===")
