@@ -40,6 +40,15 @@ build/
 db.sqlite3
 backend/db.sqlite3
 *.db
+*.sqlite3*
+
+# Credentials & CSV data
+*.csv
+credentials*
+student_credentials*
+
+# Backups
+*.bak
 
 # Django static/media outputs (SEPARATE - do not push)
 backend/staticfiles/

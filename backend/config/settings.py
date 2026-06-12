@@ -15,9 +15,14 @@ try:
 except ImportError:
     pass
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-development-key-12345')
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'django-insecure-development-key-12345'
+    else:
+        raise ValueError("SECRET_KEY environment variable is required in production mode!")
 
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',') if host.strip()]
 
@@ -96,6 +101,8 @@ if DATABASE_URL and dj_database_url:
         'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=ssl_require),
     }
 else:
+    if not DEBUG:
+        raise ValueError("DATABASE_URL environment variable is required in production mode!")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -163,8 +170,8 @@ REST_FRAMEWORK = {
 
 # JWT Config
 SIMPLE_JWT = {
-    # Increased to 600 minutes (10 hours) for temporary testing convenience
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=600),
+    # Reduced from 600 minutes (10 hours) to 60 minutes for production security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
