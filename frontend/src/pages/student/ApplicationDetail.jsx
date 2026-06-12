@@ -242,9 +242,7 @@ const ApplicationDetail = () => {
           )}
 
           {/* Offer Acceptance Flow (Selected or Accepted) */}
-          {(application.status === 'selected' || application.status === 'accepted') && 
-           application.offer_letter_status !== 'pending_verification' && 
-           application.offer_letter_status !== 'approved' && (
+          {(application.status === 'selected' || application.status === 'accepted') && (
             <div className={`app-offer-card ${application.offer_letter_status === 'approved' ? 'accepted' : 'selected'}`}>
               
               {/* Case 1: pending_upload (No document yet) */}

@@ -351,6 +351,17 @@ def send_resumes_to_company_task(
         except Exception as log_err:
             logger.error(f"Could not log email failure: {log_err}")
 
+        # If Celery is running in eager mode (synchronously), do not raise retry exception,
+        # as it will bubble up and cause a 500 server error in the HTTP request.
+        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+            logger.error(f"Eager Celery task failed: {exc}")
+            return {'status': 'failed', 'error': str(exc)}
+
+        # In non-eager mode, do not retry configuration errors (like missing Resend key)
+        if isinstance(exc, ValueError) and "Resend API key" in str(exc):
+            logger.error(f"Configuration error, not retrying: {exc}")
+            raise exc
+
         raise self.retry(exc=exc)
 
 

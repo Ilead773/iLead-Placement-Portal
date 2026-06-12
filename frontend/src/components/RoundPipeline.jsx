@@ -93,7 +93,7 @@ const RoundPipeline = ({ rounds, currentRound, status, appliedAt }) => {
   return (
     <div className="w-full my-8 bg-card border border-border-color rounded-2xl p-6 md:p-8 shadow-sm">
       {/* Desktop Horizontal Tracker */}
-      <div className="hidden md:flex items-stretch justify-between relative">
+      <div className="pipeline-desktop items-stretch justify-between relative">
         {/* Connecting line backgrounds */}
         <div className="absolute left-0 top-[22px] w-full h-[3px] bg-slate-100 dark:bg-zinc-800 -z-10 rounded-full"></div>
         
@@ -165,7 +165,7 @@ const RoundPipeline = ({ rounds, currentRound, status, appliedAt }) => {
       </div>
 
       {/* Mobile Vertical Tracker */}
-      <div className="md:hidden flex flex-col gap-6 relative pl-4">
+      <div className="pipeline-mobile flex-col gap-6 relative pl-4">
         {/* Timeline bar line */}
         <div className="absolute left-[33px] top-4 bottom-4 w-[2px] bg-slate-100 dark:bg-zinc-800 -z-10 rounded-full"></div>
 

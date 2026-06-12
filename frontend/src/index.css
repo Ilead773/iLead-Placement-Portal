@@ -9541,5 +9541,18 @@ tr:hover .company-logo-badge {
   }
 }
 
-
-
+/* Custom Responsive Styles for Recruitment Pipeline Tracker */
+.pipeline-desktop {
+  display: flex !important;
+}
+.pipeline-mobile {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .pipeline-desktop {
+    display: none !important;
+  }
+  .pipeline-mobile {
+    display: flex !important;
+  }
+}

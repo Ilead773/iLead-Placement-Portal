@@ -249,17 +249,29 @@ class AdminTriggerScrapeView(APIView):
         if cache.get('nightly_scrape_lock') or ScrapingRun.objects.filter(status='running').exists():
             return Response({'error': 'already_running', 'message': 'A run is already in progress.'}, status=409)
         try:
-            # Run scrape directly (no broker/worker needed — works for S3/serverless)
-            from .orchestrator import ScrapingOrchestrator
-            orchestrator = ScrapingOrchestrator()
-            run = orchestrator.run_full_scrape()
+            import threading
+            from django.db import close_old_connections
+
+            def run_scraping_in_thread():
+                try:
+                    from .orchestrator import ScrapingOrchestrator
+                    orchestrator = ScrapingOrchestrator()
+                    orchestrator.run_full_scrape()
+                except Exception as exc:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"[TriggerScrape] Background task failed: {exc}", exc_info=True)
+                finally:
+                    close_old_connections()
+
+            # Start scraping in a daemon thread so it runs in the background
+            thread = threading.Thread(target=run_scraping_in_thread, daemon=True)
+            thread.start()
+
             return Response({
-                'message': 'Scraping completed.',
-                'run_id': run.id,
-                'status': run.status,
-                'total_saved': run.total_saved,
-                'courses_failed': run.courses_failed,
-            }, status=200)
+                'message': 'Scraping triggered in background.',
+                'status': 'running',
+            }, status=202)
         except Exception as exc:
             return Response({'error': 'scrape_failed', 'message': str(exc)}, status=500)
 
