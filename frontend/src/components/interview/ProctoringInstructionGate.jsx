@@ -2,26 +2,26 @@ import React, { useState, useEffect } from 'react';
 
 export default function ProctoringInstructionGate({ onAccept, onCancel, domainName, typeName, loading }) {
   const [checked, setChecked] = useState(false);
-  const [cameraStatus, setCameraStatus] = useState('pending'); // 'pending' | 'granted' | 'denied'
-  const [loadingCamera, setLoadingCamera] = useState(false);
+  const [mediaStatus, setMediaStatus] = useState('pending'); // 'pending' | 'granted' | 'denied'
+  const [loadingMedia, setLoadingMedia] = useState(false);
 
-  const requestCameraAccess = async () => {
-    setLoadingCamera(true);
+  const requestMediaAccess = async () => {
+    setLoadingMedia(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      // Stop all tracks to release the camera resource for the actual room
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Stop all tracks to release resources for the actual interview room
       stream.getTracks().forEach(track => track.stop());
-      setCameraStatus('granted');
+      setMediaStatus('granted');
     } catch (err) {
-      console.error("Camera permission denied:", err);
-      setCameraStatus('denied');
+      console.error("Camera/Mic permission denied:", err);
+      setMediaStatus('denied');
     } finally {
-      setLoadingCamera(false);
+      setLoadingMedia(false);
     }
   };
 
   useEffect(() => {
-    requestCameraAccess();
+    requestMediaAccess();
   }, []);
 
   return (
@@ -77,6 +77,22 @@ export default function ProctoringInstructionGate({ onAccept, onCancel, domainNa
               </p>
             </div>
           </div>
+
+          <div className="rule-item">
+            <span className="rule-icon">🎤</span>
+            <div className="rule-info">
+              <strong>Microphone Access</strong>
+              <p>Ensure your microphone is enabled so you can record your voice answers for AI feedback.</p>
+            </div>
+          </div>
+
+          <div className="rule-item">
+            <span className="rule-icon">🤫</span>
+            <div className="rule-info">
+              <strong>Quiet Environment</strong>
+              <p>Take the interview in a quiet and well-lit room to ensure accurate voice transcription and proctoring.</p>
+            </div>
+          </div>
         </div>
 
         <div className="gate-alert-box">
@@ -88,27 +104,27 @@ export default function ProctoringInstructionGate({ onAccept, onCancel, domainNa
         </div>
 
         <div className="consent-section">
-          {cameraStatus === 'pending' && (
+          {mediaStatus === 'pending' && (
             <div className="camera-check-status pending">
               <span className="status-dot-amber"></span>
-              <span>🔍 Checking your camera...</span>
+              <span>🔍 Checking camera &amp; microphone...</span>
             </div>
           )}
-          {cameraStatus === 'granted' && (
+          {mediaStatus === 'granted' && (
             <div className="camera-check-status granted">
               <span className="status-dot-green"></span>
-              <span>✅ Camera is Ready</span>
+              <span>✅ Camera &amp; Microphone are Ready</span>
             </div>
           )}
-          {cameraStatus === 'denied' && (
+          {mediaStatus === 'denied' && (
             <div className="camera-check-status denied">
               <span className="status-dot-red"></span>
-              <span style={{ fontWeight: 800 }}>🚨 Camera access is required!</span>
+              <span style={{ fontWeight: 800 }}>🚨 Camera &amp; Mic access is required!</span>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#fca5a5', textAlign: 'center', fontWeight: 500 }}>
-                Please give permission to use your camera. You cannot take the interview without it. Click the button below or check your browser settings to try again.
+                Please give permission to use both your camera and microphone. You cannot take the interview without them. Click the button below or check your browser settings to try again.
               </p>
-              <button onClick={requestCameraAccess} className="retry-cam-btn" disabled={loadingCamera}>
-                {loadingCamera ? 'Checking...' : '🔄 Try Again'}
+              <button onClick={requestMediaAccess} className="retry-cam-btn" disabled={loadingMedia}>
+                {loadingMedia ? 'Checking...' : '🔄 Try Again'}
               </button>
             </div>
           )}
@@ -135,9 +151,9 @@ export default function ProctoringInstructionGate({ onAccept, onCancel, domainNa
               ↩️ Cancel & Go Back
             </button>
             <button
-              className={`btn btn-primary gate-action-btn ${!checked || cameraStatus !== 'granted' || loading ? 'disabled' : ''}`}
+              className={`btn btn-primary gate-action-btn ${!checked || mediaStatus !== 'granted' || loading ? 'disabled' : ''}`}
               style={{ flex: 1.5, padding: '14px', borderRadius: 'var(--radius-md)', fontWeight: '700', cursor: 'pointer' }}
-              disabled={!checked || cameraStatus !== 'granted' || loading}
+              disabled={!checked || mediaStatus !== 'granted' || loading}
               onClick={onAccept}
             >
               {loading ? 'Starting...' : '🚀 Start Interview'}

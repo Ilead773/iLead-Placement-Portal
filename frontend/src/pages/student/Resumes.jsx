@@ -5,7 +5,6 @@ import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { 
   Plus, 
-  Upload, 
   FileText, 
   Download, 
   Edit, 
@@ -26,7 +25,6 @@ export default function StudentResumes() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [profileWarning, setProfileWarning] = useState("");
   
   // Edit State
@@ -35,6 +33,10 @@ export default function StudentResumes() {
   const [isSaving, setIsSaving] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const iframeRef = React.useRef(null);
+
+  // Title Edit State
+  const [editingTitleId, setEditingTitleId] = useState(null);
+  const [editTitleVal, setEditTitleVal] = useState("");
 
   // Confirmation Modal State
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -70,29 +72,16 @@ export default function StudentResumes() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [resumesRes, templatesRes, uploadsRes] = await Promise.all([
+      const [resumesRes, templatesRes] = await Promise.all([
         api.get(`resumes/?t=${Date.now()}`),
         api.get('templates/'),
-        api.get(`resumes/uploads/?t=${Date.now()}`)
       ]);
       
       const builtResumes = Array.isArray(resumesRes.data) ? resumesRes.data : (resumesRes.data.results || []);
-      const uploadedResumes = Array.isArray(uploadsRes.data) ? uploadsRes.data : (uploadsRes.data.results || []);
       
       // Merge and tag for UI
-      const allResumes = [
-        ...builtResumes.map(r => ({ ...r, type: 'built' })),
-        ...uploadedResumes.map(u => ({ 
-          id: u.id, 
-          title: u.original_filename, 
-          template_name: 'Original Upload',
-          state: u.status,
-          created_at: u.uploaded_at,
-          type: 'upload',
-          pdf_url: u.file, // The serializer should provide the file URL
-          is_primary: u.is_primary
-        }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const allResumes = builtResumes.map(r => ({ ...r, type: 'built' }))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       setResumes(allResumes);
       setTemplates(Array.isArray(templatesRes.data) ? templatesRes.data : (templatesRes.data.results || []));
@@ -116,27 +105,11 @@ export default function StudentResumes() {
 
   const fetchResumes = async () => {
     try {
-      const [resumesRes, uploadsRes] = await Promise.all([
-        api.get('resumes/'),
-        api.get('resumes/uploads/')
-      ]);
-      
+      const resumesRes = await api.get('resumes/');
       const builtResumes = Array.isArray(resumesRes.data) ? resumesRes.data : (resumesRes.data.results || []);
-      const uploadedResumes = Array.isArray(uploadsRes.data) ? uploadsRes.data : (uploadsRes.data.results || []);
       
-      const allResumes = [
-        ...builtResumes.map(r => ({ ...r, type: 'built' })),
-        ...uploadedResumes.map(u => ({ 
-          id: u.id, 
-          title: u.original_filename, 
-          template_name: 'Original Upload',
-          state: u.status,
-          created_at: u.uploaded_at,
-          type: 'upload',
-          pdf_url: u.file,
-          is_primary: u.is_primary
-        }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const allResumes = builtResumes.map(r => ({ ...r, type: 'built' }))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       setResumes(allResumes);
     } catch (err) {
@@ -164,40 +137,9 @@ export default function StudentResumes() {
     }
   };
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast.error('Please upload a PDF file');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+  const handleSetPrimary = async (resumeId) => {
     try {
-      setUploading(true);
-      await api.post('resumes/uploads/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      toast.success('Resume uploaded! Parsing in progress...');
-      fetchResumes();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Upload failed');
-    } finally {
-      setUploading(false);
-      e.target.value = null;
-    }
-  };
-
-  const handleSetPrimary = async (resumeId, type = 'built') => {
-    try {
-      if (type === 'upload') {
-        await api.post(`resumes/uploads/${resumeId}/set-primary/`);
-      } else {
-        await api.post(`resumes/${resumeId}/set-primary/`);
-      }
+      await api.post(`resumes/${resumeId}/set-primary/`);
       toast.success('Resume set as active for job applications!');
       fetchResumes();
     } catch (err) {
@@ -205,17 +147,13 @@ export default function StudentResumes() {
     }
   };
 
-  const handleDelete = (resumeId, type = 'built') => {
+  const handleDelete = (resumeId) => {
     triggerConfirm(
       'Delete Resume',
       'Are you sure you want to delete this resume? This action is irreversible and will permanently remove this resume from your profile.',
       async () => {
         try {
-          if (type === 'upload') {
-            await api.delete(`resumes/uploads/${resumeId}/`);
-          } else {
-            await api.delete(`resumes/${resumeId}/`);
-          }
+          await api.delete(`resumes/${resumeId}/`);
           toast.success('Resume deleted successfully');
           fetchResumes();
         } catch (err) {
@@ -226,10 +164,10 @@ export default function StudentResumes() {
     );
   };
 
-  const handleDownload = async (resumeId, resumeTitle, type = 'built') => {
+  const handleDownload = async (resumeId, resumeTitle) => {
     try {
       toast.loading('Downloading...', { id: 'download' });
-      const endpoint = type === 'upload' ? `resumes/uploads/${resumeId}/download/` : `resumes/${resumeId}/download/`;
+      const endpoint = `resumes/${resumeId}/download/`;
       const response = await api.get(`${endpoint}?t=${Date.now()}`, {
         responseType: 'blob'
       });
@@ -245,6 +183,21 @@ export default function StudentResumes() {
     } catch (err) {
       toast.error('Download failed', { id: 'download' });
       console.error(err);
+    }
+  };
+
+  const handleSaveTitle = async (resumeId) => {
+    if (!editTitleVal.trim()) {
+      toast.error('Resume name cannot be empty');
+      return;
+    }
+    try {
+      await api.patch(`resumes/${resumeId}/`, { title: editTitleVal.trim() });
+      toast.success('Resume name updated successfully!');
+      setEditingTitleId(null);
+      fetchResumes();
+    } catch (err) {
+      toast.error(err.response?.data?.title?.[0] || err.response?.data?.error || 'Failed to update resume name');
     }
   };
 
@@ -485,20 +438,6 @@ export default function StudentResumes() {
             <History size={14} className="text-orange-500" /> Document History
           </div>
 
-          <div className="upload-bar">
-            <div className="flex items-center gap-3">
-              <Upload size={18} className="text-orange-500" />
-              <div>
-                <div className="text-xs font-black uppercase tracking-wider">External Resume?</div>
-                <div className="text-[10px] text-muted">Upload a PDF to parse and import your data</div>
-              </div>
-            </div>
-            <label className={`btn btn-secondary btn-sm flex items-center gap-2 cursor-pointer ${uploading ? 'opacity-50' : ''}`}>
-               {uploading ? 'Uploading...' : 'Choose PDF'}
-               <input type="file" className="hidden" accept=".pdf" onChange={handleUpload} disabled={uploading} />
-            </label>
-          </div>
-          
           <div className="table-container">
             <table>
               <thead>
@@ -518,14 +457,64 @@ export default function StudentResumes() {
                           <FileText size={18} className="text-orange-500" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold">{resume.title}</span>
-                            {resume.is_primary && (
-                              <span className="status-badge status-generated" style={{ fontSize: '8px', padding: '2px 8px' }}>
-                                <Star size={8} fill="currentColor" /> Active
-                              </span>
-                            )}
-                          </div>
+                          {editingTitleId === resume.id ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <input 
+                                type="text" 
+                                value={editTitleVal} 
+                                onChange={(e) => setEditTitleVal(e.target.value)} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveTitle(resume.id);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingTitleId(null);
+                                  }
+                                }}
+                                className="input-field"
+                                style={{ 
+                                  padding: '4px 8px', 
+                                  fontSize: '13px', 
+                                  width: '200px', 
+                                  height: '32px',
+                                  borderRadius: 'var(--radius-sm)'
+                                }}
+                                autoFocus
+                              />
+                              <button 
+                                onClick={() => handleSaveTitle(resume.id)} 
+                                className="btn btn-sm btn-primary px-3 py-1"
+                                style={{ height: '32px', fontSize: '12px' }}
+                              >
+                                Save
+                              </button>
+                              <button 
+                                onClick={() => setEditingTitleId(null)} 
+                                className="btn btn-sm btn-secondary px-3 py-1"
+                                style={{ height: '32px', fontSize: '12px' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold">{resume.title}</span>
+                              <button 
+                                onClick={() => {
+                                  setEditingTitleId(resume.id);
+                                  setEditTitleVal(resume.title);
+                                }}
+                                className="text-gray-400 hover:text-orange-500 transition-colors p-1"
+                                title="Edit Resume Name"
+                              >
+                                <Edit size={12} />
+                              </button>
+                              {resume.is_primary && (
+                                <span className="status-badge status-generated" style={{ fontSize: '8px', padding: '2px 8px' }}>
+                                  <Star size={8} fill="currentColor" /> Active
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{resume.template_name}</div>
                         </div>
                       </div>
@@ -542,7 +531,7 @@ export default function StudentResumes() {
                           <>
                             {!resume.is_primary && (
                               <button 
-                                onClick={() => handleSetPrimary(resume.id, resume.type)} 
+                                onClick={() => handleSetPrimary(resume.id)} 
                                 className="btn btn-sm btn-secondary"
                                 style={{ fontSize: '10px' }}
                               >
@@ -550,25 +539,23 @@ export default function StudentResumes() {
                               </button>
                             )}
                             <button 
-                              onClick={() => handleDownload(resume.id, resume.title, resume.type)} 
+                              onClick={() => handleDownload(resume.id, resume.title)} 
                               className="btn btn-sm btn-secondary"
                               title="Download PDF"
                             >
                               <Download size={14} />
                             </button>
-                            {resume.type === 'built' && (
-                              <button 
-                                onClick={() => handleEditClick(resume.id)}
-                                className="btn btn-sm btn-primary"
-                                style={{ fontSize: '10px' }}
-                              >
-                                Edit
-                              </button>
-                            )}
+                            <button 
+                              onClick={() => handleEditClick(resume.id)}
+                              className="btn btn-sm btn-primary"
+                              style={{ fontSize: '10px' }}
+                            >
+                              Edit
+                            </button>
                           </>
                         )}
                         <button 
-                          onClick={() => handleDelete(resume.id, resume.type)}
+                          onClick={() => handleDelete(resume.id)}
                           className="btn btn-sm btn-danger p-2"
                           title="Delete Resume"
                         >

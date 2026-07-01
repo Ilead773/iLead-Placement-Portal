@@ -148,7 +148,7 @@ export default function StudentProfile() {
           return;
         }
 
-        const croppedFile = new File([blob], 'cropped_profile.jpg', { type: 'image/jpeg' });
+        const croppedFile = new File([blob], `profile_${Date.now()}.jpg`, { type: 'image/jpeg' });
         const formData = new FormData();
         formData.append('profile_picture', croppedFile);
 

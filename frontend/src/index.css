@@ -543,9 +543,9 @@ a:hover { color: var(--accent-hover); }
   z-index: 100; 
   transition: all var(--transition);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-  /* Fix Bug 3: position:relative so the absolutely-centred brand pill
-     is always measured against the topbar itself, not the viewport */
-  position: sticky;
+  /* position:relative ensures the absolutely-positioned brand pill
+     measures against the topbar itself, not the viewport */
+  overflow: visible;
 }
 [data-theme='dark'] .topbar {
   background: rgba(9, 9, 11, 0.75) !important;
@@ -647,91 +647,95 @@ a:hover { color: var(--accent-hover); }
 .topbar-brand-center {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
   z-index: 10;
-  padding: 6px 20px 6px 12px;
+  padding: 6px 18px 6px 12px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   border: 1px solid rgba(59, 130, 246, 0.15);
   box-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(59, 130, 246, 0.06);
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
 }
 
 [data-theme='dark'] .topbar-brand-center {
-  background: rgba(18, 18, 20, 0.8) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.03) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
   animation: none !important;
 }
 
 .topbar-brand-center:hover {
-  transform: translateX(-50%) translateY(-1px) scale(1.02);
+  transform: translate(-50%, calc(-50% - 1px)) scale(1.02);
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(59, 130, 246, 0.3);
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 6px 20px rgba(0, 0, 0, 0.06),
     0 8px 24px -4px rgba(59, 130, 246, 0.12),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 [data-theme='dark'] .topbar-brand-center:hover {
-  background: rgba(24, 24, 28, 0.9) !important;
+  background: rgba(24, 32, 55, 0.8) !important;
   border-color: rgba(59, 130, 246, 0.25) !important;
   box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.45),
     0 0 16px -2px rgba(59, 130, 246, 0.15),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   animation: none !important;
 }
 
-
 .topbar-brand-logo {
-  height: 24px;
+  height: 18px;
   width: auto;
   object-fit: contain;
   box-sizing: content-box;
-  padding: 5px 14px;
+  padding: 4px 10px;
   border-radius: 9999px;
   background: linear-gradient(135deg, #f5f9ff 0%, #e0f0fe 100%) !important;
   border: 1px solid rgba(59, 130, 246, 0.25);
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    0 0 12px rgba(59, 130, 246, 0.1);
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 0 8px rgba(59, 130, 246, 0.06);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .topbar-brand-center:hover .topbar-brand-logo {
-  transform: scale(1.05);
+  transform: scale(1.03);
   background: linear-gradient(135deg, #e0f0fe 0%, #bae6fd 100%) !important;
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.12),
-    0 0 16px rgba(59, 130, 246, 0.25);
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 0 12px rgba(59, 130, 246, 0.18);
 }
 
 [data-theme='dark'] .topbar-brand-logo {
   background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%) !important;
   border-color: rgba(59, 130, 246, 0.3) !important;
   box-shadow: 
-    0 2px 10px rgba(0, 0, 0, 0.35),
-    0 0 14px rgba(59, 130, 246, 0.15) !important;
+    0 2px 10px rgba(0, 0, 0, 0.2),
+    0 0 12px rgba(59, 130, 246, 0.12) !important;
 }
 
 [data-theme='dark'] .topbar-brand-center:hover .topbar-brand-logo {
+  transform: scale(1.03);
   background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
   border-color: rgba(59, 130, 246, 0.5) !important;
   box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.45),
-    0 0 20px rgba(59, 130, 246, 0.35) !important;
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    0 0 16px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Divider + text stack */
@@ -739,14 +743,14 @@ a:hover { color: var(--accent-hover); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1.5px solid rgba(59, 130, 246, 0.3) !important;
+  border-left: 1.5px solid rgba(59, 130, 246, 0.25) !important;
   padding-left: 12px;
   gap: 2px;
   transition: border-color var(--transition);
 }
 
 [data-theme='dark'] .topbar-brand-text {
-  border-left-color: rgba(255, 255, 255, 0.08) !important;
+  border-left-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 .topbar-brand-title {
@@ -780,6 +784,10 @@ a:hover { color: var(--accent-hover); }
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme='dark'] .topbar-brand-subtitle {
+  color: #f87171 !important; /* Softer red in dark mode */
+}
+
 .topbar-brand-center:hover .topbar-brand-title {
   color: #3b82f6 !important;
 }
@@ -792,7 +800,7 @@ a:hover { color: var(--accent-hover); }
 /* Hide text on mobile, keep centered logo pill */
 @media (max-width: 640px) {
   .topbar-brand-center {
-    padding: 5px 8px;
+    padding: 6px 10px;
     gap: 0;
   }
   .topbar-brand-text { display: none; }
