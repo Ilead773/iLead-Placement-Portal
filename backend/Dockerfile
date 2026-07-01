@@ -35,7 +35,8 @@ COPY . .
 RUN mkdir -p /app/media/resumes /app/media/profile_pictures /app/media/uploads
 
 # Collect static files (WhiteNoise serves them at runtime)
-RUN python manage.py collectstatic --noinput || echo "collectstatic skipped (no DB needed)"
+# Supply dummy environment variables during the build phase so collectstatic succeeds
+RUN SECRET_KEY=dummy-key-for-collectstatic-only DATABASE_URL=sqlite:////tmp/dummy.db python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
