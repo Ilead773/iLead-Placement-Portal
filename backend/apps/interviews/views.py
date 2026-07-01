@@ -17,26 +17,46 @@ from datetime import timedelta
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
+
+class MockInterviewStartThrottle(SimpleRateThrottle):
+    scope = 'mock_interview_start'
+    
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            return self.cache_format % {
+                'scope': self.scope,
+                'ident': request.user.pk
+            }
+        return None
+
+class MockInterviewSubmitThrottle(SimpleRateThrottle):
+    scope = 'mock_interview_submit'
+    
+    def get_cache_key(self, request, view):
+        if request.user and request.user.is_authenticated:
+            return self.cache_format % {
+                'scope': self.scope,
+                'ident': request.user.pk
+            }
+        return None
 
 from .models import (
     InterviewDomain, InterviewType, Question,
     MockInterviewSession, InterviewAnswer, InterviewFeedback,
-    SkillGapAnalysis,
 )
 from .serializers import (
     InterviewDomainSerializer, InterviewTypeSerializer,
     StartInterviewSerializer, SubmitAnswerSerializer,
     MockInterviewSessionSerializer, SessionListSerializer,
     InterviewFeedbackSerializer,
-    StartGapAnalysisSerializer, SkillGapAnalysisSerializer,
-    QuickRoadmapSerializer,
 )
 from .ai_evaluator import AIInterviewEvaluator
 from .conversation import AIConversationService
-from .gap_analysis import LightweightGapAnalysisService
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +101,7 @@ def list_interview_types(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MockInterviewStartThrottle])
 def start_interview(request):
     """
     Start a new mock interview session.
@@ -183,6 +204,7 @@ def start_interview(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([MockInterviewSubmitThrottle])
 def submit_answer(request):
     """
     Submit an answer and receive AI-based dimension scoring.
@@ -386,79 +408,7 @@ def session_detail(request, session_id):
     return Response(MockInterviewSessionSerializer(session).data)
 
 
-# ─── Gap Analysis ────────────────────────────────────────────────
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def run_gap_analysis(request):
-    serializer = StartGapAnalysisSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    try:
-        student = request.user.student_profile
-    except Exception:
-        return Response({'error': 'Student profile not found.'}, status=400)
-
-    try:
-        domain = InterviewDomain.objects.get(
-            id=serializer.validated_data['domain_id'], is_active=True
-        )
-    except InterviewDomain.DoesNotExist:
-        return Response({'error': 'Domain not found.'}, status=400)
-
-    service = LightweightGapAnalysisService()
-    gap_analysis = service.analyze(student, domain)
-    return Response(SkillGapAnalysisSerializer(gap_analysis).data, status=201)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def list_gap_analyses(request):
-    try:
-        student = request.user.student_profile
-    except Exception:
-        return Response({'error': 'Student profile not found.'}, status=400)
-
-    analyses = SkillGapAnalysis.objects.filter(student=student).select_related(
-        'domain', 'recommended_roadmap_template'
-    )
-    return Response(SkillGapAnalysisSerializer(analyses, many=True).data)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def create_roadmap(request, analysis_id):
-    try:
-        student = request.user.student_profile
-    except Exception:
-        return Response({'error': 'Student profile not found.'}, status=400)
-
-    try:
-        gap_analysis = SkillGapAnalysis.objects.get(id=analysis_id, student=student)
-    except SkillGapAnalysis.DoesNotExist:
-        return Response({'error': 'Gap analysis not found.'}, status=404)
-
-    service = LightweightGapAnalysisService()
-    roadmap = service.create_roadmap(gap_analysis)
-    if not roadmap:
-        return Response({'error': 'No roadmap template available.'}, status=400)
-
-    return Response(QuickRoadmapSerializer(roadmap).data, status=201)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def list_roadmaps(request):
-    from .models import QuickRoadmap
-    try:
-        student = request.user.student_profile
-    except Exception:
-        return Response({'error': 'Student profile not found.'}, status=400)
-
-    roadmaps = QuickRoadmap.objects.filter(student=student).select_related(
-        'template', 'gap_analysis__domain'
-    )
-    return Response(QuickRoadmapSerializer(roadmaps, many=True).data)
 
 
 @api_view(['GET'])

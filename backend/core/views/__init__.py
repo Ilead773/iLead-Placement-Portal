@@ -9,7 +9,7 @@ from .placements import PlacementViewSet
 from .assignments import AssignmentViewSet, LearningAssignmentAdminViewSet, StudentLearningAssignmentViewSet
 from .student_self import StudentSelfViewSet
 from .dashboard import DashboardViewSet, AuditLogViewSet
-from .admin_ops import AdminOpsViewSet
+from .admin_ops import AdminOpsViewSet, HealthCheckView
 
 __all__ = [
     'AuthViewSet',
@@ -22,4 +22,5 @@ __all__ = [
     'DashboardViewSet',
     'AuditLogViewSet',
     'AdminOpsViewSet',
+    'HealthCheckView',
 ]

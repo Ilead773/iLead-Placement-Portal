@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
     path('api/v1/', include('core.urls')),
 
     # Resume Engine APIs (Layer 15: Domain-Driven Structure)
@@ -21,12 +21,14 @@ urlpatterns = [
 
     # Mock Interviews — Cost-Optimized Interview System
     path('api/v1/interviews/', include('apps.interviews.urls')),
-    
-    # Career OS — AI Career Skill Intelligence System
-    path('api/v1/career-os/', include('apps.career_os.urls')),
-    
     # LinkedIn Job Scraper Endpoint
     path('api/v1/job_scraper/', include('job_scraper.urls')),
+    
+    # Project North Star LMS Endpoint
+    path('api/v1/north-star/', include('apps.north_star.urls')),
+
+    # Placement Sessions — Zoom-powered sessions with attendance tracking
+    path('api/v1/placement-sessions/', include('apps.placement_sessions.urls')),
 ]
 
 if settings.DEBUG:

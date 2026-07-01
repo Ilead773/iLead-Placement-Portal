@@ -77,6 +77,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'student', 'phone', 'location',
             'professional_summary', 'linkedin', 'github', 'portfolio',
+            'email_job_alerts',
             'profile_picture',
             'skills', 'experiences', 'projects', 'education_entries', 'certifications', 'achievements',
             'completion_score', 'completion_details', 'improvement_suggestions',
@@ -117,7 +118,7 @@ class StudentProfileUpdateSerializer(serializers.ModelSerializer):
         model = StudentProfile
         fields = [
             'phone', 'location', 'professional_summary',
-            'linkedin', 'github', 'portfolio'
+            'linkedin', 'github', 'portfolio', 'email_job_alerts'
         ]
 
 

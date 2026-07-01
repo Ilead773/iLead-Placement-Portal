@@ -27,7 +27,7 @@ class TestSecurityAndAudit:
         auth_client.post(url, {'file': csv_file}, format='multipart')
         
         # Verify log entry
-        log = AuditLog.objects.filter(action='csv_upload').first()
+        log = AuditLog.objects.filter(action='csv_upload_queued').first()
         assert log is not None
         assert 'test.csv' in log.details
 

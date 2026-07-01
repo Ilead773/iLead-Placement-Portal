@@ -34,8 +34,9 @@ const CreateInternship = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await axios.get('/career-os/courses/');
-        setAvailableCourses(response.data.courses || []);
+        const response = await axios.get('/north-star/courses/');
+        const coursesList = Array.isArray(response.data) ? response.data : (response.data.courses || []);
+        setAvailableCourses(coursesList);
       } catch (err) {
         setAvailableCourses([
           { name: 'BBA' }, { name: 'BBA in Digital Marketing (BBA DM)' },

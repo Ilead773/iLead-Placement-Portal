@@ -15,7 +15,7 @@ class TestAuthentication:
         }
         response = api_client.post(url, data)
         assert response.status_code == status.HTTP_200_OK
-        assert 'access' in response.data
+        assert 'access_token' in response.cookies
         assert response.data['user']['role'] == 'admin'
 
     def test_invalid_password_failure(self, api_client, admin_user):
@@ -26,7 +26,7 @@ class TestAuthentication:
         }
         response = api_client.post(url, data)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'access' not in response.data
+        assert 'access_token' not in response.cookies
 
     def test_rate_limiting_lockout(self, api_client, admin_user):
         url = '/api/v1/auth/login/'
@@ -55,6 +55,16 @@ class TestAuthentication:
         
         assert response.status_code == 403
         assert 'password_change_required' in response.content.decode()
+
+    def test_forced_password_change_allowed_endpoints(self, api_client, student_user):
+        api_client.force_login(user=student_user)
+        api_client.force_authenticate(user=student_user)
+        
+        for url in ['/api/v1/auth/change-password/', '/api/v1/auth/logout/', '/api/v1/auth/refresh/']:
+            response = api_client.post(url, {})
+            # Should not be blocked with password_change_required
+            if response.status_code == 403:
+                assert 'password_change_required' not in response.content.decode()
 
     def test_rbac_student_access_denied_to_admin_api(self, api_client, student_user):
         # Even if password is changed, student cannot access /api/students/

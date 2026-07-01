@@ -17,6 +17,35 @@ from .helpers import log_audit
 logger = logging.getLogger('core')
 
 
+def _set_auth_cookies(response, request, access_token, refresh_token):
+    cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
+    secure = not settings.DEBUG or request.is_secure()
+    
+    response.set_cookie(
+        key='access_token',
+        value=access_token,
+        httponly=True,
+        secure=secure,
+        samesite='Lax',
+        domain=cookie_domain,
+        max_age=3600,
+    )
+    response.set_cookie(
+        key='refresh_token',
+        value=refresh_token,
+        httponly=True,
+        secure=secure,
+        samesite='Lax',
+        domain=cookie_domain,
+        max_age=7 * 24 * 3600,
+    )
+
+def _delete_auth_cookies(response):
+    cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
+    response.delete_cookie('access_token', domain=cookie_domain)
+    response.delete_cookie('refresh_token', domain=cookie_domain)
+
+
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
@@ -27,75 +56,106 @@ class AuthViewSet(viewsets.ViewSet):
         login_id = serializer.validated_data['login_id'].lower()
         password = serializer.validated_data['password']
 
-        # Look up user
+        # Look up user first without row lock
         try:
             user = User.objects.get(login_id=login_id)
         except User.DoesNotExist:
             log_audit(None, 'login_failed', f'Unknown login_id: {login_id}', request)
             return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Rate limiting — check lockout
-        if user.locked_until:
-            if user.locked_until > datetime.now(timezone.utc):
-                remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
-                return Response(
-                    {'error': f'Account locked. Try again in {remaining} minutes.'},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
-            else:
-                # Lockout period has passed — reset the counter for a fresh start
+        # Quick lockout check before running slow hash check
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+            remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
+            if remaining <= 0:
+                remaining = 1
+            return Response(
+                {'error': f'Account locked. Try again in {remaining} minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Verify password (slow, CPU-bound BCrypt operation outside transaction)
+        password_correct = user.check_password(password)
+
+        # Short write transaction block to update failed counters or reset on success
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                # Re-fetch user with row lock to securely update status counters
+                user = User.objects.select_for_update().get(id=user.id)
+
+                # Re-check lockout status inside transaction to prevent race conditions
+                if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+                    remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
+                    if remaining <= 0:
+                        remaining = 1
+                    return Response(
+                        {'error': f'Account locked. Try again in {remaining} minutes.'},
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+
+                if not password_correct:
+                    user.failed_login_attempts += 1
+                    
+                    if user.failed_login_attempts >= 5:
+                        if user.failed_login_attempts == 5:
+                            lockout_mins = 1
+                        elif user.failed_login_attempts == 6:
+                            lockout_mins = 5
+                        elif user.failed_login_attempts == 7:
+                            lockout_mins = 30
+                        else:
+                            # 8 or more failed attempts: permanently lock
+                            user.is_active = False
+                            user.locked_until = datetime.now(timezone.utc) + timedelta(days=36500) # 100 years
+                            user.save(update_fields=['failed_login_attempts', 'locked_until', 'is_active'])
+                            log_audit(user, 'account_disabled', 'Permanently locked after 8+ failed attempts', request)
+                            return Response(
+                                {'error': 'Account has been permanently locked due to too many failed login attempts. Please contact the administrator.'},
+                                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                            )
+                        
+                        user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_mins)
+                        user.save(update_fields=['failed_login_attempts', 'locked_until'])
+                        log_audit(user, 'account_locked', f'Locked for {lockout_mins} min after {user.failed_login_attempts} failures', request)
+                        return Response(
+                            {'error': f'Too many failed attempts. Account locked for {lockout_mins} minutes.'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS,
+                        )
+                    
+                    user.save(update_fields=['failed_login_attempts'])
+                    log_audit(user, 'login_failed', f'Attempt {user.failed_login_attempts}', request)
+                    return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+                # Success path inside transaction — reset counters
                 user.failed_login_attempts = 0
                 user.locked_until = None
                 user.save(update_fields=['failed_login_attempts', 'locked_until'])
-
-        # Verify password
-        if not user.check_password(password):
-            user.failed_login_attempts += 1
-            
-            max_attempts = getattr(settings, 'LOGIN_RATE_LIMIT_MAX_ATTEMPTS', 5)
-            lockout_mins = getattr(settings, 'LOGIN_RATE_LIMIT_LOCKOUT_MINUTES', 15)
-            
-            if user.failed_login_attempts >= max_attempts:
-                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_mins)
-                user.save(update_fields=['failed_login_attempts', 'locked_until'])
-                log_audit(user, 'account_locked', f'Locked for {lockout_mins} min after {max_attempts} failures', request)
-                return Response(
-                    {'error': f'Too many failed attempts. Account locked for {lockout_mins} minutes.'},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                )
-            
-            user.save(update_fields=['failed_login_attempts'])
-            log_audit(user, 'login_failed', f'Attempt {user.failed_login_attempts}', request)
+        except User.DoesNotExist:
+            log_audit(None, 'login_failed', f'Unknown login_id: {login_id}', request)
             return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        if not user.is_active:
-            return Response({'error': 'Account is disabled.'}, status=status.HTTP_403_FORBIDDEN)
-
-        # Success — reset counters and issue tokens
-        user.failed_login_attempts = 0
-        user.locked_until = None
-        user.save(update_fields=['failed_login_attempts', 'locked_until'])
 
         refresh = RefreshToken.for_user(user)
         log_audit(user, 'login_success', '', request)
 
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
+        response = Response({
             'user': UserSerializer(user).data,
         })
+        _set_auth_cookies(response, request, str(refresh.access_token), str(refresh))
+        return response
 
     @action(detail=False, methods=['post'], url_path='logout',
             permission_classes=[permissions.IsAuthenticated])
     def logout(self, request):
         try:
-            token = request.data.get('refresh')
+            token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
             if token:
                 RefreshToken(token).blacklist()
         except Exception:
             pass
         log_audit(request.user, 'logout', '', request)
-        return Response({'message': 'Logged out.'})
+        response = Response({'message': 'Logged out.'})
+        _delete_auth_cookies(response)
+        return response
 
     @action(detail=False, methods=['post'], url_path='change-password',
             permission_classes=[permissions.IsAuthenticated])
@@ -114,22 +174,45 @@ class AuthViewSet(viewsets.ViewSet):
 
         log_audit(user, 'password_changed', '', request)
         refresh = RefreshToken.for_user(user)
-        return Response({
+        response = Response({
             'message': 'Password changed successfully.',
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
         })
+        _set_auth_cookies(response, request, str(refresh.access_token), str(refresh))
+        return response
 
     @action(detail=False, methods=['post'], url_path='refresh')
     def refresh_token(self, request):
-        token = request.data.get('refresh')
+        token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
         if not token:
             return Response({'error': 'Refresh token required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             refresh = RefreshToken(token)
-            return Response({'access': str(refresh.access_token), 'refresh': str(refresh)})
+            data = {'access': str(refresh.access_token)}
+            
+            from rest_framework_simplejwt.settings import api_settings
+            
+            if api_settings.ROTATE_REFRESH_TOKENS:
+                if api_settings.BLACKLIST_AFTER_ROTATION:
+                    try:
+                        refresh.blacklist()
+                    except AttributeError:
+                        pass
+                
+                refresh.set_jti()
+                refresh.set_exp()
+                refresh.set_iat()
+                
+                data['refresh'] = str(refresh)
+            else:
+                data['refresh'] = str(refresh)
+                
+            response = Response({'status': 'refreshed'})
+            _set_auth_cookies(response, request, data['access'], data['refresh'])
+            return response
         except Exception:
-            return Response({'error': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
+            response = Response({'error': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
+            _delete_auth_cookies(response)
+            return response
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='forgot-password')
     def forgot_password(self, request):
@@ -144,12 +227,12 @@ class AuthViewSet(viewsets.ViewSet):
             user = User.objects.filter(Q(email__iexact=identity) | Q(login_id__iexact=identity)).first()
             
             if not user:
-                print(f"DEBUG: Forgot Password requested for '{identity}', but no matching user was found.")
+                logger.info("Forgot Password requested, but no matching user was found.")
                 return Response({'message': 'If an account exists with this identity, a reset link has been sent.'})
 
             if not user.email:
-                print(f"DEBUG: User '{user.login_id}' found, but has no email address.")
-                return Response({'error': 'This account does not have a registered email address. Please contact an admin.'}, status=status.HTTP_400_BAD_REQUEST)
+                logger.warning(f"User '{user.id}' found for forgot password, but has no email address.")
+                return Response({'message': 'If an account exists with this identity, a reset link has been sent.'})
 
             from django.contrib.auth.tokens import default_token_generator
             from django.utils.http import urlsafe_base64_encode
@@ -169,14 +252,14 @@ class AuthViewSet(viewsets.ViewSet):
             If you did not request this, please ignore this email.
             """
             
-            print(f"DEBUG: Attempting to send password reset email to: {user.email}")
+            logger.info(f"Attempting to send password reset email to user ID: {user.id}")
             from core.tasks import async_send_mail
             async_send_mail.delay(subject, message, [user.email], fail_silently=False)
-            print(f"DEBUG: Email queued successfully to {user.email}")
-            return Response({'message': 'Password reset link sent to your email.'})
+            logger.info(f"Email queued successfully for user ID: {user.id}")
+            return Response({'message': 'If an account exists with this identity, a reset link has been sent.'})
             
         except Exception as e:
-            print(f"DEBUG: Unexpected error in forgot_password: {str(e)}")
+            logger.exception("Unexpected error in forgot_password")
             return Response({'error': 'Something went wrong. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='reset-password-confirm')

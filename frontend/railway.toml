@@ -1,0 +1,7 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Nginx serves on port 80; Railway's PORT is mapped to it automatically
+startCommand = "nginx -g 'daemon off;'"

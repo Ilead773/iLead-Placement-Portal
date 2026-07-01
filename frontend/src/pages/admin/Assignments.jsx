@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { 
   CheckCircle2, 
   Clock, 
@@ -13,7 +13,12 @@ import {
   X, 
   Filter, 
   Trash, 
-  HelpCircle 
+  HelpCircle,
+  Upload,
+  Clipboard,
+  FileText,
+  Zap,
+  ChevronDown
 } from 'lucide-react';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
@@ -43,9 +48,18 @@ export default function Assignments() {
   const [filters, setFilters] = useState({ search: '', semester: '', year: '', category: '', status: '' });
   const [dueAt, setDueAt] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
   
   // Modal State for viewing student answers details
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+
+  // Import Modal State
+  const [importModal, setImportModal] = useState(false);
+  const [importTab, setImportTab] = useState('paste'); // 'paste' | 'csv'
+  const [pasteText, setPasteText] = useState('');
+  const [importPreview, setImportPreview] = useState([]);
+  const [importError, setImportError] = useState('');
+  const csvInputRef = useRef(null);
 
   const [form, setForm] = useState({
     course: '',
@@ -54,6 +68,140 @@ export default function Assignments() {
     duration_minutes: 30,
     questions: [emptyQuestion()],
   });
+
+  // ─── Paste & Parse Engine ──────────────────────────────────────────────────
+  // Accepts common formats:
+  // "1. Question text\nA) Opt1\nB) Opt2\nC) Opt3\nD) Opt4\nAnswer: A"
+  // "Q1. Question\na. opt\nb. opt\nCorrect: b"
+  // Also handles formats with or without letter prefixes.
+  const parsePastedText = (raw) => {
+    setImportError('');
+    const text = raw.trim();
+    if (!text) { setImportPreview([]); return; }
+
+    // Split on blank lines OR on lines that look like a new question start
+    const blocks = text
+      .replace(/\r\n/g, '\n')
+      .split(/\n{2,}|(?=\n\s*(?:q?\d+[.):]|question\s+\d+)\s+)/i)
+      .map(b => b.trim())
+      .filter(Boolean);
+
+    const parsed = [];
+
+    for (const block of blocks) {
+      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 3) continue;
+
+      // Detect question line (may start with "1.", "Q1.", "Question 1:", or be first line)
+      const qMatch = lines[0].match(/^(?:q(?:uestion)?\s*)?\d+[.):]?\s*(.+)/i);
+      const prompt = qMatch ? qMatch[1].trim() : lines[0].trim();
+
+      // Detect options lines: A) B) C) D) or a. b. c. d. or 1) 2) etc.
+      const optionPattern = /^\s*(?:[a-dA-D1-4][.):\s])\s*(.+)/;
+      const answerPattern = /^(?:answer|correct|ans|key)[:\s]+([a-dA-D1-4])/i;
+
+      const options = [];
+      let correct_option = 0;
+      let answerFound = false;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const ansMatch = line.match(answerPattern);
+        if (ansMatch) {
+          const key = ansMatch[1].toUpperCase();
+          const idx = ['A','B','C','D','1','2','3','4'].indexOf(key);
+          correct_option = idx >= 4 ? idx - 4 : Math.max(0, idx);
+          answerFound = true;
+          continue;
+        }
+        const optMatch = line.match(optionPattern);
+        if (optMatch) {
+          options.push(optMatch[1].trim());
+        } else if (options.length > 0 && !answerFound) {
+          // continuation of last option
+          options[options.length - 1] += ' ' + line;
+        }
+      }
+
+      if (prompt && options.length >= 2) {
+        parsed.push({
+          prompt,
+          options: options.slice(0, 4),
+          correct_option: Math.min(correct_option, options.length - 1),
+          points: 1,
+        });
+      }
+    }
+
+    if (parsed.length === 0) {
+      setImportError('Could not parse any questions. Check the format guide below.');
+    }
+    setImportPreview(parsed);
+  };
+
+  // ─── CSV Parser ────────────────────────────────────────────────────────────
+  // Expected columns: Question, OptionA, OptionB, OptionC, OptionD, Answer (A/B/C/D)
+  const parseCSV = (file) => {
+    setImportError('');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const rows = text.split(/\r?\n/).filter(Boolean);
+      if (rows.length < 2) { setImportError('CSV appears empty.'); return; }
+
+      // Detect delimiter
+      const delim = rows[0].includes('\t') ? '\t' : ',';
+      const headers = rows[0].split(delim).map(h => h.trim().toLowerCase().replace(/"|'/g, ''));
+
+      const qi = headers.findIndex(h => h.includes('question') || h === 'q');
+      const ai = headers.findIndex(h => h === 'optiona' || h === 'a' || h === 'option a' || h === 'option_a');
+      const bi = headers.findIndex(h => h === 'optionb' || h === 'b' || h === 'option b' || h === 'option_b');
+      const ci = headers.findIndex(h => h === 'optionc' || h === 'c' || h === 'option c' || h === 'option_c');
+      const di = headers.findIndex(h => h === 'optiond' || h === 'd' || h === 'option d' || h === 'option_d');
+      const ansi = headers.findIndex(h => h.includes('answer') || h.includes('correct') || h.includes('key'));
+
+      if (qi === -1 || ai === -1 || bi === -1) {
+        setImportError('CSV must have columns: Question, OptionA, OptionB, OptionC, OptionD, Answer');
+        return;
+      }
+
+      const parsed = [];
+      for (let r = 1; r < rows.length; r++) {
+        const cols = rows[r].split(delim).map(c => c.trim().replace(/^"|"$/g, ''));
+        if (!cols[qi]) continue;
+        const opts = [cols[ai], cols[bi], ci !== -1 ? cols[ci] : '', di !== -1 ? cols[di] : ''].filter(Boolean);
+        let correct_option = 0;
+        if (ansi !== -1 && cols[ansi]) {
+          const key = cols[ansi].trim().toUpperCase();
+          const idx = ['A','B','C','D'].indexOf(key);
+          correct_option = idx >= 0 ? idx : 0;
+        }
+        if (opts.length >= 2) {
+          parsed.push({ prompt: cols[qi], options: opts, correct_option, points: 1 });
+        }
+      }
+
+      if (parsed.length === 0) { setImportError('No valid rows found in CSV.'); return; }
+      setImportPreview(parsed);
+    };
+    reader.readAsText(file);
+  };
+
+  const applyImport = () => {
+    if (!importPreview.length) return;
+    setForm(prev => ({
+      ...prev,
+      questions: [
+        ...prev.questions.filter(q => q.prompt.trim()),  // keep existing non-empty
+        ...importPreview,
+      ],
+    }));
+    setImportModal(false);
+    setPasteText('');
+    setImportPreview([]);
+    setImportError('');
+    toast.success(`${importPreview.length} question(s) imported successfully!`);
+  };
 
   const loadCourses = async () => {
     try {
@@ -98,15 +246,23 @@ export default function Assignments() {
   };
 
   const loadResults = async () => {
+    // Don't fire if no assignment is selected — would dump entire DB
+    if (!selectedAssignment) {
+      setResults([]);
+      return;
+    }
+    setResultsLoading(true);
     try {
       const params = {
         course: selectedCourse || undefined,
-        assignment_id: selectedAssignment || undefined,
+        assignment_id: selectedAssignment,
       };
       const { data } = await api.get('/learning-assignments/results/', { params });
       setResults(data || []);
     } catch (err) {
       toast.error('Could not load results.');
+    } finally {
+      setResultsLoading(false);
     }
   };
 
@@ -126,8 +282,10 @@ export default function Assignments() {
   }, [selectedCourse, filters.search, filters.semester, filters.year, filters.category]);
 
   useEffect(() => {
-    if (activeTab === 'results') {
+    if (activeTab === 'results' && selectedAssignment) {
       loadResults();
+    } else if (activeTab === 'results' && !selectedAssignment) {
+      setResults([]);
     }
   }, [activeTab, selectedCourse, selectedAssignment]);
 
@@ -233,12 +391,13 @@ export default function Assignments() {
     }
   };
 
-  const sendAssignment = async () => {
-    if (!selectedAssignment || !selectedStudents.length) return;
+  const sendAssignment = async (overrideIds = null) => {
+    const studentIds = overrideIds ?? selectedStudents;
+    if (!selectedAssignment || !studentIds.length) return;
     try {
       const { data } = await api.post('/learning-assignments/assign/', {
         assignment_id: selectedAssignment,
-        student_ids: selectedStudents,
+        student_ids: studentIds,
         due_at: dueAt || null,
       });
       
@@ -259,6 +418,25 @@ export default function Assignments() {
       loadResults();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not send assignment.');
+    }
+  };
+
+  // One-click: load ALL students in the course and deploy immediately
+  const deployToAllCourse = async () => {
+    if (!selectedAssignment || !selectedCourse) return;
+    try {
+      // Fetch all students in the course (no filters, no cap — pass large limit)
+      const { data: allStudents } = await api.get('/learning-assignments/students/', {
+        params: { course: selectedCourse },
+      });
+      if (!allStudents?.length) {
+        toast.error(`No students found in ${selectedCourse}.`);
+        return;
+      }
+      const allIds = allStudents.map((s) => s.id);
+      await sendAssignment(allIds);
+    } catch (err) {
+      toast.error('Could not fetch students for bulk deploy.');
     }
   };
 
@@ -354,17 +532,51 @@ export default function Assignments() {
       {activeTab === 'build' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
           <div className="card" style={{ padding: 28, border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 16 }}>
-              <div style={{ padding: 8, borderRadius: 8, background: 'rgba(37, 99, 235, 0.08)', color: 'var(--accent-primary)' }}>
-                <FilePlus2 size={20} />
+
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ padding: 8, borderRadius: 8, background: 'rgba(37, 99, 235, 0.08)', color: 'var(--accent-primary)' }}>
+                  <FilePlus2 size={20} />
+                </div>
+                <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem' }}>Create Question Bank Assessment</h3>
               </div>
-              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem' }}>Create Question Bank Assessment</h3>
+              {/* ── Import Shortcut Button ── */}
+              <button
+                className="btn btn-secondary"
+                onClick={() => { setImportModal(true); setImportTab('paste'); setImportPreview([]); setImportError(''); setPasteText(''); }}
+                style={{ borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, border: '1.5px dashed var(--accent-primary)', color: 'var(--accent-primary)', background: 'rgba(37,99,235,0.04)' }}
+              >
+                <Zap size={16} /> Bulk Import Questions
+              </button>
             </div>
 
+            {/* ── Meta fields ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 }}>
               <label>
                 <span style={{ display: 'block', marginBottom: 6, fontWeight: 700 }}>Course Category</span>
-                <input className="input-field" placeholder="e.g. BBA, BCA, MBA" value={form.course} onChange={(event) => setForm((prev) => ({ ...prev, course: event.target.value }))} />
+                {/* Smart combo: pick existing or type new */}
+                <div style={{ position: 'relative' }}>
+                  <select
+                    className="input-field"
+                    style={{ appearance: 'none', paddingRight: 32 }}
+                    value={courses.includes(form.course) ? form.course : '__new__'}
+                    onChange={(e) => {
+                      if (e.target.value !== '__new__') setForm(prev => ({ ...prev, course: e.target.value }));
+                    }}
+                  >
+                    <option value="__new__">+ Type a new course below</option>
+                    {courses.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+                </div>
+                <input
+                  className="input-field"
+                  style={{ marginTop: 8 }}
+                  placeholder="Type new course name (e.g. BCA, MBA)…"
+                  value={form.course}
+                  onChange={(e) => setForm(prev => ({ ...prev, course: e.target.value }))}
+                />
               </label>
               <label>
                 <span style={{ display: 'block', marginBottom: 6, fontWeight: 700 }}>Assignment Title</span>
@@ -381,7 +593,24 @@ export default function Assignments() {
               <textarea className="input-field" style={{ minHeight: 70 }} placeholder="Assessment details, rules, and notes for student preview." value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} />
             </label>
 
-            {/* Questions Builder Grid */}
+            {/* ── Questions count banner ── */}
+            {form.questions.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '10px 16px', background: 'rgba(37,99,235,0.04)', borderRadius: 8, border: '1px solid rgba(37,99,235,0.12)' }}>
+                <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
+                  <ClipboardList size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'middle' }} />
+                  {form.questions.filter(q => q.prompt.trim()).length} / {form.questions.length} question(s) filled
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.78rem', padding: '4px 10px', borderRadius: 6, color: 'var(--danger)' }}
+                  onClick={() => setForm(prev => ({ ...prev, questions: [emptyQuestion()] }))}
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+
+            {/* ── Questions Builder Grid ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {form.questions.map((question, questionIndex) => (
                 <div 
@@ -401,7 +630,6 @@ export default function Assignments() {
                     <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
                       Question #{questionIndex + 1}
                     </h4>
-                    
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.88rem' }}>
                         <span style={{ fontWeight: 600 }}>Points:</span>
@@ -414,7 +642,6 @@ export default function Assignments() {
                           onChange={(event) => updateQuestion(questionIndex, { points: Number(event.target.value) })} 
                         />
                       </label>
-
                       {form.questions.length > 1 && (
                         <button 
                           className="btn btn-secondary" 
@@ -452,7 +679,6 @@ export default function Assignments() {
                             borderRadius: 8
                           }}
                         >
-                          {/* Radio Selector for Correct Answer */}
                           <input 
                             type="radio" 
                             name={`correct-key-${questionIndex}`} 
@@ -468,9 +694,7 @@ export default function Assignments() {
                             onChange={(event) => updateOption(questionIndex, optionIndex, event.target.value)} 
                           />
                           {isCorrect && (
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase' }}>
-                              Key
-                            </span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--success)', textTransform: 'uppercase' }}>Key</span>
                           )}
                         </div>
                       );
@@ -480,7 +704,7 @@ export default function Assignments() {
               ))}
             </div>
 
-            {/* Action Bar */}
+            {/* ── Action Bar ── */}
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginTop: 24, borderTop: '1px solid var(--border-color)', paddingTop: 20 }}>
               <button className="btn btn-secondary" style={{ borderRadius: 8 }} onClick={() => setForm((prev) => ({ ...prev, questions: [...prev.questions, emptyQuestion()] }))}>
                 <FilePlus2 size={16} /> Add Question Card
@@ -488,6 +712,202 @@ export default function Assignments() {
               <button className="btn btn-primary" style={{ borderRadius: 8, padding: '10px 24px', fontWeight: 700 }} onClick={createAssignment}>
                 Publish to Bank
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* BULK IMPORT MODAL                                             */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {importModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(9,9,11,0.65)', backdropFilter: 'blur(5px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setImportModal(false)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: 820, width: '100%', maxHeight: '92vh', overflowY: 'auto', padding: 0, border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)', borderRadius: 16 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '24px 28px 0', borderBottom: '1px solid var(--border-color)', paddingBottom: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ padding: 8, borderRadius: 8, background: 'rgba(37,99,235,0.08)', color: 'var(--accent-primary)' }}>
+                    <Zap size={20} />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem' }}>Bulk Import Questions</h2>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>Import from pasted text or a CSV/Excel file — no manual typing needed.</p>
+                  </div>
+                </div>
+                <button onClick={() => setImportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}>
+                  <X size={22} />
+                </button>
+              </div>
+
+              {/* Tab switcher */}
+              <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-color)' }}>
+                {[['paste', Clipboard, 'Paste Text'], ['csv', FileText, 'Upload CSV']].map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setImportTab(key); setImportPreview([]); setImportError(''); }}
+                    style={{
+                      padding: '10px 20px',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      color: importTab === key ? 'var(--accent-primary)' : 'var(--text-muted)',
+                      borderBottom: importTab === key ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                      marginBottom: -2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 7,
+                    }}
+                  >
+                    <Icon size={15} /> {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ padding: 28 }}>
+
+              {/* ── PASTE TAB ── */}
+              {importTab === 'paste' && (
+                <div style={{ display: 'grid', gap: 20 }}>
+                  {/* Format Guide */}
+                  <div style={{ background: 'var(--bg-body)', border: '1px dashed var(--border-color)', borderRadius: 10, padding: 16, fontSize: '0.85rem' }}>
+                    <p style={{ margin: '0 0 10px 0', fontWeight: 700, color: 'var(--text-secondary)' }}>📋 Supported Format (copy from WhatsApp, Word, or Google Docs):</p>
+                    <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{`1. What is the capital of India?
+A) Mumbai
+B) New Delhi
+C) Chennai
+D) Kolkata
+Answer: B
+
+2. Which language runs in a web browser?
+A) Java
+B) C++
+C) Python
+D) JavaScript
+Answer: D`}</pre>
+                    <p style={{ margin: '10px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>✅ Questions separated by blank lines &nbsp;•&nbsp; Options labeled A) B) C) D) or a. b. c. d. &nbsp;•&nbsp; Answer line: "Answer: B" or "Correct: B"</p>
+                  </div>
+
+                  <label>
+                    <span style={{ display: 'block', marginBottom: 8, fontWeight: 700 }}>Paste your questions here:</span>
+                    <textarea
+                      className="input-field"
+                      rows={14}
+                      style={{ fontFamily: 'monospace', fontSize: '0.88rem', lineHeight: 1.7, resize: 'vertical' }}
+                      placeholder={`1. What is Python?\nA) A programming language\nB) A snake\nC) A fruit\nD) A database\nAnswer: A\n\n2. Next question here...`}
+                      value={pasteText}
+                      onChange={e => { setPasteText(e.target.value); parsePastedText(e.target.value); }}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* ── CSV TAB ── */}
+              {importTab === 'csv' && (
+                <div style={{ display: 'grid', gap: 20 }}>
+                  {/* Column guide */}
+                  <div style={{ background: 'var(--bg-body)', border: '1px dashed var(--border-color)', borderRadius: 10, padding: 16, fontSize: '0.85rem' }}>
+                    <p style={{ margin: '0 0 10px 0', fontWeight: 700, color: 'var(--text-secondary)' }}>📁 Required CSV Columns (header row mandatory):</p>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', fontSize: '0.82rem', width: '100%' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-card)' }}>
+                            {['Question', 'OptionA', 'OptionB', 'OptionC', 'OptionD', 'Answer'].map(h => (
+                              <th key={h} style={{ padding: '6px 12px', border: '1px solid var(--border-color)', fontWeight: 800 }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>What is Python?</td>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>A language</td>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>A snake</td>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>A fruit</td>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>A database</td>
+                            <td style={{ padding: '6px 12px', border: '1px solid var(--border-color)', fontWeight: 700, color: 'var(--success)' }}>A</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p style={{ margin: '10px 0 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>✅ OptionC and OptionD are optional &nbsp;•&nbsp; Answer must be A, B, C, or D &nbsp;•&nbsp; Save Excel as .csv before uploading</p>
+                  </div>
+
+                  <div
+                    style={{ border: '2px dashed var(--border-color)', borderRadius: 12, padding: '40px 24px', textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                    onClick={() => csvInputRef.current?.click()}
+                    onDragOver={e => { e.preventDefault(); }}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) parseCSV(f); }}
+                  >
+                    <Upload size={40} style={{ color: 'var(--accent-primary)', opacity: 0.6, marginBottom: 12 }} />
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: '1rem' }}>Click to choose CSV file or drag & drop here</p>
+                    <p style={{ margin: '6px 0 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Supports .csv and tab-separated .txt files</p>
+                    <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) parseCSV(e.target.files[0]); }} />
+                  </div>
+                </div>
+              )}
+
+              {/* ── Error ── */}
+              {importError && (
+                <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, color: 'var(--danger)', fontWeight: 600, fontSize: '0.88rem' }}>
+                  ⚠️ {importError}
+                </div>
+              )}
+
+              {/* ── Preview ── */}
+              {importPreview.length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+                      <Check size={16} style={{ color: 'var(--success)', display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                      {importPreview.length} question(s) detected — preview:
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: 280, overflowY: 'auto', display: 'grid', gap: 10 }}>
+                    {importPreview.map((q, i) => (
+                      <div key={i} style={{ padding: 14, borderRadius: 10, border: '1px solid var(--border-color)', background: 'var(--bg-body)', fontSize: '0.88rem' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 8 }}>{i + 1}. {q.prompt}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                          {q.options.map((opt, oi) => (
+                            <div key={oi} style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              border: oi === q.correct_option ? '1.5px solid var(--success)' : '1px solid var(--border-color)',
+                              color: oi === q.correct_option ? 'var(--success)' : 'var(--text-secondary)',
+                              fontWeight: oi === q.correct_option ? 700 : 400,
+                              background: oi === q.correct_option ? 'rgba(16,185,129,0.04)' : 'transparent',
+                            }}>
+                              {['A','B','C','D'][oi]}. {opt} {oi === q.correct_option ? '✓' : ''}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Footer Actions ── */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24, borderTop: '1px solid var(--border-color)', paddingTop: 20 }}>
+                <button className="btn btn-secondary" style={{ borderRadius: 8 }} onClick={() => setImportModal(false)}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  style={{ borderRadius: 8, padding: '10px 24px', fontWeight: 700 }}
+                  disabled={importPreview.length === 0}
+                  onClick={applyImport}
+                >
+                  <Zap size={16} /> Add {importPreview.length} Question{importPreview.length !== 1 ? 's' : ''} to Form
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -632,18 +1052,38 @@ export default function Assignments() {
                     Target assessment: <span style={{ color: 'var(--accent-primary)' }}>{selectedAssignmentObj?.title}</span>
                   </div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: 2 }}>
-                    <strong>{selectedStudents.length}</strong> student(s) selected from <strong>{selectedCourse}</strong> course.
+                    <strong>{selectedStudents.length}</strong> of <strong>{students.length}</strong> student(s) selected from <strong>{selectedCourse}</strong>.
                   </div>
                 </div>
-                
-                <button 
-                  className="btn btn-primary" 
-                  disabled={!selectedAssignment || !selectedStudents.length} 
-                  onClick={sendAssignment}
-                  style={{ borderRadius: 8, padding: '12px 24px', fontWeight: 700 }}
-                >
-                  <Send size={16} /> Deploy Assessment
-                </button>
+
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {/* Manual selection deploy */}
+                  <button
+                    className="btn btn-secondary"
+                    disabled={!selectedAssignment || !selectedStudents.length}
+                    onClick={() => sendAssignment()}
+                    style={{ borderRadius: 8, padding: '12px 20px', fontWeight: 700 }}
+                  >
+                    <Send size={15} /> Deploy Selected ({selectedStudents.length})
+                  </button>
+
+                  {/* One-click bulk deploy */}
+                  <button
+                    className="btn btn-primary"
+                    disabled={!selectedAssignment || !selectedCourse || !students.length}
+                    onClick={deployToAllCourse}
+                    style={{
+                      borderRadius: 8,
+                      padding: '12px 24px',
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                      border: 'none',
+                      boxShadow: '0 4px 14px rgba(124,58,237,0.35)'
+                    }}
+                  >
+                    <Zap size={16} /> Deploy to All {selectedCourse} Students ({students.length})
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -655,13 +1095,30 @@ export default function Assignments() {
       {/* ──────────────────────────────────────────────────────────── */}
       {activeTab === 'results' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          
+
+          {/* If no assignment selected: show a prompt instead of bad data */}
+          {!selectedAssignment ? (
+            <div className="card" style={{ textAlign: 'center', padding: '64px 24px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <ClipboardList size={48} style={{ opacity: 0.5, color: 'var(--accent-primary)' }} />
+              <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem' }}>Select an Assignment to View Results</h3>
+              <p style={{ color: 'var(--text-muted)', maxWidth: 400, margin: 0, fontSize: '0.95rem', lineHeight: 1.5 }}>
+                Pick a course and an assignment template from the filter bar above to load student performance data.
+              </p>
+            </div>
+          ) : resultsLoading ? (
+            <div className="card" style={{ textAlign: 'center', padding: '64px 24px', border: '1px solid var(--border-color)' }}>
+              <div className="spinner" style={{ margin: '0 auto 16px' }} />
+              <p style={{ color: 'var(--text-muted)', margin: 0 }}>Loading results for <strong>{selectedAssignmentObj?.title}</strong>…</p>
+            </div>
+          ) : (
+            <>
           {/* Header Row with Filter Alignments */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 4 }}>
             <div>
               <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem' }}>Performance Summary</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 2 }}>
-                Global metrics for {selectedAssignmentObj?.title || 'Selected Assessment'}
+                Results for: <strong>{selectedAssignmentObj?.title}</strong>
+                {selectedCourse && <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(37,99,235,0.08)', color: 'var(--accent-primary)', fontWeight: 700, fontSize: '0.78rem' }}>{selectedCourse}</span>}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -673,7 +1130,7 @@ export default function Assignments() {
                 onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
               >
                 <option value="">All statuses</option>
-                <option value="assigned">Assigned</option>
+                <option value="assigned">Assigned (Pending)</option>
                 <option value="submitted">Submitted</option>
                 <option value="expired">Expired</option>
               </select>
@@ -682,21 +1139,14 @@ export default function Assignments() {
 
           {/* KPI Dashboard Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 8 }}>
-            {/* Assigned Card */}
-            <div className="card" style={{ 
-              padding: 24, 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
+            {/* Total assigned */}
+            <div className="card" style={{ padding: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Assigned Exam Sheets</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Total Students Assigned</span>
                 <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{stats.total}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>100% of target students</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                  {stats.total - stats.submitted} still pending
+                </span>
               </div>
               <div style={{ 
                 width: 48, 
@@ -793,18 +1243,18 @@ export default function Assignments() {
             </div>
           </div>
 
-          {/* Submissions directory table */}
+          {/* Submissions table */}
           <div className="table-container" style={{ border: '1px solid var(--border-color)', borderRadius: 12 }}>
             <table>
               <thead>
                 <tr>
-                  <th>Student Details</th>
-                  <th>Registration No</th>
-                  <th>Course Category</th>
-                  <th>Assessment Title</th>
-                  <th>State Status</th>
-                  <th>Exam Score</th>
-                  <th>Completion Timestamp</th>
+                  <th>Student</th>
+                  <th>Reg No</th>
+                  <th>Course</th>
+                  <th>Assessment</th>
+                  <th>Status</th>
+                  <th>Score</th>
+                  <th>Submitted At</th>
                 </tr>
               </thead>
               <tbody>
@@ -815,41 +1265,43 @@ export default function Assignments() {
                       if (row.status === 'submitted') {
                         setSelectedSubmission(row);
                       } else {
-                        toast.error("This student hasn't submitted their answers yet.");
+                        toast.error("This student hasn't submitted yet.");
                       }
                     }}
                     style={{ cursor: row.status === 'submitted' ? 'pointer' : 'default' }}
-                    className={row.status === 'submitted' ? "hover-row" : ""}
+                    className={row.status === 'submitted' ? 'hover-row' : ''}
                   >
                     <td style={{ fontWeight: 700 }}>{row.student_name}</td>
                     <td>{row.student_reg}</td>
                     <td>{row.student_course || row.course || '-'}</td>
-                    <td>{row.assignment_title}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{row.assignment_title}</td>
                     <td>
                       <span className={`badge ${badgeClass[row.status] || 'badge-neutral'}`} style={{ textTransform: 'capitalize' }}>
-                        {row.status}
+                        {row.status === 'assigned' ? 'Pending' : row.status}
                       </span>
                     </td>
                     <td style={{ fontWeight: 600 }}>
                       {row.score != null ? (
-                        <span style={{ color: 'var(--accent-primary)' }}>
-                          {row.score} / {row.total_points} ({row.percentage}%)
+                        <span style={{ color: row.percentage >= 50 ? 'var(--success)' : 'var(--danger)' }}>
+                          {row.score}/{row.total_points} ({row.percentage}%)
                         </span>
                       ) : '-'}
                     </td>
-                    <td>{row.submitted_at ? new Date(row.submitted_at).toLocaleString() : '-'}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{row.submitted_at ? new Date(row.submitted_at).toLocaleString() : '-'}</td>
                   </tr>
                 ))}
-                {results.length === 0 && (
+                {filteredResults.length === 0 && (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                      No results or assignment logs matching filters.
+                      {filters.status ? `No students with status "${filters.status}" for this assessment.` : 'No records found for this assessment.'}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+          </>
+          )}
         </div>
       )}
 

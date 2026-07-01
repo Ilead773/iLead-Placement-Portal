@@ -172,29 +172,17 @@ class LearningAssignmentAdminViewSet(viewsets.ViewSet):
         for student_id in serializer.validated_data['student_ids']:
             existing = StudentLearningAssignment.objects.filter(
                 assignment=assignment,
-                student_id=student_id
+                student_id=student_id,
+                status='assigned'
             ).first()
 
             if existing:
-                if existing.status in ['submitted', 'expired']:
-                    with transaction.atomic():
-                        # Delete existing answers to reset the assignment attempt
-                        existing.answers.all().delete()
-                        existing.status = 'assigned'
-                        existing.score = None
-                        existing.submitted_at = None
-                        existing.due_at = serializer.validated_data.get('due_at')
-                        existing.assigned_by = request.user
-                        existing.total_points = question_total
-                        existing.save()
-                    reset += 1
-                else:
-                    # Assignment is in 'assigned' status. Just update its due_at deadline.
-                    existing.due_at = serializer.validated_data.get('due_at')
-                    existing.assigned_by = request.user
-                    existing.total_points = question_total
-                    existing.save()
-                    updated += 1
+                # Assignment is in 'assigned' status. Just update its due_at deadline.
+                existing.due_at = serializer.validated_data.get('due_at')
+                existing.assigned_by = request.user
+                existing.total_points = question_total
+                existing.save()
+                updated += 1
             else:
                 try:
                     StudentLearningAssignment.objects.create(

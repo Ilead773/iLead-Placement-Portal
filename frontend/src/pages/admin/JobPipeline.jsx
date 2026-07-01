@@ -91,6 +91,11 @@ export default function JobPipeline() {
     }
   }, [selectedJobId, fetchApplications]);
 
+  // Reset page to 1 when search text changes to prevent pagination empty states
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchApplications(selectedJobId);
@@ -128,25 +133,23 @@ export default function JobPipeline() {
     }
   };
 
-  // 5. Bulk status updates
+  // 5. Bulk status updates (Single Atomic Request)
   const handleBulkUpdate = async (newStatus) => {
     if (selectedAppIds.length === 0) return;
     const toastId = toast.loading(`Updating ${selectedAppIds.length} candidates...`);
     try {
-      await Promise.all(
-        selectedAppIds.map(appId => 
-          axios.patch(`/applications/admin/applications/${appId}/`, { status: newStatus })
-        )
-      );
+      await axios.post('/applications/admin/applications/bulk-update-status/', {
+        application_ids: selectedAppIds,
+        status: newStatus
+      });
       toast.success(`Successfully updated ${selectedAppIds.length} candidates to ${newStatus}`, { id: toastId });
       setSelectedAppIds([]);
       fetchApplications(selectedJobId);
     } catch (err) {
       console.error(err);
-      const errMsg = err.response?.data?.status?.[0] || 
-                     err.response?.data?.non_field_errors?.[0] || 
-                     err.response?.data?.error || 
-                     'Bulk update failed. Some statuses might not have updated.';
+      const errMsg = err.response?.data?.error || 
+                     err.response?.data?.detail || 
+                     'Bulk update failed.';
       toast.error(errMsg, { id: toastId });
     }
   };
@@ -183,17 +186,16 @@ export default function JobPipeline() {
     }
     const toastId = toast.loading(`Deleting ${selectedAppIds.length} applications...`);
     try {
-      await Promise.all(
-        selectedAppIds.map(appId => 
-          axios.delete(`/applications/admin/applications/${appId}/`)
-        )
-      );
+      await axios.post('/applications/admin/applications/bulk-delete/', {
+        application_ids: selectedAppIds
+      });
       toast.success(`Successfully deleted ${selectedAppIds.length} applications`, { id: toastId });
       setSelectedAppIds([]);
       fetchApplications(selectedJobId);
     } catch (err) {
       console.error(err);
-      toast.error('Bulk deletion failed. Some applications might not have been deleted.', { id: toastId });
+      const errMsg = err.response?.data?.error || 'Bulk deletion failed.';
+      toast.error(errMsg, { id: toastId });
     }
   };
 
@@ -217,13 +219,9 @@ export default function JobPipeline() {
   // Filter out mismatched candidates from active tracking
   // NOTE: Always include placed (selected/accepted) students regardless of current eligibility,
   // since they have already been selected and must appear in the Placed tab.
+  // Keep all applications visible so coordinators can view and decline mismatch candidates
   const eligibleApplications = useMemo(() => {
-    return applications.filter(app =>
-      app.status === 'selected' ||
-      app.status === 'accepted' ||
-      app.job_type === 'external' ||
-      app.current_eligibility?.eligible !== false
-    );
+    return applications;
   }, [applications]);
 
   // Only count as mismatched if not already placed (selected/accepted students should never show as mismatched)
@@ -923,6 +921,7 @@ export default function JobPipeline() {
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
                     className="input-field pl-10 pr-10 py-3 text-sm"
+                    style={{ paddingLeft: '38px', paddingRight: '38px' }}
                   />
                   <div className="search-input-icon" style={{ left: 12 }}>
                     <Search size={14} />
@@ -943,7 +942,7 @@ export default function JobPipeline() {
                     value={selectedJobId}
                     onChange={(e) => setSelectedJobId(e.target.value)}
                     className="input-field pl-4 pr-10 py-3 text-sm font-semibold"
-                    style={{ appearance: 'none', cursor: 'pointer' }}
+                    style={{ appearance: 'none', cursor: 'pointer', paddingRight: '40px' }}
                   >
                     <option value="">-- Choose Listing ({filteredJobs.length} matches) --</option>
                     {filteredJobs.map(job => (
@@ -984,9 +983,9 @@ export default function JobPipeline() {
             <div className="mb-6 p-4 rounded-xl bg-warning/5 border border-warning/20 text-warning flex items-start gap-3 animate-in">
               <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-warning" />
               <div>
-                <h4 className="font-bold text-sm m-0 text-warning">Mismatched Candidates Hidden</h4>
+                <h4 className="font-bold text-sm m-0 text-warning">Mismatched Candidates Flagged</h4>
                 <p className="text-xs text-secondary mt-1 leading-relaxed">
-                  There are {mismatchedApplicationsCount} candidate(s) who no longer match the updated criteria for this job. They have been automatically filtered out of the active recruitment pipeline.
+                  There are {mismatchedApplicationsCount} candidate(s) who no longer match the updated criteria for this job. They are marked with a warning badge below.
                 </p>
               </div>
             </div>
@@ -1095,6 +1094,7 @@ export default function JobPipeline() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input-field pl-9 pr-4 py-2 bg-card border-border-color rounded-xl hover:border-[#2563eb]/50 focus:border-[#2563eb] transition-all w-full text-xs font-semibold shadow-inner"
+                style={{ paddingLeft: '36px' }}
               />
               {searchTerm && (
                 <button 
@@ -1233,8 +1233,27 @@ export default function JobPipeline() {
                                     {(app.student_name || 'C').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
-                                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{app.student_name}</div>
+                                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      {app.student_name}
+                                      {!isEligible && (
+                                        <span 
+                                          title={`Eligibility mismatch: ${app.current_eligibility?.failing_checks?.map(f => f.reason).join(', ')}`}
+                                          style={{ color: '#f59e0b', cursor: 'help' }}
+                                        >
+                                          <AlertTriangle size={13} />
+                                        </span>
+                                      )}
+                                    </div>
                                     <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Roll: {app.student_roll_number || 'N/A'}</div>
+                                    {!isEligible && app.current_eligibility?.failing_checks?.length > 0 && (
+                                      <div style={{ fontSize: '0.6rem', color: '#d97706', marginTop: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {app.current_eligibility.failing_checks.map((fc, idx) => (
+                                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <span>⚠️</span> {fc.reason}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>

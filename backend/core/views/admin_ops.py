@@ -261,3 +261,22 @@ class AdminOpsViewSet(viewsets.ViewSet):
             'click_id': str(click.id),
             'marked_selected_at': click.marked_selected_at,
         })
+
+
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from apps.observability.monitoring import health_check
+
+class HealthCheckView(APIView):
+    """
+    GET /api/v1/health/
+    Subsystem check: checks DB, cache/Redis, and Celery worker.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        status_info = health_check()
+        if status_info.get('status') == 'healthy':
+            return Response(status_info, status=status.HTTP_200_OK)
+        else:
+            return Response(status_info, status=status.HTTP_503_SERVICE_UNAVAILABLE)

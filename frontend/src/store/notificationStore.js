@@ -55,6 +55,7 @@ const useNotificationStore = create((set, get) => ({
   notifications: [],
   unreadCount: 0,
   pollingActive: false,
+  intervalId: null,
 
   fetchNotifications: async () => {
     try {
@@ -163,9 +164,24 @@ const useNotificationStore = create((set, get) => ({
     if (get().pollingActive) return;
     set({ pollingActive: true });
     get().fetchNotifications();
-    setInterval(() => {
+    const id = setInterval(() => {
+      // Check if user is still logged in before fetching
+      const hasSession = document.cookie.includes('has_session=true');
+      if (!hasSession) {
+        get().stopPolling();
+        return;
+      }
       get().fetchNotifications();
     }, 15000); // Poll every 15 seconds for real-time pipeline changes
+    set({ intervalId: id });
+  },
+
+  stopPolling: () => {
+    const id = get().intervalId;
+    if (id) {
+      clearInterval(id);
+    }
+    set({ pollingActive: false, intervalId: null, notifications: [], unreadCount: 0 });
   }
 }));
 

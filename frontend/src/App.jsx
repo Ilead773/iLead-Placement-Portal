@@ -43,44 +43,22 @@ import SendNotifications from './pages/admin/SendNotifications.jsx';
 import FAQ from './pages/FAQ.jsx';
 import SharedResumes from './pages/SharedResumes.jsx';
 import LinkedInScraper from './pages/admin/LinkedInScraper.jsx';
+import NorthStarRouter from './pages/north-star/NorthStarRouter';
+import StudentTakeTest from './pages/north-star/student/TakeTest.jsx';
+import AdminPlacementSessions from './pages/admin/PlacementSessions.jsx';
+import StudentPlacementSessions from './pages/student/PlacementSessions.jsx';
+
+import useThemeStore from './store/themeStore';
 
 export default function App() {
   const { initAuth, isAuthenticated, user, passwordChangeRequired } = useAuthStore();
+  const { initTheme } = useThemeStore();
   const [ready, setReady] = useState(false);
 
-  useEffect(() => { initAuth().finally(() => setReady(true)); }, [initAuth]);
-
   useEffect(() => {
-    if (ready && isAuthenticated && user) {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          const externalId = user.id ? user.id.toString() : user.email || user.login_id;
-          if (externalId) {
-            await OneSignal.login(externalId);
-            if (user.email) {
-              await OneSignal.User.setEmail(user.email);
-            }
-          }
-        } catch (err) {
-          console.error("OneSignal login error:", err);
-        }
-      });
-    } else if (ready && !isAuthenticated) {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          if (!OneSignal || typeof OneSignal.logout !== 'function') {
-            console.debug('OneSignal not ready — skipping logout');
-            return;
-          }
-          await OneSignal.logout();
-        } catch (err) {
-          console.error("OneSignal logout error:", err);
-        }
-      });
-    }
-  }, [isAuthenticated, user, ready]);
+    initTheme();
+    initAuth().finally(() => setReady(true));
+  }, [initAuth, initTheme]);
 
   if (!ready) return <div className="loading-screen"><div className="spinner" /><p style={{ color: 'var(--text-muted)' }}>Loading...</p></div>;
 
@@ -92,6 +70,12 @@ export default function App() {
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" replace />} />
         <Route path="/shared-resumes/:logId" element={<SharedResumes />} />
+
+        {/* Shared North Star Route */}
+        <Route element={<PrivateRoute roles={['admin', 'coordinator', 'student']}><Layout /></PrivateRoute>}>
+          <Route path="/north-star" element={<NorthStarRouter />} />
+          <Route path="/north_star" element={<NorthStarRouter />} />
+        </Route>
 
         {/* Admin / Coordinator */}
 
@@ -118,6 +102,7 @@ export default function App() {
           <Route path="/admin/notifications" element={<SendNotifications />} />
           <Route path="/admin/inbox" element={<Notifications />} />
           <Route path="/admin/faq" element={<FAQ />} />
+          <Route path="/admin/sessions" element={<AdminPlacementSessions />} />
         </Route>
 
         {/* Student */}
@@ -133,8 +118,10 @@ export default function App() {
           <Route path="/student/applications/:id" element={<ApplicationDetail />} />
           <Route path="/student/mock-interview" element={<MockInterview />} />
           <Route path="/student/assignments" element={<StudentAssignments />} />
+          <Route path="/student/take-test/:assignmentId" element={<StudentTakeTest />} />
           <Route path="/student/notifications" element={<Notifications />} />
           <Route path="/student/faq" element={<FAQ />} />
+          <Route path="/student/sessions" element={<StudentPlacementSessions />} />
         </Route>
 
         <Route path="*" element={<Navigate to={isAuthenticated ? (user?.role === 'student' ? '/student' : '/dashboard') : '/login'} replace />} />

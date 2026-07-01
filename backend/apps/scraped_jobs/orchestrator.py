@@ -299,10 +299,55 @@ class ScrapingOrchestrator:
         return count
 
     def _cleanup_old_archive(self):
+        from django.conf import settings
+        import os
+        from django.core.serializers import serialize
+
         cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-        deleted_count, _ = ScrapedJob.objects.filter(scraped_at__lt=cutoff).delete()
-        if deleted_count:
+        old_jobs = ScrapedJob.objects.filter(scraped_at__lt=cutoff)
+        old_count = old_jobs.count()
+        if old_count == 0:
+            return
+
+        total_count = ScrapedJob.objects.count()
+
+        # Safety Check: If we're about to delete > 50% of the entire database,
+        # alert the admin and abort! (Indicates potential date corruption)
+        if total_count > 0 and (old_count / total_count) > 0.5:
+            logger.critical(
+                f"[Archive] SAFETY ABORT: Attempted to delete {old_count} jobs out of {total_count} total "
+                f"({(old_count/total_count)*100:.1f}%). This exceeds the 50% safety limit. "
+                f"Aborting deletion to prevent data loss."
+            )
+            self._send_alert(
+                subject="[CRITICAL ALERT] Scraped Jobs Archive Cleanup Aborted",
+                message=(
+                    f"The nightly archive cleanup task was safety-aborted.\n\n"
+                    f"Attempted to delete {old_count} old scraped jobs out of {total_count} total "
+                    f"({(old_count/total_count)*100:.1f}%), which exceeds the 50% safety threshold.\n\n"
+                    f"This may indicate corrupted job timestamps or database error. No files were deleted.\n"
+                    f"Please inspect the database immediately."
+                )
+            )
+            return
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = f"archive_backups/scraped_jobs_backup_{timestamp}.json"
+
+        try:
+            # Backup jobs to file
+            from django.core.files.storage import default_storage
+            from django.core.files.base import ContentFile
+            serialized_data = serialize('json', old_jobs)
+            
+            default_storage.save(backup_file, ContentFile(serialized_data.encode('utf-8')))
+            logger.info(f"[Archive] Successfully backed up {old_count} jobs via default_storage to {backup_file}")
+
+            # Perform hard delete
+            deleted_count, _ = old_jobs.delete()
             logger.info(f"[Archive] Hard-deleted {deleted_count} jobs > 90 days old.")
+        except Exception as e:
+            logger.error(f"[Archive] Failed to backup or clean up old jobs: {e}", exc_info=True)
 
     def _precompute_course_feed_caches(self, run_id):
         cutoff = datetime.now(timezone.utc) - timedelta(days=7)

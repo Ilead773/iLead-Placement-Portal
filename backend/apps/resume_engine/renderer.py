@@ -27,10 +27,8 @@ class ResumeRenderer:
             str — fully rendered HTML document
         """
         try:
+            logger.info("Rendering resume HTML")
             django_template = Template(template.html_template)
-            print(f"DEBUG RENDER: Rendering resume {canonical_json.get('personal', {}).get('name')}")
-            print(f"DEBUG RENDER: Summary length: {len(canonical_json.get('professional_summary', ''))}")
-            print(f"DEBUG RENDER: First 50 chars of summary: {canonical_json.get('professional_summary', '')[:50]}")
             
             context = Context({
                 'resume': canonical_json,
@@ -42,6 +40,9 @@ class ResumeRenderer:
                 'certifications': canonical_json.get('certifications', []),
                 'summary': canonical_json.get('professional_summary', ''),
                 'achievements': canonical_json.get('achievements', []),
+                'extra_curricular': canonical_json.get('extra_curricular', []),
+                'strengths': canonical_json.get('strengths', []),
+                'languages': canonical_json.get('languages', []),
             })
             body_html = django_template.render(context)
 

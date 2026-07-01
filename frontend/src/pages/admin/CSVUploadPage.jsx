@@ -9,6 +9,7 @@ export default function CSVUploadPage() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [toast, setToast] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedLogSummary, setSelectedLogSummary] = useState(null);
   const fileInputRef = useRef(null);
 
   const showToast = (msg, type = 'success') => {
@@ -47,6 +48,56 @@ export default function CSVUploadPage() {
     }
   };
 
+  const pollUploadStatus = (logId) => {
+    let intervalId = setInterval(async () => {
+      try {
+        const { data } = await api.get(`/students/upload-status/${logId}/`);
+        
+        if (data.status !== 'pending' && data.status !== 'processing') {
+          clearInterval(intervalId);
+          setUploading(false);
+          setUploadResult({ upload_log: data });
+          
+          if (data.status === 'success' || data.status === 'partial') {
+            showToast(`Import complete! ${data.successful_records} students processed.`);
+            fetchHistory();
+            
+            // Auto-download credentials Excel
+            if (data.credentials_excel) {
+              const byteCharacters = atob(data.credentials_excel);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `credentials_${Date.now()}.xlsx`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
+          } else {
+            showToast(data.error_details || 'CSV processing failed.', 'error');
+            fetchHistory();
+          }
+        } else {
+          setUploadResult({
+            upload_log: data,
+            is_polling: true
+          });
+        }
+      } catch (err) {
+        clearInterval(intervalId);
+        setUploading(false);
+        showToast('Error checking upload status.', 'error');
+      }
+    }, 2000);
+  };
+
   const processFile = async (file) => {
     if (!file.name.toLowerCase().endsWith('.csv')) {
       showToast('Please upload a valid .csv file.', 'error');
@@ -65,34 +116,11 @@ export default function CSVUploadPage() {
       });
       
       setUploadResult(data);
-      showToast(data.message);
-      fetchHistory();
-
-      // Auto-download credentials Excel
-      if (data.credentials_excel) {
-        const byteCharacters = atob(data.credentials_excel);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `credentials_${Date.now()}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+      showToast("CSV upload successful. Processing in background...");
+      pollUploadStatus(data.upload_log.id);
     } catch (err) {
       showToast(err.response?.data?.error || 'CSV upload failed.', 'error');
-    } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -106,7 +134,12 @@ export default function CSVUploadPage() {
       showToast(data.message, 'success');
       fetchHistory();
     } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to revert upload.', 'error');
+      if (err.response?.data?.blocked_students) {
+        const studentNames = err.response.data.blocked_students.map(s => `${s.name} (${s.reasons.join(', ')})`).join('\n');
+        alert(`Cannot revert this upload because the following students have active data:\n\n${studentNames}\n\nTo revert, you must delete their active applications/resumes first, or check their details.`);
+      } else {
+        showToast(err.response?.data?.error || 'Failed to revert upload.', 'error');
+      }
     }
   };
 
@@ -201,33 +234,113 @@ export default function CSVUploadPage() {
           {/* Results Area */}
           {uploadResult && uploadResult.upload_log && (
             <div style={{ marginTop: 24, padding: 20, borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-card-hover)' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.05rem', marginBottom: 16 }}>
-                {uploadResult.upload_log.status === 'failed' ? <XCircle size={20} color="var(--danger)" /> : <CheckCircle size={20} color="var(--success)" />}
-                Upload Complete
-              </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div style={{ padding: 12, borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)' }}>
-                  <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.successful_records}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Success</div>
-                </div>
-                <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)' }}>
-                  <div style={{ color: '#ef4444', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.failed_records}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Failed</div>
-                </div>
-                <div style={{ padding: 12, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)' }}>
-                  <div style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.total_records}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total</div>
-                </div>
-              </div>
+              {uploadResult.is_polling ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div className="spinner" style={{ width: 28, height: 28, border: '3px solid rgba(99, 102, 241, 0.1)', borderTop: '3px solid var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', flexShrink: 0, margin: 0 }} />
+                    <div style={{ flexGrow: 1 }}>
+                      <h3 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--text-primary)', fontWeight: 700 }}>
+                        {uploadResult.upload_log.status === 'pending' ? '⏳ Queued in Worker Queue...' : '⚡ Processing CSV...'}
+                      </h3>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                        Processed {uploadResult.upload_log.successful_records + uploadResult.upload_log.failed_records} of {uploadResult.upload_log.total_records || '?'} student records...
+                      </p>
+                    </div>
+                  </div>
 
-              {uploadResult.upload_log.error_details && (
-                <div style={{ background: 'rgba(239, 68, 68, 0.05)', padding: 12, borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <h4 style={{ fontSize: '0.85rem', color: '#ef4444', marginBottom: 8, fontWeight: 700 }}>Error Logs</h4>
-                  <pre style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxHeight: 150, overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
-                    {uploadResult.upload_log.error_details}
-                  </pre>
+                  {/* Real-time Progress Bar */}
+                  {uploadResult.upload_log.total_records > 0 && (
+                    <div style={{ width: '100%', height: 8, background: 'var(--bg-input)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                      <div 
+                        style={{ 
+                          height: '100%', 
+                          width: `${Math.min(100, Math.round(((uploadResult.upload_log.successful_records + uploadResult.upload_log.failed_records) / uploadResult.upload_log.total_records) * 100))}%`, 
+                          background: 'linear-gradient(90deg, var(--accent-primary) 0%, #a855f7 100%)', 
+                          borderRadius: 4, 
+                          transition: 'width 0.4s ease-out' 
+                        }} 
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div style={{ padding: 12, borderRadius: 8, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-color)', textAlign: 'center', minWidth: 80 }}>
+                      <div style={{ color: 'var(--text-primary)', fontSize: '1.3rem', fontWeight: 800 }}>{uploadResult.upload_log.total_records}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total</div>
+                    </div>
+                    <div style={{ padding: 12, borderRadius: 8, background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'center', minWidth: 80 }}>
+                      <div style={{ color: '#10b981', fontSize: '1.3rem', fontWeight: 800 }}>{uploadResult.upload_log.successful_records}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Success</div>
+                    </div>
+                    {uploadResult.upload_log.failed_records > 0 && (
+                      <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', textAlign: 'center', minWidth: 80 }}>
+                        <div style={{ color: '#ef4444', fontSize: '1.3rem', fontWeight: 800 }}>{uploadResult.upload_log.failed_records}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Failed</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Real-time console log details */}
+                  {uploadResult.upload_log.error_details && (
+                    <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)' }}>
+                      <h4 style={{ fontSize: '0.82rem', color: '#38bdf8', marginBottom: 8, fontWeight: 700, fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 6, margin: '0 0 8px 0' }}>
+                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', animation: 'pulse 1.5s infinite' }}></span>
+                        Live Processing Log (A-Z details)
+                      </h4>
+                      <pre 
+                        ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
+                        style={{ fontSize: '0.75rem', color: '#cbd5e1', maxHeight: 150, overflowY: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'Courier New, monospace', margin: 0, textAlign: 'left' }}
+                      >
+                        {uploadResult.upload_log.error_details}
+                      </pre>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.05rem', marginBottom: 16 }}>
+                    {uploadResult.upload_log.status === 'failed' ? <XCircle size={20} color="var(--danger)" /> : <CheckCircle size={20} color="var(--success)" />}
+                    Upload Status: <span style={{ textTransform: 'capitalize', color: uploadResult.upload_log.status === 'success' ? '#10b981' : uploadResult.upload_log.status === 'partial' ? '#f59e0b' : '#ef4444' }}>{uploadResult.upload_log.status}</span>
+                  </h3>
+                  
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                    <div style={{ padding: 12, borderRadius: 8, background: 'rgba(255, 255, 255, 0.05)', textAlign: 'center', minWidth: 80 }}>
+                      <div style={{ color: 'var(--text-primary)', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.total_records}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total</div>
+                    </div>
+                    {uploadResult.upload_log.created_count > 0 && (
+                      <div style={{ padding: 12, borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', textAlign: 'center', minWidth: 90 }}>
+                        <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.created_count}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>🆕 New Added</div>
+                      </div>
+                    )}
+                    {uploadResult.upload_log.updated_count > 0 && (
+                      <div style={{ padding: 12, borderRadius: 8, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)', textAlign: 'center', minWidth: 90 }}>
+                        <div style={{ color: '#818cf8', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.updated_count}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>✏️ Updated</div>
+                      </div>
+                    )}
+                    {uploadResult.upload_log.failed_records > 0 && (
+                      <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239,68,68,0.2)', textAlign: 'center', minWidth: 80 }}>
+                        <div style={{ color: '#ef4444', fontSize: '1.5rem', fontWeight: 800 }}>{uploadResult.upload_log.failed_records}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>❌ Failed</div>
+                      </div>
+                    )}
+                  </div>
+
+
+                  {uploadResult.upload_log.error_details && (
+                    <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)' }}>
+                      <h4 style={{ fontSize: '0.85rem', color: '#38bdf8', marginBottom: 8, fontWeight: 700, fontFamily: 'monospace', margin: '0 0 8px 0', textAlign: 'left' }}>Detailed Processing Log & Results</h4>
+                      <pre 
+                        ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
+                        style={{ fontSize: '0.75rem', color: '#cbd5e1', maxHeight: 180, overflowY: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'Courier New, monospace', margin: 0, textAlign: 'left' }}
+                      >
+                        {uploadResult.upload_log.error_details}
+                      </pre>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -316,8 +429,10 @@ export default function CSVUploadPage() {
                     <td>
                       <span className={`badge ${
                         log.status === 'success' ? 'badge-success' : 
-                        log.status === 'failed' ? 'badge-danger' : 
-                        log.status === 'reverted' ? 'badge-warning' : 'badge-warning'
+                        log.status === 'partial' ? 'badge-warning' : 
+                        log.status === 'reverted' ? 'badge-warning' : 
+                        log.status === 'pending' ? 'badge-info' : 
+                        log.status === 'processing' ? 'badge-info animate-pulse' : 'badge-danger'
                       }`} style={{ textTransform: 'capitalize' }}>
                         {log.status}
                       </span>
@@ -325,19 +440,29 @@ export default function CSVUploadPage() {
                     <td style={{ color: '#10b981', fontWeight: 600 }}>{log.successful_records}</td>
                     <td style={{ color: '#ef4444', fontWeight: 600 }}>{log.failed_records}</td>
                     <td>
-                      {log.status !== 'reverted' && log.status !== 'failed' && (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <button 
-                          onClick={() => handleRevert(log.id)}
-                          className="btn btn-danger btn-sm"
-                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem' }}
-                          title="Delete newly created students from this upload"
+                          onClick={() => setSelectedLogSummary(log)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer' }}
                         >
-                          <Trash2 size={14} /> Revert
+                          👁️ View Summary
                         </button>
-                      )}
-                      {log.status === 'reverted' && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Reverted</span>
-                      )}
+
+                        {log.status !== 'reverted' && log.status !== 'failed' && (
+                          <button 
+                            onClick={() => handleRevert(log.id)}
+                            className="btn btn-danger btn-sm"
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer' }}
+                            title="Delete newly created students from this upload"
+                          >
+                            <Trash2 size={14} /> Revert
+                          </button>
+                        )}
+                        {log.status === 'reverted' && (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Reverted</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -346,6 +471,90 @@ export default function CSVUploadPage() {
           </div>
         )}
       </div>
+
+         {selectedLogSummary && (
+        <div className="modal-overlay" onClick={() => setSelectedLogSummary(null)} style={{ zIndex: 1200 }}>
+          <div className="modal card animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 620, padding: 24 }}>
+            <div className="modal-header" style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>📊 Import Summary: {selectedLogSummary.file_name}</h3>
+              <button className="modal-close" onClick={() => setSelectedLogSummary(null)}>×</button>
+            </div>
+
+            {/* Status + timestamp */}
+            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                padding: '4px 14px', borderRadius: 20, fontSize: '0.82rem', fontWeight: 700,
+                background: selectedLogSummary.status === 'success' ? 'rgba(16,185,129,0.15)' : selectedLogSummary.status === 'partial' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)',
+                color: selectedLogSummary.status === 'success' ? '#10b981' : selectedLogSummary.status === 'partial' ? '#f59e0b' : '#ef4444',
+                border: `1px solid ${selectedLogSummary.status === 'success' ? 'rgba(16,185,129,0.3)' : selectedLogSummary.status === 'partial' ? 'rgba(245,158,11,0.3)' : 'rgba(239,68,68,0.3)'}`,
+              }}>
+                {selectedLogSummary.status === 'success' ? '✅ Success' : selectedLogSummary.status === 'partial' ? '⚠️ Partial' : '❌ Failed'}
+              </span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                {new Date(selectedLogSummary.uploaded_at).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Stat boxes */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div style={{ padding: '10px 18px', borderRadius: 10, background: 'var(--bg-input)', border: '1px solid var(--border-color)', textAlign: 'center', minWidth: 80 }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }}>{selectedLogSummary.total_records}</div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total</div>
+              </div>
+              {selectedLogSummary.created_count > 0 ? (
+                <div style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', textAlign: 'center', minWidth: 90 }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981' }}>{selectedLogSummary.created_count}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🆕 New Added</div>
+                </div>
+              ) : selectedLogSummary.successful_records > 0 && !selectedLogSummary.updated_count ? (
+                <div style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', textAlign: 'center', minWidth: 90 }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981' }}>{selectedLogSummary.successful_records}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✅ Processed</div>
+                </div>
+              ) : null}
+              {selectedLogSummary.updated_count > 0 && (
+                <div style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.3)', textAlign: 'center', minWidth: 90 }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#818cf8' }}>{selectedLogSummary.updated_count}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>✏️ Updated</div>
+                </div>
+              )}
+              {selectedLogSummary.failed_records > 0 && (
+                <div style={{ padding: '10px 18px', borderRadius: 10, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', textAlign: 'center', minWidth: 80 }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ef4444' }}>{selectedLogSummary.failed_records}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>❌ Failed</div>
+                </div>
+              )}
+            </div>
+
+            {/* Error details — strip the summary header, only show actual row errors */}
+            {(() => {
+              const details = selectedLogSummary.error_details || '';
+              const errIdx = details.indexOf('=== DETAILED ERRORS ===');
+              const errorBlock = errIdx !== -1 ? details.slice(errIdx + 23).trim() : '';
+              const isLegacyLog = selectedLogSummary.created_count === 0 && selectedLogSummary.updated_count === 0 && selectedLogSummary.successful_records > 0;
+              if (!errorBlock) {
+                return (
+                  <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.2)', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                    {isLegacyLog
+                      ? '📌 This import was processed before the new tracking was enabled. The New Added vs Updated breakdown is not available for older logs.'
+                      : '✅ No row-level errors — all records were imported cleanly.'}
+                  </div>
+                );
+              }
+              return (
+                <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155' }}>
+                  <h5 style={{ margin: '0 0 8px 0', fontSize: '0.82rem', color: '#f87171', fontWeight: 700, fontFamily: 'monospace' }}>
+                    ⚠️ Row-Level Errors ({selectedLogSummary.failed_records})
+                  </h5>
+                  <pre style={{ margin: 0, fontSize: '0.75rem', color: '#cbd5e1', maxHeight: 220, overflowY: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'Courier New, monospace', textAlign: 'left' }}>
+                    {errorBlock}
+                  </pre>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -11,9 +11,6 @@ urlpatterns = [
     path('sessions/', views.list_sessions, name='interview-sessions'),
     path('sessions/<uuid:session_id>/', views.session_detail, name='interview-session-detail'),
     path('sessions/<uuid:session_id>/abandon/', views.abandon_session, name='interview-session-abandon'),
-    path('gap-analysis/', views.run_gap_analysis, name='gap-analysis-create'),
-    path('gap-analysis/list/', views.list_gap_analyses, name='gap-analysis-list'),
-    path('gap-analysis/<uuid:analysis_id>/roadmap/', views.create_roadmap, name='gap-analysis-roadmap'),
-    path('roadmaps/', views.list_roadmaps, name='roadmap-list'),
     path('stats/', views.interview_stats, name='interview-stats'),
 ]
+

@@ -92,6 +92,7 @@ export default function StudentAssignments() {
   const answersRef = useRef({});
   const activeRef = useRef(null);
   const lastInfractionTime = useRef(0);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     answersRef.current = answers;
@@ -100,6 +101,15 @@ export default function StudentAssignments() {
   useEffect(() => {
     activeRef.current = active;
   }, [active]);
+
+  // ── localStorage auto-save: persist every answer click during the exam ──
+  useEffect(() => {
+    if (viewState === 'taking' && active?.id) {
+      try {
+        localStorage.setItem(`exam_draft_${active.id}`, JSON.stringify(answers));
+      } catch (_) {}
+    }
+  }, [answers, viewState, active?.id]);
 
   const loadAssignments = async () => {
     try {
@@ -122,11 +132,23 @@ export default function StudentAssignments() {
       const { data } = await api.get(`/me/learning-assignments/${id}/`);
       setActive(data);
       
-      // Load existing answers if any
+      // Load existing server-side answers
       const existing = {};
       (data.answers || []).forEach((answer) => {
         existing[answer.question] = answer.selected_option;
       });
+
+      // Merge with any localStorage draft (draft takes priority — it's more recent)
+      if (data.status === 'assigned') {
+        try {
+          const draft = localStorage.getItem(`exam_draft_${id}`);
+          if (draft) {
+            const parsed = JSON.parse(draft);
+            Object.assign(existing, parsed);
+          }
+        } catch (_) {}
+      }
+
       setAnswers(existing);
 
       if (targetState) {
@@ -196,6 +218,7 @@ export default function StudentAssignments() {
     if (viewState !== 'taking') return;
 
     const registerInfraction = () => {
+      if (isSubmittingRef.current) return;
       const now = Date.now();
       // Throttle infractions to 1.5 seconds to prevent multiple duplicate firings
       if (now - lastInfractionTime.current < 1500) return;
@@ -249,6 +272,8 @@ export default function StudentAssignments() {
     
     if (!currentActive) return;
 
+    isSubmittingRef.current = true;
+
     try {
       // Exit fullscreen mode
       if (document.fullscreenElement) {
@@ -259,6 +284,9 @@ export default function StudentAssignments() {
       const { data } = await api.post(`/me/learning-assignments/${currentActive.id}/submit/`, { 
         answers: currentAnswers 
       });
+
+      // ─ Clear the localStorage draft on successful submit ─
+      try { localStorage.removeItem(`exam_draft_${currentActive.id}`); } catch (_) {}
 
       if (infractionSub) {
         toast.error('Assignment automatically submitted due to security violations.', { duration: 5000 });
@@ -280,6 +308,7 @@ export default function StudentAssignments() {
     } finally {
       setLoading(false);
       setWarningVisible(false);
+      isSubmittingRef.current = false;
     }
   };
 

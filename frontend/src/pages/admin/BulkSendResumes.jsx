@@ -519,7 +519,7 @@ const BulkSendResumes = () => {
             <div style={{ position: 'relative', flex: 1.5 }}>
               <select 
                 className="input-field"
-                style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '600', borderRadius: '12px', border: '1px solid var(--border-color)', appearance: 'none', width: '100%' }}
+                style={{ padding: '12px 40px 12px 16px', fontSize: '13px', fontWeight: '600', borderRadius: '12px', border: '1px solid var(--border-color)', appearance: 'none', width: '100%' }}
                 value={selectedJobId}
                 onChange={(e) => setSelectedJobId(e.target.value)}
               >

@@ -1,1 +1,1 @@
-# apps/ — Domain-driven application package for the Resume Engine
+# Marks apps as a Python package for Django test discovery

@@ -83,6 +83,7 @@ export default function MockInterview() {
   const lastBlurWarningTime = useRef(0);
   const lastFaceWarningTime = useRef(0);
   const abandonSentRef = useRef(false);
+  const isCompletingRef = useRef(false);
 
   // Sync state to sessionStorage
   // Don't persist 'history' phase - it's a view-only state, always reset to 'setup' on reload
@@ -279,6 +280,7 @@ export default function MockInterview() {
 
   // Secure Fullscreen Launcher
   const launchSecureSession = () => {
+    isCompletingRef.current = false;
     const element = document.documentElement;
     if (element.requestFullscreen) {
       element.requestFullscreen().then(() => {
@@ -305,6 +307,7 @@ export default function MockInterview() {
       setIsFullscreen(isFull);
       
       if (!isFull) {
+        if (isCompletingRef.current) return;
         setProctorWarnings(w => {
           const nextW = w + 1;
           toast.error(`⚠️ Warning ${nextW} of 3: You left full screen! Please stay in full screen.`, {
@@ -329,6 +332,7 @@ export default function MockInterview() {
     if (phase !== 'active') return;
 
     const triggerBlurWarning = () => {
+      if (isCompletingRef.current) return;
       const now = Date.now();
       if (now - lastBlurWarningTime.current < 4000) return;
       lastBlurWarningTime.current = now;
@@ -365,6 +369,7 @@ export default function MockInterview() {
   // 3. Disqualification watchdog
   useEffect(() => {
     if (proctorWarnings >= 3 && phase === 'active') {
+      isCompletingRef.current = true;
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
@@ -384,7 +389,7 @@ export default function MockInterview() {
 
   // 4. Callback for MediaPipe Proctor events
   const handleProctorAlert = useCallback((type, message) => {
-    if (phase !== 'active') return;
+    if (phase !== 'active' || isCompletingRef.current) return;
     const now = Date.now();
     
     if (type === 'face_absent') {
@@ -432,6 +437,10 @@ export default function MockInterview() {
 
         if (data.interview_complete) {
           if (data.final_feedback) {
+            isCompletingRef.current = true;
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(() => {});
+            }
             setFinalFeedback(data.final_feedback);
             setPhase('feedback');
             toast.success('Interview complete!');
@@ -478,6 +487,10 @@ export default function MockInterview() {
   };
 
   const handleRetry = () => {
+    isCompletingRef.current = true;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
     // Clear all state in sessionStorage
     const keys = [
       'mi_phase', 'mi_selectedDomain', 'mi_selectedType', 'mi_useVoice',
@@ -521,6 +534,10 @@ export default function MockInterview() {
   };
 
   const handleShowHistory = () => {
+    isCompletingRef.current = true;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
     setPhase('history');
     fetchSessions();
     navigate('/student/mock-interview');

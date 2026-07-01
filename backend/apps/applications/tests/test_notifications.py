@@ -8,7 +8,7 @@ from apps.applications.tasks import send_notification_email, send_job_alert_task
 from model_bakery import baker
 from django.utils import timezone
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestNotificationEmailSignals:
     
     @patch('apps.applications.tasks.send_job_alert_task.delay')
@@ -112,8 +112,8 @@ class TestNotificationTasks:
         
         mock_send_email.assert_called_once_with(notification)
 
-    @patch('apps.applications.tasks.send_notification_email.delay')
-    def test_send_job_alert_task(self, mock_send_delay):
+    @patch('apps.applications.tasks.send_bulk_notification_emails.delay')
+    def test_send_job_alert_task(self, mock_bulk_send_delay):
         """
         Test the bulk job alert sender celery task.
         """
@@ -139,7 +139,7 @@ class TestNotificationTasks:
         
         # Clear out notifications first
         Notification.objects.all().delete()
-        mock_send_delay.reset_mock()
+        mock_bulk_send_delay.reset_mock()
         
         send_job_alert_task(job.id)
         
@@ -159,8 +159,11 @@ class TestNotificationTasks:
         assert "Frontend Engineer" in notif.message
         assert "6.5" in notif.message
         
-        # Verify Celery tasks were queued (should be called for each created notification)
-        assert mock_send_delay.call_count == 2
+        # Verify bulk send was queued once with the list of notification IDs
+        assert mock_bulk_send_delay.call_count == 1
+        called_args = mock_bulk_send_delay.call_args[0][0]
+        notification_ids = list(notifications.values_list('id', flat=True))
+        assert set(str(nid) for nid in notification_ids) == set(called_args)
 
 
 @pytest.mark.django_db
@@ -320,3 +323,110 @@ class TestApplicationStatusChangeNotifications:
         # Verify NO notification was sent
         notifications = Notification.objects.filter(user=student.user, notification_type='APPLICATION_UPDATE')
         assert notifications.count() == 0
+
+
+@pytest.mark.django_db
+class TestEmailRetryMechanism:
+    
+    @patch('core.tasks.async_send_mail.retry')
+    @patch('core.tasks.send_mail')
+    def test_async_send_mail_retries_on_failure(self, mock_send_mail, mock_retry):
+        from core.tasks import async_send_mail
+        from celery.exceptions import Retry
+        
+        # Make send_mail raise an error
+        mock_send_mail.side_effect = Exception("Brevo down")
+        # Mock retry to raise Retry exception to simulate celery behavior
+        mock_retry.side_effect = Retry("retry called", None)
+        
+        from django.conf import settings
+        original_eager = getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False)
+        try:
+            settings.CELERY_TASK_ALWAYS_EAGER = False
+            
+            with pytest.raises(Retry):
+                async_send_mail(
+                    subject="Test subject",
+                    message="Test message",
+                    recipient_list=["test@student.com"]
+                )
+            
+            # Assert retry was called
+            mock_retry.assert_called_once()
+        finally:
+            settings.CELERY_TASK_ALWAYS_EAGER = original_eager
+
+    @patch('core.tasks.async_send_mail.retry')
+    @patch('core.tasks.send_mail')
+    def test_async_send_mail_no_retry_on_config_error(self, mock_send_mail, mock_retry):
+        from core.tasks import async_send_mail
+        
+        mock_send_mail.side_effect = ValueError("Resend API key is not configured")
+        
+        from django.conf import settings
+        original_eager = getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False)
+        try:
+            settings.CELERY_TASK_ALWAYS_EAGER = False
+            
+            with pytest.raises(ValueError, match="API key"):
+                async_send_mail(
+                    subject="Test subject",
+                    message="Test message",
+                    recipient_list=["test@student.com"]
+                )
+            
+            # Assert retry was not called
+            mock_retry.assert_not_called()
+        finally:
+            settings.CELERY_TASK_ALWAYS_EAGER = original_eager
+
+    @patch('apps.applications.tasks.send_notification_email.retry')
+    @patch('apps.applications.tasks.send_email_for_notification_object')
+    def test_send_notification_email_retries_on_failure(self, mock_send_email_obj, mock_retry):
+        from apps.applications.tasks import send_notification_email
+        from celery.exceptions import Retry
+        
+        user = baker.make(User, email='test@test.com')
+        notification = baker.make(Notification, user=user)
+        
+        mock_send_email_obj.side_effect = Exception("Brevo Down")
+        mock_retry.side_effect = Retry("retry called", None)
+        
+        from django.conf import settings
+        original_eager = getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False)
+        try:
+            settings.CELERY_TASK_ALWAYS_EAGER = False
+            
+            with pytest.raises(Retry):
+                send_notification_email(notification.id)
+                
+            mock_retry.assert_called_once()
+        finally:
+            settings.CELERY_TASK_ALWAYS_EAGER = original_eager
+
+    @patch('apps.applications.tasks.send_bulk_notification_emails.retry')
+    @patch('apps.applications.tasks.get_connection')
+    def test_send_bulk_notification_emails_retries_on_failure(self, mock_get_connection, mock_retry):
+        from apps.applications.tasks import send_bulk_notification_emails
+        from celery.exceptions import Retry
+        
+        user = baker.make(User, email='test@test.com')
+        notification = baker.make(Notification, user=user)
+        
+        mock_conn = MagicMock()
+        mock_conn.send_messages.side_effect = Exception("Connection refused")
+        mock_get_connection.return_value = mock_conn
+        
+        mock_retry.side_effect = Retry("retry called", None)
+        
+        from django.conf import settings
+        original_eager = getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False)
+        try:
+            settings.CELERY_TASK_ALWAYS_EAGER = False
+            
+            with pytest.raises(Retry):
+                send_bulk_notification_emails([notification.id])
+                
+            mock_retry.assert_called_once()
+        finally:
+            settings.CELERY_TASK_ALWAYS_EAGER = original_eager

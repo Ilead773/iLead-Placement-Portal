@@ -61,6 +61,12 @@ class StudentProfile(SoftDeleteModel):
     github = models.URLField(blank=True, default='')
     portfolio = models.URLField(blank=True, default='')
 
+    # ─── Preferences ─────────────────────────────────────────────
+    email_job_alerts = models.BooleanField(
+        default=True,
+        help_text='Receive transactional email alerts for eligible jobs.',
+    )
+
     # ─── Completion Tracking ─────────────────────────────────────
     completion_score = models.FloatField(
         default=0.0,

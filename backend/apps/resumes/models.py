@@ -132,19 +132,21 @@ class BuiltResume(SoftDeleteModel):
 
     def set_as_primary(self):
         """Make this the primary resume, unsetting all others (built or uploaded)."""
-        BuiltResume.objects.filter(
-            student=self.student
-        ).exclude(id=self.id).update(is_primary=False)
-        
-        from .models import ResumeUpload
-        ResumeUpload.objects.filter(student=self.student).update(is_primary=False)
-        
-        self.is_primary = True
-        self.save(update_fields=['is_primary'])
+        from django.db import transaction
+        with transaction.atomic():
+            BuiltResume.objects.filter(
+                student=self.student
+            ).exclude(id=self.id).update(is_primary=False)
+            
+            from .models import ResumeUpload
+            ResumeUpload.objects.filter(student=self.student).update(is_primary=False)
+            
+            self.is_primary = True
+            self.save(update_fields=['is_primary'])
 
     def increment_download(self):
-        self.downloaded_count += 1
-        self.save(update_fields=['downloaded_count'])
+        BuiltResume.objects.filter(pk=self.pk).update(downloaded_count=models.F('downloaded_count') + 1)
+        self.refresh_from_db(fields=['downloaded_count'])
 
 
 class ResumeUpload(SoftDeleteModel):
@@ -199,12 +201,14 @@ class ResumeUpload(SoftDeleteModel):
 
     def set_as_primary(self):
         """Make this the primary resume, unsetting all others (built or uploaded)."""
-        ResumeUpload.objects.filter(
-            student=self.student
-        ).exclude(id=self.id).update(is_primary=False)
-        
-        from .models import BuiltResume
-        BuiltResume.objects.filter(student=self.student).update(is_primary=False)
-        
-        self.is_primary = True
-        self.save(update_fields=['is_primary'])
+        from django.db import transaction
+        with transaction.atomic():
+            ResumeUpload.objects.filter(
+                student=self.student
+            ).exclude(id=self.id).update(is_primary=False)
+            
+            from .models import BuiltResume
+            BuiltResume.objects.filter(student=self.student).update(is_primary=False)
+            
+            self.is_primary = True
+            self.save(update_fields=['is_primary'])

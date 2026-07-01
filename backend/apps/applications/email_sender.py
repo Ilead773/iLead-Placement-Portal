@@ -16,6 +16,7 @@ def build_resume_email(
     from_email: str = None,
     cc_emails: list = None,
     log_id: str = None,
+    pin_code: str = None,
 ) -> EmailMessage:
     """
     Builds an HTML EmailMessage with links to all selected students' resumes in a table
@@ -85,6 +86,14 @@ def build_resume_email(
             </a>
         </div>
         """
+        if pin_code:
+            master_link_html += f"""
+            <div style="margin-top: 16px; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 16px; text-align: center; font-family: inherit;">
+                <span style="font-size: 11px; color: #64748b; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Verification Access PIN</span>
+                <strong style="font-size: 24px; color: #1e3a8a; letter-spacing: 0.15em;">{pin_code}</strong>
+                <span style="font-size: 10px; color: #94a3b8; display: block; margin-top: 4px;">Use this PIN code if prompted to unlock access to the candidates workspace.</span>
+            </div>
+            """
 
     full_html_content = f"""
     <html>

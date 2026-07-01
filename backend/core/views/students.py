@@ -10,13 +10,54 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
 from ..models import User, Student, CSVUploadLog
 from ..serializers import StudentSerializer, CSVUploadLogSerializer
 from ..permissions import IsAdminOrCoordinator
 from ..csv_processor import process_csv
+from ..tasks import process_student_csv_task
 from .helpers import log_audit
 
 logger = logging.getLogger('core')
+
+
+def check_active_student_records(student):
+    """Checks if a student has active records (applications, interviews, resumes, assignments)."""
+    reasons = []
+    
+    # 1. Check Job Applications
+    from apps.applications.models import Application
+    apps_count = Application.objects.filter(student=student).count()
+    if apps_count > 0:
+        reasons.append(f"{apps_count} job application(s)")
+        
+    # 2. Check Mock Interview Sessions
+    from apps.interviews.models import MockInterviewSession
+    interviews_count = MockInterviewSession.objects.filter(student=student).count()
+    if interviews_count > 0:
+        reasons.append(f"{interviews_count} mock interview session(s)")
+        
+    # 3. Check Built Resumes
+    from apps.resumes.models import BuiltResume
+    resumes_count = BuiltResume.objects.filter(student=student).count()
+    if resumes_count > 0:
+        reasons.append(f"{resumes_count} built resume(s)")
+        
+    # 4. Check Placement Assignments (Legacy)
+    from ..models import PlacementAssignment
+    placements_count = PlacementAssignment.objects.filter(student=student).count()
+    if placements_count > 0:
+        reasons.append(f"{placements_count} placement assignment(s)")
+        
+    # 5. Check Learning Assignments
+    from ..models import StudentLearningAssignment
+    learning_count = StudentLearningAssignment.objects.filter(student=student).count()
+    if learning_count > 0:
+        reasons.append(f"{learning_count} learning assignment(s)")
+        
+    return reasons
 
 
 class StudentViewSet(viewsets.ViewSet):
@@ -25,7 +66,7 @@ class StudentViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], url_path='import-csv',
             parser_classes=[MultiPartParser, FormParser])
     def import_csv(self, request):
-        """Upload CSV → create students → return credentials CSV."""
+        """Upload CSV → create pending log → trigger Celery task."""
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -36,37 +77,101 @@ class StudentViewSet(viewsets.ViewSet):
 
         try:
             content = file.read()
-            credentials, upload_log = process_csv(content, request.user, file_name=file.name)
-            log_audit(request.user, 'csv_upload', f'{file.name}: {upload_log.successful_records}/{upload_log.total_records}', request)
-
-            # Build credentials Excel for download
-            import openpyxl
-            import base64
+            # Save CSV file temporarily in Django default storage
+            import uuid
+            import os
+            temp_dir = 'temp_csv'
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, temp_dir), exist_ok=True)
+            temp_file_name = f"upload_{uuid.uuid4()}.csv"
+            temp_file_path = os.path.join(temp_dir, temp_file_name)
             
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Credentials"
-            ws.append(['Name', 'Registration Number', 'Login ID', 'Email', 'Temporary Password'])
-            for cred in credentials:
-                ws.append([cred['name'], cred['registration_number'], cred['login_id'], cred['email'], cred['temporary_password']])
-                
-            output = io.BytesIO()
-            wb.save(output)
-            output.seek(0)
+            # Save file content to temp path
+            path = default_storage.save(temp_file_path, ContentFile(content))
             
-            excel_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
-
+            # Create a pending upload log
+            upload_log = CSVUploadLog.objects.create(
+                uploaded_by=request.user,
+                file_name=file.name,
+                total_records=0,
+                successful_records=0,
+                failed_records=0,
+                status='pending',
+                error_details=None
+            )
+            
+            log_audit(request.user, 'csv_upload_queued', f'Queued import for {file.name}', request)
+            
+            # Trigger Celery task
+            process_student_csv_task.delay(str(upload_log.id), path, str(request.user.id))
+            
             return Response({
-                'message': f'{upload_log.successful_records} students created successfully.',
-                'upload_log': CSVUploadLogSerializer(upload_log).data,
-                'credentials_excel': excel_base64,
-                'credentials': credentials,
-            }, status=status.HTTP_201_CREATED)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'CSV upload successful. Processing in background.',
+                'upload_log': CSVUploadLogSerializer(upload_log).data
+            }, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            logger.error(f'CSV import error: {e}')
-            return Response({'error': 'Failed to process CSV.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f'CSV import initiation error: {e}')
+            return Response({'error': 'Failed to initiate CSV processing.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'], url_path='upload-status')
+    def upload_status(self, request, pk=None):
+        """Get the status of a specific CSV upload log."""
+        try:
+            log = CSVUploadLog.objects.get(pk=pk)
+            # Check if Excel file exists and build dynamic URL
+            excel_exists = False
+            credentials_url = None
+            excel_base64 = None
+            import base64
+            from django.core.files.storage import default_storage
+            
+            credentials_file_path = f"private_credentials/credentials_{log.id}.xlsx"
+            if default_storage.exists(credentials_file_path):
+                excel_exists = True
+                credentials_url = request.build_absolute_uri(
+                    f"/api/v1/students/upload-status/{log.id}/download-credentials/"
+                )
+                try:
+                    with default_storage.open(credentials_file_path, 'rb') as f:
+                        excel_base64 = base64.b64encode(f.read()).decode('utf-8')
+                except Exception as read_err:
+                    logger.error(f"Failed to read credentials excel: {read_err}")
+                
+            return Response({
+                'id': log.id,
+                'status': log.status,
+                'file_name': log.file_name,
+                'total_records': log.total_records,
+                'successful_records': log.successful_records,
+                'failed_records': log.failed_records,
+                'error_details': log.error_details,
+                'excel_exists': excel_exists,
+                'credentials_url': credentials_url,
+                'credentials_excel': excel_base64,
+                'uploaded_at': log.uploaded_at
+            })
+        except CSVUploadLog.DoesNotExist:
+            return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'], url_path='download-credentials')
+    def download_credentials(self, request, pk=None):
+        """Secure gated download for generated CSV import credentials sheets."""
+        if request.user.role not in ['admin', 'coordinator']:
+            return Response({'error': 'Only admins and coordinators can download credentials sheets.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            log = CSVUploadLog.objects.get(pk=pk)
+            from django.core.files.storage import default_storage
+            credentials_file_path = f"private_credentials/credentials_{log.id}.xlsx"
+            
+            if not default_storage.exists(credentials_file_path):
+                return Response({'error': 'Credentials file not found or expired.'}, status=status.HTTP_404_NOT_FOUND)
+            
+            from django.http import FileResponse
+            f = default_storage.open(credentials_file_path, 'rb')
+            response = FileResponse(f, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = f'attachment; filename="credentials_{log.file_name or str(log.id)}.xlsx"'
+            return response
+        except CSVUploadLog.DoesNotExist:
+            return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=['get'], url_path='list')
     def list_students(self, request):
@@ -187,6 +292,26 @@ class StudentViewSet(viewsets.ViewSet):
             students = Student.objects.filter(upload_log=log)
             deleted_count = students.count()
             
+            # Check for force flag (bypasses safeguards)
+            force = request.query_params.get('force', 'false').lower() == 'true' or request.data.get('force') is True
+            
+            if not force:
+                blocked_students = []
+                for s in students:
+                    reasons = check_active_student_records(s)
+                    if reasons:
+                        blocked_students.append({
+                            'id': str(s.id),
+                            'name': s.name,
+                            'registration_number': s.registration_number,
+                            'reasons': reasons
+                        })
+                if blocked_students:
+                    return Response({
+                        'error': 'Some students in this upload have active portal activity. Reverting will permanently erase their data.',
+                        'blocked_students': blocked_students
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
             # Delete their users (which cascades to Student profile)
             user_ids = students.values_list('user_id', flat=True)
             User.objects.filter(id__in=user_ids).delete()
@@ -209,6 +334,18 @@ class StudentViewSet(viewsets.ViewSet):
             return Response({'error': 'Only admins can delete students.'}, status=status.HTTP_403_FORBIDDEN)
         try:
             student = Student.objects.get(pk=pk)
+            
+            # Check for force flag (bypasses safeguards)
+            force = request.query_params.get('force', 'false').lower() == 'true' or request.data.get('force') is True
+            
+            if not force:
+                reasons = check_active_student_records(student)
+                if reasons:
+                    return Response({
+                        'error': f'Student {student.name} has active portal activity. Deleting will permanently erase their data.',
+                        'reasons': reasons
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
             user = student.user
             # Delete the user, which will cascade delete the student profile
             user.delete()

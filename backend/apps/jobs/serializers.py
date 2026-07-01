@@ -4,13 +4,15 @@ from .models import Job, JobRound
 from apps.applications.eligibility_engine import check_eligibility
 
 class JobRoundSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(required=False)
+
     class Meta:
         model = JobRound
         fields = '__all__'
         extra_kwargs = {'job': {'read_only': True}}
 
 class JobSerializer(serializers.ModelSerializer):
-    rounds = JobRoundSerializer(many=True, read_only=True)
+    rounds = serializers.SerializerMethodField()
     applications_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -19,6 +21,10 @@ class JobSerializer(serializers.ModelSerializer):
                   'job_type', 'listing_type', 'duration', 'external_link', 'eligibility_rules', 
                   'application_deadline', 'status', 'rounds', 'applications_count',
                   'category', 'openings_count', 'hr_email', 'created_at', 'updated_at']
+
+    def get_rounds(self, obj):
+        active_rounds = obj.rounds.filter(is_deleted=False).order_by('round_number')
+        return JobRoundSerializer(active_rounds, many=True).data
 
     def get_applications_count(self, obj):
         if hasattr(obj, 'applications_count_annotated'):
@@ -54,9 +60,55 @@ class JobCreateSerializer(serializers.ModelSerializer):
         instance.save()
         
         if rounds_data is not None:
-            instance.rounds.all().delete()
+            # 1. Fetch existing active rounds in DB for this job
+            existing_rounds = {str(r.id): r for r in instance.rounds.filter(is_deleted=False)}
+            
+            incoming_round_ids = set()
+            rounds_to_create = []
+            rounds_to_update = []
+            
             for round_data in rounds_data:
-                JobRound.objects.create(job=instance, **round_data)
+                round_id = round_data.get('id')
+                if round_id and str(round_id) in existing_rounds:
+                    incoming_round_ids.add(str(round_id))
+                    rounds_to_update.append((existing_rounds[str(round_id)], round_data))
+                else:
+                    rounds_to_create.append(round_data)
+            
+            # 2. Check for rounds to delete
+            rounds_to_delete_ids = set(existing_rounds.keys()) - incoming_round_ids
+            
+            # 3. To avoid unique constraint violation ('job', 'round_number') during shifting of numbers,
+            # we temporarily set round numbers of existing active rounds to negative values.
+            for i, r_obj in enumerate(existing_rounds.values(), start=1):
+                r_obj.round_number = -i
+                r_obj.save(update_fields=['round_number'])
+            
+            # 4. Perform updates
+            for r_obj, r_data in rounds_to_update:
+                r_obj.round_number = r_data.get('round_number', r_obj.round_number)
+                r_obj.round_name = r_data.get('round_name', r_obj.round_name)
+                r_obj.round_type = r_data.get('round_type', r_obj.round_type)
+                r_obj.is_elimination = r_data.get('is_elimination', r_obj.is_elimination)
+                r_obj.passing_score = r_data.get('passing_score', r_obj.passing_score)
+                r_obj.duration_minutes = r_data.get('duration_minutes', r_obj.duration_minutes)
+                r_obj.save()
+            
+            # 5. Perform deletions (soft-delete if student evaluations exist, hard-delete otherwise)
+            from apps.applications.models import ApplicationRound
+            for r_id in rounds_to_delete_ids:
+                r_obj = existing_rounds[r_id]
+                if ApplicationRound.objects.filter(job_round=r_obj).exists():
+                    r_obj.is_deleted = True
+                    r_obj.save()
+                else:
+                    r_obj.delete()
+            
+            # 6. Perform creations
+            for r_data in rounds_to_create:
+                # Pop id if it is null/blank to let UUID auto-generate
+                r_data.pop('id', None)
+                JobRound.objects.create(job=instance, **r_data)
         
         # Refresh to pick up auto_now updated_at and re-read from DB
         instance.refresh_from_db()

@@ -1,8 +1,50 @@
+import os
 import uuid
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from core.models import Student, User
 from apps.jobs.models import Job, JobRound
+
+
+def validate_offer_letter_signature(file):
+    """
+    Validates the file's binary signature to verify it is a genuine
+    PDF, Word Doc/Docx, or Image (JPEG/PNG) rather than a renamed shell script.
+    """
+    initial_pos = file.tell()
+    file.seek(0)
+    header = file.read(8)
+    file.seek(initial_pos)
+    
+    is_pdf = header.startswith(b'%PDF')
+    is_jpg = header.startswith(b'\xff\xd8\xff')
+    is_png = header.startswith(b'\x89PNG\r\n\x1a')
+    is_zip_docx = header.startswith(b'PK\x03\x04')
+    is_old_doc = header.startswith(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1')
+    
+    if not (is_pdf or is_jpg or is_png or is_zip_docx or is_old_doc):
+         raise ValidationError("Unsupported file type or invalid file contents. Allowed files: PDF, Word (DOC/DOCX), JPEG, PNG.")
+
+def validate_offer_letter_size(file):
+    """
+    Validates that the file size does not exceed 2MB.
+    """
+    limit = 2 * 1024 * 1024  # 2MB
+    if file.size > limit:
+        raise ValidationError("File size must not exceed 2MB.")
+
+def get_offer_letter_upload_path(instance, filename):
+    """
+    Generates a secure, randomized UUID filename to prevent direct execution
+    and filename guessing attacks in the uploads folder.
+    """
+    import uuid
+    from django.utils import timezone
+    ext = filename.split('.')[-1].lower()
+    random_filename = f"{uuid.uuid4()}.{ext}"
+    now = timezone.now()
+    return os.path.join(f"offer_letters/{now.year}/{now.month:02d}/", random_filename)
 
 class Application(models.Model):
     STATUS_CHOICES = [
@@ -25,12 +67,17 @@ class Application(models.Model):
     job_snapshot = models.JSONField(default=dict)
 
     offer_letter_file = models.FileField(
-        upload_to='offer_letters/%Y/%m/',
+        upload_to=get_offer_letter_upload_path,
         blank=True,
         null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'png'])]
+        validators=[
+            FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'png']),
+            validate_offer_letter_signature,
+            validate_offer_letter_size
+        ]
     )
     offer_letter_uploaded = models.BooleanField(default=False)
+
 
     OFFER_LETTER_STATUS_CHOICES = [
         ('pending_upload', 'Pending Upload'),
@@ -48,14 +95,35 @@ class Application(models.Model):
     is_deleted = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
+        file_changed = False
+        status_explicitly_changed = False
+        
+        if self.pk:
+            try:
+                orig = Application.objects.get(pk=self.pk)
+                if orig.offer_letter_file != self.offer_letter_file:
+                    file_changed = True
+                if orig.offer_letter_status != self.offer_letter_status:
+                    status_explicitly_changed = True
+            except Application.DoesNotExist:
+                pass
+        else:
+            if self.offer_letter_file:
+                file_changed = True
+
         if self.offer_letter_file:
             self.offer_letter_uploaded = True
-            if self.offer_letter_status in ['pending_upload', 'rejected']:
-                self.offer_letter_status = 'pending_verification'
+            if file_changed:
+                if not status_explicitly_changed:
+                    self.offer_letter_status = 'pending_verification'
+            else:
+                if self.offer_letter_status in ['pending_upload', 'rejected']:
+                    self.offer_letter_status = 'pending_verification'
         else:
             self.offer_letter_uploaded = False
             self.offer_letter_status = 'pending_upload'
             self.offer_letter_feedback = None
+
         super().save(*args, **kwargs)
 
     class Meta:
@@ -160,13 +228,28 @@ class ResumeEmailLog(models.Model):
     skipped_students = models.JSONField(default=list)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     error_message = models.TextField(null=True, blank=True)
+    pin_code = models.CharField(max_length=6, null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-sent_at']
 
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            from datetime import timedelta
+            from django.utils import timezone
+            # Set to 7 days from now (or sent_at time)
+            self.expires_at = timezone.now() + timedelta(days=7)
+        if not self.pin_code:
+            import random
+            self.pin_code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+        super().save(*args, **kwargs)
+
+
     def __str__(self):
         return f"Email to {self.company_email} — {self.resumes_attached} resumes — {self.status}"
+
 
 
 from django.db.models.signals import post_save, post_delete
@@ -176,8 +259,9 @@ from django.dispatch import receiver
 def send_notification_email_trigger(sender, instance, created, **kwargs):
     if created:
         from .tasks import send_notification_email
+        from django.db import transaction
         try:
-            send_notification_email.delay(instance.id)
+            transaction.on_commit(lambda: send_notification_email.delay(instance.id))
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)

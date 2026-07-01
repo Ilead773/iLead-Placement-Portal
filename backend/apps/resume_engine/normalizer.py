@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 CANONICAL_SCHEMA = {
     "personal": {
         "name": "", "email": "", "phone": "", "location": "",
-        "linkedin": "", "github": "", "portfolio": "",
+        "linkedin": "", "github": "", "portfolio": "", "photo": "",
     },
     "professional_summary": "",
     "skills": [],        # [{"category": str, "items": [str]}]
@@ -29,6 +29,9 @@ CANONICAL_SCHEMA = {
     "education": [],     # [{"institution","degree","field","graduation_date","gpa","honors"}]
     "certifications": [], # [{"name","issuer","date","credential_url"}]
     "achievements": [],
+    "extra_curricular": [], # list of strings
+    "strengths": [],        # list of strings
+    "languages": [],        # list of strings
     "metadata": {
         "source_type": "profile",
         "version": 1,
@@ -49,25 +52,52 @@ class ResumeNormalizer:
         else:
             raise ValueError(f"Unknown source type: {source_type}")
 
-    def normalize_from_file(self, file_path):
+    def normalize_from_file(self, file_or_path):
         """Extract text from PDF and normalize it."""
         text = ""
         try:
             import PyPDF2
-            with open(file_path, 'rb') as f:
-                reader = PyPDF2.PdfReader(f)
+            if isinstance(file_or_path, (str, bytes)):
+                with open(file_or_path, 'rb') as f:
+                    reader = PyPDF2.PdfReader(f)
+                    for page in reader.pages:
+                        text += page.extract_text() + "\n"
+            else:
+                reader = PyPDF2.PdfReader(file_or_path)
                 for page in reader.pages:
                     text += page.extract_text() + "\n"
             
-            logger.info(f"Extracted {len(text)} characters from {file_path}")
+            logger.info(f"Extracted {len(text)} characters from resume.")
             return self._normalize_uploaded_text(text)
         except Exception as e:
-            logger.error(f"Failed to extract text from {file_path}: {e}")
+            logger.error(f"Failed to extract text: {e}")
             raise
 
     def normalize_from_profile(self, profile):
         from apps.profiles.models import StudentProfile
         canonical = self._empty_canonical()
+        
+        photo_url = ''
+        try:
+            if profile.profile_picture:
+                import os
+                import base64
+                try:
+                    with profile.profile_picture.open('rb') as f:
+                        encoded = base64.b64encode(f.read()).decode('utf-8')
+                    ext = os.path.splitext(profile.profile_picture.name)[1].lower().replace('.', '')
+                    if ext == 'jpg': ext = 'jpeg'
+                    if not ext: ext = 'png'
+                    photo_url = f"data:image/{ext};base64,{encoded}"
+                except Exception as e:
+                    logger.error(f"Error reading profile picture file: {e}")
+                    photo_url = ''
+            elif profile.profile_picture and hasattr(profile.profile_picture, 'url'):
+                photo_url = profile.profile_picture.url
+        except Exception as e:
+            logger.error(f"Error processing profile picture: {e}")
+            photo_url = ''
+
         canonical['personal'] = {
             'name': profile.student.name,
             'email': profile.student.email,
@@ -76,6 +106,7 @@ class ResumeNormalizer:
             'linkedin': profile.linkedin or '',
             'github': profile.github or '',
             'portfolio': profile.portfolio or '',
+            'photo': photo_url,
         }
         canonical['professional_summary'] = profile.professional_summary or ''
         
@@ -86,6 +117,11 @@ class ResumeNormalizer:
             skills_by_category[cat].append(skill.name)
 
         canonical['skills'] = [{'category': cat, 'items': items} for cat, items in skills_by_category.items()]
+        canonical['languages'] = skills_by_category.get('Language', [])
+        canonical['strengths'] = skills_by_category.get('Soft Skill', [])
+        canonical['extra_curricular'] = [] # Staged for UI input override
+
+
         
         canonical['experience'] = [
             {

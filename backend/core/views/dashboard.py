@@ -49,20 +49,71 @@ class DashboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
         """Comprehensive placement dashboard statistics with all KPIs."""
+        user = request.user
+        can_manage_students = user.role != 'coordinator' or getattr(user, 'can_manage_students', False)
+        can_manage_placements = user.role != 'coordinator' or getattr(user, 'can_manage_placements', False)
+
+        # Short-circuit query execution if user has no management permissions
+        if user.role == 'coordinator' and not can_manage_students and not can_manage_placements:
+            return Response({
+                'total_students': 0,
+                'placed_students': 0,
+                'placement_rate': 0.0,
+                'total_companies': 0,
+                'total_job_applications': 0,
+                'salary_stats': {},
+                'salary_distribution': {},
+                'course_wise_stats': [],
+                'year_wise_stats': [],
+                'monthly_placement_trend': [],
+                'companies_list': [],
+                'recent_applications': [],
+                'overview': {},
+                'placement_overview': {},
+                'funnel_breakdown': {},
+                'participation_metrics': {},
+                'employer_salary_analysis': {},
+                'status_metrics': {},
+                'salary_analysis': {},
+                'application_status': {},
+                'course_performance': [],
+                'course_rankings': [],
+                'best_performing_course': {},
+                'semester_stats': [],
+                'student_demographics': {},
+                'interview_rounds': [],
+                'timeline_trends': {},
+                'eligibility': {},
+                'company_analysis': {},
+                'job_distribution': {},
+                'location_analysis': [],
+                'recent_data': {},
+            })
 
         listing_type = request.query_params.get('listing_type')
         is_internship_view = (listing_type == 'internship')
 
         # Setup querysets (exclude soft-deleted applications)
-        jobs_qs = Job.objects.all()
-        applications_qs = Application.objects.filter(is_deleted=False)
+        students_qs = Student.objects.all() if can_manage_students else Student.objects.none()
+        jobs_qs = Job.objects.all() if can_manage_placements else Job.objects.none()
+        applications_qs = Application.objects.filter(is_deleted=False) if can_manage_placements else Application.objects.none()
+        placements_qs = Placement.objects.all() if can_manage_placements else Placement.objects.none()
+        # Build placements lookup dictionary in memory to avoid N+1 queries in loops
+        placements_lookup = {}
+        if placements_qs:
+            for p in placements_qs:
+                c_key = p.company_name.lower().strip() if p.company_name else ""
+                if c_key and c_key not in placements_lookup:
+                    placements_lookup[c_key] = p
+        placement_assignments_qs = PlacementAssignment.objects.all() if can_manage_placements else PlacementAssignment.objects.none()
+        job_rounds_qs = JobRound.objects.all() if can_manage_placements else JobRound.objects.none()
 
         if listing_type in ('job', 'internship'):
             jobs_qs = jobs_qs.filter(listing_type=listing_type)
             applications_qs = applications_qs.filter(job__listing_type=listing_type)
 
         # ============== OVERVIEW & KPIs ==============
-        total_students = Student.objects.count()
+        total_students = students_qs.count()
         total_job_applications = applications_qs.count()
         total_jobs = jobs_qs.count()
         total_companies = 0  # Will be populated accurately after company_details is built below
@@ -71,7 +122,7 @@ class DashboardViewSet(viewsets.ViewSet):
         placed_students_assignments = set()
         if not is_internship_view:
             placed_students_assignments = set(
-                PlacementAssignment.objects.filter(status='selected').values_list('student_id', flat=True)
+                placement_assignments_qs.filter(status='selected').values_list('student_id', flat=True)
             )
         placed_students_applications = set(
             applications_qs.filter(status__in=['selected', 'accepted']).values_list('student_id', flat=True)
@@ -83,9 +134,9 @@ class DashboardViewSet(viewsets.ViewSet):
         # Total placements count (raw offer records, not unique students)
         total_placements = applications_qs.filter(status__in=['selected', 'accepted']).count()
         if not is_internship_view:
-            total_placements += PlacementAssignment.objects.filter(status='selected').count()
+            total_placements += placement_assignments_qs.filter(status='selected').count()
 
-        total_assignments = PlacementAssignment.objects.count()
+        total_assignments = placement_assignments_qs.count()
 
         # Total Openings Count (sum of openings across all jobs)
         total_openings = jobs_qs.aggregate(total=Sum('openings_count'))['total'] or 0
@@ -101,7 +152,7 @@ class DashboardViewSet(viewsets.ViewSet):
             job__job_type='internal',
         ).count()
         if not is_internship_view:
-            placed_on_campus_count += PlacementAssignment.objects.filter(status='selected').count()
+            placed_on_campus_count += placement_assignments_qs.filter(status='selected').count()
 
         # Job statuses (Active, COMPLETE/Closed, On Hold/Draft)
         jobs_active = jobs_qs.filter(status='active').count()
@@ -112,7 +163,7 @@ class DashboardViewSet(viewsets.ViewSet):
         if is_internship_view:
             applied_student_ids = set(applications_qs.values_list('student_id', flat=True))
         else:
-            applied_student_ids = set(applications_qs.values_list('student_id', flat=True)) | set(PlacementAssignment.objects.values_list('student_id', flat=True))
+            applied_student_ids = set(applications_qs.values_list('student_id', flat=True)) | set(placement_assignments_qs.values_list('student_id', flat=True))
         
         unique_learners_applying = len(applied_student_ids)
         learners_not_applying = total_students - unique_learners_applying
@@ -140,7 +191,7 @@ class DashboardViewSet(viewsets.ViewSet):
         # Withdrawn / Pending
         withdrawn_count = app_status_counts.get('withdrawn', 0)
         # Not Applied = students with zero applications/assignments
-        not_applied_count = Student.objects.exclude(id__in=applied_student_ids).count()
+        not_applied_count = students_qs.exclude(id__in=applied_student_ids).count()
 
         status_metrics = {
             'applied_count': applied_count,
@@ -173,9 +224,9 @@ class DashboardViewSet(viewsets.ViewSet):
         job_type_dist = defaultdict(int)
         # Global Opportunities Split (unfiltered by listing_type)
         listing_type_dist = defaultdict(int)
-        for lt, count in Job.objects.values_list('listing_type').annotate(c=Count('id')):
+        for lt, count in jobs_qs.values_list('listing_type').annotate(c=Count('id')):
             listing_type_dist[lt or 'job'] = count
-        listing_type_dist['job'] += Placement.objects.count()
+        listing_type_dist['job'] += placements_qs.count()
         role_counts = defaultdict(int)
 
         def _convert(val):
@@ -198,7 +249,7 @@ class DashboardViewSet(viewsets.ViewSet):
             
             # Fallback to Placement salary if package is 0
             if not package_val or float(package_val) <= 0:
-                placement = Placement.objects.filter(company_name__iexact=cname).first()
+                placement = placements_lookup.get(cname.lower().strip())
                 if placement:
                     package_val = placement.salary
             
@@ -237,7 +288,7 @@ class DashboardViewSet(viewsets.ViewSet):
 
         # Process internal placements if not in internship view
         if not is_internship_view:
-            for p in Placement.objects.all():
+            for p in placements_qs.all():
                 cname = p.company_name
                 package_val = p.salary
                 role_name = p.position
@@ -281,7 +332,8 @@ class DashboardViewSet(viewsets.ViewSet):
             pkg = float(app.job.package or 0)
             if pkg <= 0:
                 # Fallback to Placement table with case-insensitive company name match
-                placement = Placement.objects.filter(company_name__iexact=app.job.company_name).first()
+                company_name = app.job.company_name or ""
+                placement = placements_lookup.get(company_name.lower().strip())
                 if placement:
                     pkg = float(placement.salary or 0)
                     if not is_internship_view:
@@ -296,7 +348,7 @@ class DashboardViewSet(viewsets.ViewSet):
 
         # 2. Collect from PlacementAssignments
         if not is_internship_view:
-            for pa in PlacementAssignment.objects.filter(status='selected', placement__salary__gt=0).select_related('placement'):
+            for pa in placement_assignments_qs.filter(status='selected', placement__salary__gt=0).select_related('placement'):
                 pkg = self._to_lpa(pa.placement.salary)
                 if pkg > 0:
                     student_salaries[pa.student_id].append(pkg)
@@ -314,7 +366,7 @@ class DashboardViewSet(viewsets.ViewSet):
 
         # Count PlacementAssignment placements
         if not is_internship_view:
-            for pa in PlacementAssignment.objects.filter(status='selected').select_related('placement'):
+            for pa in placement_assignments_qs.filter(status='selected').select_related('placement'):
                 cname = pa.placement.company_name
                 if cname in company_details:
                     company_details[cname]['placed_count'] += 1
@@ -412,7 +464,8 @@ class DashboardViewSet(viewsets.ViewSet):
         for app in applications_qs.filter(app_filter_all).select_related('job'):
             val = float(app.job.package or 0)
             if val <= 0:
-                placement = Placement.objects.filter(company_name__iexact=app.job.company_name).first()
+                company_name = app.job.company_name or ""
+                placement = placements_lookup.get(company_name.lower().strip())
                 if placement:
                     val = float(placement.salary or 0)
                     if not is_internship_view:
@@ -428,7 +481,7 @@ class DashboardViewSet(viewsets.ViewSet):
 
         # Internal placement assignments
         if not is_internship_view:
-            for pa in PlacementAssignment.objects.filter(status='selected', placement__salary__gt=0).select_related('placement'):
+            for pa in placement_assignments_qs.filter(status='selected', placement__salary__gt=0).select_related('placement'):
                 val = self._to_lpa(pa.placement.salary)
                 if val > highest_role_salary:
                     highest_role_salary = val
@@ -437,7 +490,7 @@ class DashboardViewSet(viewsets.ViewSet):
         # ============== APPLICATION STATUS ==============
         placement_status_dist = {}
         app_status_dist = dict(
-            Application.objects.filter(is_deleted=False).values('status').annotate(count=Count('id')).values_list('status', 'count')
+            applications_qs.values('status').annotate(count=Count('id')).values_list('status', 'count')
         )
 
         # ============== COURSE/STREAM PERFORMANCE ==============
@@ -448,7 +501,7 @@ class DashboardViewSet(viewsets.ViewSet):
         students_by_normalized_course = defaultdict(list)
         placed_students_by_normalized_course = defaultdict(list)
         
-        for student in Student.objects.all():
+        for student in students_qs.all():
             norm_c = normalize_course_name(student.course) or 'Unspecified Course'
             students_by_normalized_course[norm_c].append(student.id)
             if student.id in placed_student_ids:
@@ -463,23 +516,33 @@ class DashboardViewSet(viewsets.ViewSet):
         else:
             app_filter_course_base &= Q(job__listing_type='job')
 
+        # Prefetch applications and placement assignments
+        apps_prefetched = list(applications_qs.filter(app_filter_course_base).select_related('student', 'job'))
+        
+        assignments_prefetched = []
+        if not is_internship_view:
+            assignments_prefetched = list(
+                placement_assignments_qs.filter(status='selected', placement__salary__gt=0).select_related('student', 'placement')
+            )
+
+        # Group salaries in-memory by normalized course name
+        salaries_by_course = defaultdict(list)
+        
+        for app in apps_prefetched:
+            norm_c = normalize_course_name(app.student.course) or 'Unspecified Course'
+            salaries_by_course[norm_c].append(_convert(app.job.package))
+            
+        for pa in assignments_prefetched:
+            norm_c = normalize_course_name(pa.student.course) or 'Unspecified Course'
+            salaries_by_course[norm_c].append(self._to_lpa(pa.placement.salary))
+
         # Populate all standard courses first
         for course in all_courses:
             total = len(students_by_normalized_course[course])
             placed_in_course = len(placed_students_by_normalized_course[course])
             rate = round((placed_in_course / total * 100), 1) if total else 0.0
 
-            course_salaries = []
-            for app in applications_qs.filter(app_filter_course_base).select_related('student', 'job'):
-                if normalize_course_name(app.student.course) == course:
-                    course_salaries.append(_convert(app.job.package))
-
-            # Include PlacementAssignment salaries
-            if not is_internship_view:
-                for pa in PlacementAssignment.objects.filter(status='selected', placement__salary__gt=0).select_related('student', 'placement'):
-                    if normalize_course_name(pa.student.course) == course:
-                        course_salaries.append(self._to_lpa(pa.placement.salary))
-
+            course_salaries = salaries_by_course.get(course, [])
             avg_sal = round(sum(course_salaries) / len(course_salaries), 2) if course_salaries else 0.0
             max_sal = max(course_salaries) if course_salaries else 0.0
 
@@ -499,17 +562,7 @@ class DashboardViewSet(viewsets.ViewSet):
                 placed_in_course = len(placed_students_by_normalized_course[db_course])
                 rate = round((placed_in_course / total * 100), 1) if total else 0.0
 
-                course_salaries = []
-                for app in applications_qs.filter(app_filter_course_base).select_related('student', 'job'):
-                    if normalize_course_name(app.student.course) == db_course:
-                        course_salaries.append(_convert(app.job.package))
-
-                # Include PlacementAssignment salaries
-                if not is_internship_view:
-                    for pa in PlacementAssignment.objects.filter(status='selected', placement__salary__gt=0).select_related('student', 'placement'):
-                        if normalize_course_name(pa.student.course) == db_course:
-                            course_salaries.append(self._to_lpa(pa.placement.salary))
-
+                course_salaries = salaries_by_course.get(db_course, [])
                 avg_sal = round(sum(course_salaries) / len(course_salaries), 2) if course_salaries else 0.0
                 max_sal = max(course_salaries) if course_salaries else 0.0
 
@@ -527,16 +580,16 @@ class DashboardViewSet(viewsets.ViewSet):
         course_rankings = sorted(course_wise_stats, key=lambda x: -x['placement_rate'])
 
         # ============== SEMESTER-WISE STATS ==============
-        students_by_sem = Student.objects.values('semester').annotate(total=Count('id'))
+        students_by_sem = students_qs.values('semester').annotate(total=Count('id'))
         semester_wise_stats = []
         for item in students_by_sem:
             sem = item['semester']
             sem_label = sem or 'Unknown'
             total = item['total']
             if sem is None:
-                placed_in_sem = Student.objects.filter(id__in=placed_student_ids, semester__isnull=True).count()
+                placed_in_sem = students_qs.filter(id__in=placed_student_ids, semester__isnull=True).count()
             else:
-                placed_in_sem = Student.objects.filter(id__in=placed_student_ids, semester=sem).count()
+                placed_in_sem = students_qs.filter(id__in=placed_student_ids, semester=sem).count()
             rate = round((placed_in_sem / total * 100), 1) if total else 0.0
             semester_wise_stats.append({
                 'semester': sem_label,
@@ -546,16 +599,16 @@ class DashboardViewSet(viewsets.ViewSet):
             })
 
         # ============== YEAR-WISE (BATCH) STATS ==============
-        students_by_year = Student.objects.values('passing_year').annotate(total=Count('id'))
+        students_by_year = students_qs.values('passing_year').annotate(total=Count('id'))
         year_wise_stats = []
         for item in students_by_year:
             year = item['passing_year']
             year_label = year or 'Unknown'
             total = item['total']
             if year is None:
-                placed_in_year = Student.objects.filter(id__in=placed_student_ids, passing_year__isnull=True).count()
+                placed_in_year = students_qs.filter(id__in=placed_student_ids, passing_year__isnull=True).count()
             else:
-                placed_in_year = Student.objects.filter(id__in=placed_student_ids, passing_year=year).count()
+                placed_in_year = students_qs.filter(id__in=placed_student_ids, passing_year=year).count()
             rate = round((placed_in_year / total * 100), 1) if total else 0.0
             year_wise_stats.append({
                 'year': year_label,
@@ -565,7 +618,7 @@ class DashboardViewSet(viewsets.ViewSet):
             })
 
         # ============== STUDENT DEMOGRAPHICS ==============
-        all_students_cgpa = Student.objects.exclude(cgpa__isnull=True)
+        all_students_cgpa = students_qs.exclude(cgpa__isnull=True)
         cgpa_stats = {
             'avg_cgpa': round(all_students_cgpa.aggregate(Avg('cgpa'))['cgpa__avg'] or 0, 2),
             'max_cgpa': all_students_cgpa.aggregate(Max('cgpa'))['cgpa__max'] or 0,
@@ -573,16 +626,16 @@ class DashboardViewSet(viewsets.ViewSet):
         }
 
         cgpa_dist = {
-            '< 6.0': Student.objects.filter(cgpa__lt=6.0).count(),
-            '6.0 – 7.0': Student.objects.filter(cgpa__gte=6.0, cgpa__lt=7.0).count(),
-            '7.0 – 8.0': Student.objects.filter(cgpa__gte=7.0, cgpa__lt=8.0).count(),
-            '8.0 – 9.0': Student.objects.filter(cgpa__gte=8.0, cgpa__lt=9.0).count(),
-            '9.0+': Student.objects.filter(cgpa__gte=9.0).count(),
+            '< 6.0': students_qs.filter(cgpa__lt=6.0).count(),
+            '6.0 – 7.0': students_qs.filter(cgpa__gte=6.0, cgpa__lt=7.0).count(),
+            '7.0 – 8.0': students_qs.filter(cgpa__gte=7.0, cgpa__lt=8.0).count(),
+            '8.0 – 9.0': students_qs.filter(cgpa__gte=8.0, cgpa__lt=9.0).count(),
+            '9.0+': students_qs.filter(cgpa__gte=9.0).count(),
         }
 
         # CGPA-based placement rates (10-point scale)
         def cgpa_placement_rate(qs_filter, placed_ids):
-            group = Student.objects.filter(**qs_filter)
+            group = students_qs.filter(**qs_filter)
             total = group.count()
             placed = group.filter(id__in=placed_ids).count()
             return {
@@ -597,19 +650,20 @@ class DashboardViewSet(viewsets.ViewSet):
             'cgpa_below_6': cgpa_placement_rate({'cgpa__lt': 6.0}, placed_student_ids),
         }
 
+        # Safe fetch for attendance average
         attendance_stats = {
-            'avg_attendance': round(Student.objects.exclude(attendance__isnull=True).aggregate(Avg('attendance'))['attendance__avg'] or 0, 2),
+            'avg_attendance': round(students_qs.exclude(attendance__isnull=True).aggregate(Avg('attendance'))['attendance__avg'] or 0, 2),
         }
 
-        students_with_backlogs = Student.objects.filter(backlogs=True).count()
-        students_without_backlogs = Student.objects.filter(backlogs=False).count()
+        students_with_backlogs = students_qs.filter(backlogs=True).count()
+        students_without_backlogs = students_qs.filter(backlogs=False).count()
 
         category_dist = dict(
-            Student.objects.values('category').annotate(count=Count('id')).values_list('category', 'count')
+            students_qs.values('category').annotate(count=Count('id')).values_list('category', 'count')
         )
 
         # ============== INTERVIEW ROUNDS ==============
-        all_rounds = ApplicationRound.objects.filter(application__is_deleted=False).select_related('application', 'job_round')
+        all_rounds = ApplicationRound.objects.filter(application__id__in=applications_qs.values_list('id', flat=True)).select_related('application', 'job_round')
         round_performance = defaultdict(lambda: {
             'total': 0, 'cleared': 0, 'failed': 0, 'scores': []
         })
@@ -641,14 +695,14 @@ class DashboardViewSet(viewsets.ViewSet):
             })
 
         round_types = dict(
-            JobRound.objects.values('round_type').annotate(count=Count('id')).values_list('round_type', 'count')
+            job_rounds_qs.values('round_type').annotate(count=Count('id')).values_list('round_type', 'count')
         )
 
         # ============== TIMELINE & TRENDS ==============
         all_placement_dates = []
         selection_months = {}
 
-        for dt in Application.objects.filter(status__in=['selected', 'accepted'], is_deleted=False).values_list('updated_at', flat=True):
+        for dt in applications_qs.filter(status__in=['selected', 'accepted']).values_list('updated_at', flat=True):
             if dt:
                 all_placement_dates.append(dt)
                 m_str = dt.strftime('%b %Y')
@@ -660,7 +714,7 @@ class DashboardViewSet(viewsets.ViewSet):
 
         # Avg days to placement (from application to selection)
         placement_durations = []
-        for app in Application.objects.filter(status__in=['selected', 'accepted'], is_deleted=False).exclude(applied_at__isnull=True):
+        for app in applications_qs.filter(status__in=['selected', 'accepted']).exclude(applied_at__isnull=True):
             delta = (app.updated_at - app.applied_at).days
             if delta >= 0:
                 placement_durations.append(delta)
@@ -672,7 +726,7 @@ class DashboardViewSet(viewsets.ViewSet):
         except Exception:
             monthly_trend = [{'month': m, 'placed_count': selection_months[m]} for m in sorted(selection_months.keys())]
 
-        app_dates = Application.objects.filter(is_deleted=False).exclude(applied_at__isnull=True).values_list('applied_at', flat=True)
+        app_dates = applications_qs.exclude(applied_at__isnull=True).values_list('applied_at', flat=True)
         app_timeline_map = defaultdict(int)
         for dt in app_dates:
             app_timeline_map[dt.strftime('%b %Y')] += 1
@@ -715,7 +769,7 @@ class DashboardViewSet(viewsets.ViewSet):
         category_counts = {'A': 0, 'B': 0, 'C': 0}
         all_pact_scores = []
 
-        for student in Student.objects.all():
+        for student in students_qs.all():
             course_name = student.course or 'Unknown'
             course_key = course_name.strip()
             
@@ -744,8 +798,24 @@ class DashboardViewSet(viewsets.ViewSet):
             if student.attendance is not None:
                 stats_entry['attendances'].append(student.attendance)
 
-            # Eligibility checks - all students are eligible
+            # Eligibility checks
             eligible = True
+            is_cgpa_ok = (student.cgpa is None or student.cgpa >= 6.0)
+            is_attendance_ok = (student.attendance is None or student.attendance >= 75.0)
+            is_backlog_ok = (not student.backlogs and student.backlogs_count == 0)
+
+            if not is_cgpa_ok:
+                eligible = False
+                cgpa_not_met += 1
+                ineligible_reasons['cgpa_not_met'] += 1
+            if not is_attendance_ok:
+                eligible = False
+                attendance_not_met += 1
+                ineligible_reasons['attendance_not_met'] += 1
+            if not is_backlog_ok:
+                eligible = False
+                backlog_disqualified += 1
+                ineligible_reasons['backlog_disqualified'] += 1
 
             if eligible:
                 eligible_student_ids.add(student.id)
@@ -859,9 +929,9 @@ class DashboardViewSet(viewsets.ViewSet):
             })
 
         # ============== RECENT DATA ==============
-        recent_apps = Application.objects.filter(is_deleted=False).select_related('student', 'job').order_by('-applied_at')[:5]
-        recent_jobs = Job.objects.all().order_by('-updated_at')[:5]
-        upcoming_deadlines = Job.objects.filter(status='active', application_deadline__gt=timezone.now()).order_by('application_deadline')[:5]
+        recent_apps = applications_qs.select_related('student', 'job').order_by('-applied_at')[:5]
+        recent_jobs = jobs_qs.order_by('-updated_at')[:5]
+        upcoming_deadlines = jobs_qs.filter(status='active', application_deadline__gt=timezone.now()).order_by('application_deadline')[:5]
 
         # Calculate placement rate among eligible students safely
         placed_eligible_count = len(placed_student_ids & eligible_student_ids)
@@ -1101,6 +1171,14 @@ class DashboardViewSet(viewsets.ViewSet):
         """Export comprehensive placement report as Excel data."""
         if request.user.role == 'coordinator' and not getattr(request.user, 'can_manage_placements', False):
             return Response({'error': 'You do not have permission to export reports.'}, status=403)
+
+        # Log the export action
+        AuditLog.objects.create(
+            user=request.user,
+            action='EXPORT_PLACEMENT_REPORT',
+            details='Exported placement report containing student names, registration numbers, courses, packages, and statuses in Excel format.',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
 
         applications = Application.objects.filter(is_deleted=False).select_related('student', 'job').all()
         

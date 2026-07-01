@@ -70,8 +70,16 @@ class JobRound(models.Model):
     passing_score = models.IntegerField(null=True, blank=True)
     duration_minutes = models.IntegerField(null=True, blank=True)
 
+    is_deleted = models.BooleanField(default=False)
+
     class Meta:
-        unique_together = ('job', 'round_number')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['job', 'round_number'],
+                condition=models.Q(is_deleted=False),
+                name='unique_active_round_number'
+            )
+        ]
         ordering = ['round_number']
 
     def __str__(self):
@@ -89,10 +97,11 @@ def trigger_job_alert_email(sender, instance, created, **kwargs):
         # Save only the email_sent field to avoid re-triggering signal recursively
         instance.save(update_fields=['email_sent'])
         
-        # Trigger background enqueuing of the email alert task
+        # Trigger background enqueuing of the email alert task after database commit
         from apps.applications.tasks import send_job_alert_task
+        from django.db import transaction
         try:
-            send_job_alert_task.delay(instance.id)
+            transaction.on_commit(lambda: send_job_alert_task.delay(instance.id))
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)

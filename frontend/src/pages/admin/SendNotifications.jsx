@@ -98,15 +98,16 @@ export default function SendNotifications() {
           new Set(data.map(s => s.course).filter(Boolean))
         );
 
-        // Also fetch the full 19-course list from career_os
+        // Also fetch the full list from north-star
         let allCourseNames = [...studentCourses];
         try {
-          const courseRes = await axios.get('/career-os/courses/');
-          const careerCourses = (courseRes.data.courses || []).map(c => c.name);
+          const courseRes = await axios.get('/north-star/courses/');
+          const coursesList = Array.isArray(courseRes.data) ? courseRes.data : (courseRes.data.courses || []);
+          const careerCourses = coursesList.map(c => c.name);
           // Merge both lists, deduplicate, sort
           allCourseNames = Array.from(new Set([...studentCourses, ...careerCourses])).sort();
         } catch (courseErr) {
-          console.warn('Could not fetch career-os courses:', courseErr);
+          console.warn('Could not fetch north-star courses:', courseErr);
           allCourseNames = studentCourses.sort();
         }
 
@@ -578,6 +579,7 @@ export default function SendNotifications() {
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
                               className="input-field pl-9 pr-3.5 py-2.5 bg-card border-border-color/80 rounded-xl text-xs font-medium w-full focus:border-[#2563eb] shadow-inner"
+                              style={{ paddingLeft: '36px' }}
                             />
                           </div>
 

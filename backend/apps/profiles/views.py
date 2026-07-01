@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 
 from core.permissions import IsStudentUser
 from .models import StudentProfile, Skill, Experience, Project, Education, Certification, Achievement
@@ -72,11 +73,20 @@ class ProfileViewSet(viewsets.ViewSet):
         if 'profile_picture' not in request.FILES:
             return Response({'error': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        file_obj = request.FILES['profile_picture']
+        if file_obj.size > settings.MAX_PROFILE_PICTURE_SIZE:
+            max_size_mb = settings.MAX_PROFILE_PICTURE_SIZE / (1024 * 1024)
+            max_size_str = f"{max_size_mb:.0f}MB" if max_size_mb.is_integer() else f"{max_size_mb:.1f}MB"
+            return Response(
+                {'error': f'Profile picture size exceeds the maximum limit of {max_size_str}.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Delete old picture file if it exists
         if profile.profile_picture:
             profile.profile_picture.delete(save=False)
 
-        profile.profile_picture = request.FILES['profile_picture']
+        profile.profile_picture = file_obj
         profile.save(update_fields=['profile_picture'])
         serializer = StudentProfileSerializer(profile, context={'request': request})
         return Response({'profile_picture': serializer.data.get('profile_picture')}, status=status.HTTP_200_OK)

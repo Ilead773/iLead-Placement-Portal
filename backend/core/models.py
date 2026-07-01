@@ -6,6 +6,18 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
+class Course(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255)
+    category = models.CharField(max_length=100)
+
+    class Meta:
+        db_table = 'courses'
+
+    def __str__(self):
+        return self.name
+
+
 class UserManager(BaseUserManager):
     def create_user(self, login_id, email, password=None, **extra_fields):
         if not login_id:
@@ -326,7 +338,6 @@ class StudentLearningAssignment(models.Model):
 
     class Meta:
         db_table = 'student_learning_assignments'
-        unique_together = [('assignment', 'student')]
         ordering = ['-assigned_at']
 
     @property
@@ -366,6 +377,8 @@ class CSVUploadLog(models.Model):
     total_records = models.IntegerField(default=0)
     successful_records = models.IntegerField(default=0)
     failed_records = models.IntegerField(default=0)
+    created_count = models.IntegerField(default=0)   # New accounts created
+    updated_count = models.IntegerField(default=0)   # Existing profiles updated
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='success')
     error_details = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)

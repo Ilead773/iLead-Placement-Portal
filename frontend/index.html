@@ -1,31 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="iLEAD Placement Portal — Student Placement Management System" />
   <title>iLEAD Placement Portal</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <!-- Polyfills for Webpack UMD packages under Vite (like Zoom SDK) -->
   <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
-      await OneSignal.init({
-        appId: "97a17b7a-8d2b-4daf-bba5-a0b16d31a1bb",
-        safari_web_id: "web.onesignal.auto.251f0eae-dd1c-4527-b78a-dfbe622fe6a9",
-        // Allow localhost to prompt for push permission during local development
-        allowLocalhostAsSecureOrigin: true,
-        serviceWorkerPath: "/OneSignalSDKWorker.js",
-        notifyButton: {
-          enable: true,
-        },
-      });
-    });
+    window.global = window;
+    window.process = { env: { NODE_ENV: 'development' } };
   </script>
   <!-- Tailwind CSS for modern utility classes, preflight disabled to prevent conflicts -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       corePlugins: { preflight: false }
     }
   </script>

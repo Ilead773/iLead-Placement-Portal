@@ -116,7 +116,7 @@ def _detect_dialect(decoded_file):
         return csv.excel  # fallback to standard comma-delimited
 
 
-def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
+def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_id=None):
     """
     Parses CSV content and creates User/Student records.
     Handles multiple encodings, delimiters, and validates all fields
@@ -157,23 +157,46 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
             "The delimiter may be wrong. Please ensure the file is comma-separated."
         )
 
+    # Convert reader iterator to a list of dicts to know the total count beforehand
+    rows = list(reader)
+    total_rows = len(rows)
+
+    if total_rows == 0:
+        raise ValueError("CSV file contains no data rows. Please check that the file has student records below the header row.")
+
+    if upload_log_id:
+        try:
+            log = CSVUploadLog.objects.get(pk=upload_log_id)
+            log.total_records = total_rows
+            log.status = 'processing'
+            log.successful_records = 0
+            log.failed_records = 0
+            log.error_details = "Initializing processing..."
+            log.save()
+        except Exception as log_err:
+            logger.error(f"Failed to update CSVUploadLog status to processing: {log_err}")
+
     total = 0
     success = 0
     fail = 0
-    error_details = []
+    created_count = 0
+    updated_count = 0
+    error_details_list = []
     credentials = []
     new_students = []
     seen_reg_nos = set()  # Track duplicates within the same upload
 
-    for row in reader:
+    for row in rows:
         total += 1
+        name_raw = (row.get('Name') or row.get('name') or row.get('Full Name') or '').strip()
+        reg_no_raw = (row.get('Registration Number') or row.get('registration_number') or 
+                      row.get('Reg No') or row.get('reg_no') or row.get('ID') or '').strip()
         try:
             with transaction.atomic():
                 # Extract and clean data with flexible header matching
-                name = (row.get('Name') or row.get('name') or row.get('Full Name') or '').strip()
+                name = name_raw
                 
-                reg_no = (row.get('Registration Number') or row.get('registration_number') or 
-                          row.get('Reg No') or row.get('reg_no') or row.get('ID') or '').strip()
+                reg_no = reg_no_raw
                 
                 email_raw = (row.get('Email ID') or row.get('email') or row.get('Email') or '').strip()
                 
@@ -225,15 +248,15 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
 
                 # ===== VALIDATION PHASE =====
                 if not name:
-                    raise ValueError(f"Row {total}: Student name is missing.")
+                    raise ValueError(f"Student name is missing.")
                 if not reg_no:
-                    raise ValueError(f"Row {total}: Registration number is missing.")
+                    raise ValueError(f"Registration number is missing.")
 
                 # Check for duplicate reg_no within the same CSV
                 reg_no_key = reg_no.lower()
                 if reg_no_key in seen_reg_nos:
                     raise ValueError(
-                        f"Row {total}: Duplicate registration number '{reg_no}' found in this CSV. "
+                        f"Duplicate registration number '{reg_no}' found in this CSV. "
                         "Each student should appear only once."
                     )
                 seen_reg_nos.add(reg_no_key)
@@ -249,7 +272,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                 try:
                     backlogs_count = int(backlogs_count_raw) if backlogs_count_raw else (1 if backlogs else 0)
                 except ValueError:
-                    raise ValueError(f"Row {total}: Backlog count '{backlogs_count_raw}' is not a valid integer.")
+                    raise ValueError(f"Backlog count '{backlogs_count_raw}' is not a valid integer.")
 
                 passing_year = _validate_passing_year(passing_year_raw, total)
 
@@ -262,11 +285,11 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                 
                 # Check for email conflicts
                 if email_owner and (not existing_user or email_owner.id != existing_user.id):
-                    raise ValueError(f"Row {total}: Email '{email}' is already registered to another user.")
+                    raise ValueError(f"Email '{email}' is already registered to another user.")
 
                 # Check for duplicate registration number conflicts (different student/email)
                 if existing_user and existing_user.email != email:
-                    raise ValueError(f"Row {total}: Duplicate registration number: '{reg_no}' is already registered to another user.")
+                    raise ValueError(f"Duplicate registration number: '{reg_no}' is already registered to another user.")
 
                 if existing_user:
                     # Update existing user and their student profile
@@ -278,7 +301,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                         student = Student.objects.get(user=existing_user)
                     except Student.DoesNotExist:
                         raise ValueError(
-                            f"Row {total}: User '{login_id}' exists but has no student profile. "
+                            f"User '{login_id}' exists but has no student profile. "
                             "This may be an admin or coordinator account."
                         )
 
@@ -307,9 +330,13 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                         'temporary_password': '(UNCHANGED)'
                     })
                     success += 1
+                    updated_count += 1
                 else:
-                    # Generate Temporary Password: Student@{RegNo}
-                    temp_password = f"Student@{reg_no}"
+                    # Generate Temporary Password: Secure random string
+                    import secrets
+                    import string
+                    alphabet = string.ascii_letters + string.digits
+                    temp_password = ''.join(secrets.choice(alphabet) for _ in range(10))
 
                     # Create New User
                     user = User.objects.create_user(
@@ -352,32 +379,67 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv"):
                         'temporary_password': temp_password
                     })
                     success += 1
+                    created_count += 1
 
         except Exception as e:
             fail += 1
-            error_details.append(f"Row {total}: {str(e)}")
+            error_details_list.append(f"[ERROR] Row {total}: {name_raw or 'Unknown'} ({reg_no_raw or 'Unknown'}) - {str(e)}")
 
-    # --- Step 5: Post-processing validation ---
-    if total == 0:
-        raise ValueError("CSV file contains no data rows. Please check that the file has student records below the header row.")
+        # Dynamically update the database log during the loop
+        if upload_log_id:
+            try:
+                CSVUploadLog.objects.filter(pk=upload_log_id).update(
+                    successful_records=success,
+                    failed_records=fail,
+                    error_details=f"Processing row {total} of {total_rows}..."
+                )
+            except Exception as log_err:
+                logger.error(f"Failed to update CSVUploadLog intermediate progress: {log_err}")
 
     # Determine upload status correctly
-    if fail == total:
+    if fail == total_rows:
         log_status = 'failed'
     elif fail > 0:
         log_status = 'partial'
     else:
         log_status = 'success'
 
-    log = CSVUploadLog.objects.create(
-        uploaded_by=uploaded_by,
-        file_name=file_name,
-        total_records=total,
-        successful_records=success,
-        failed_records=fail,
-        status=log_status,
-        error_details="\n".join(error_details) if error_details else None
-    )
+    # Build final summary text
+    summary_lines = [
+        "=== IMPORT SUMMARY ===",
+        f"Status: {log_status.upper()}",
+        f"Total Records in File: {total_rows}",
+        f"Successfully Processed: {success}",
+        f"  - New Accounts Created: {created_count}",
+        f"  - Existing Profiles Updated: {updated_count}",
+        f"Failed/Rejected Records: {fail}",
+    ]
+    if error_details_list:
+        summary_lines.append("\n=== DETAILED ERRORS ===")
+        summary_lines.extend(error_details_list)
+    summary_text = "\n".join(summary_lines)
+
+    if upload_log_id:
+        log = CSVUploadLog.objects.get(pk=upload_log_id)
+        log.status = log_status
+        log.successful_records = success
+        log.failed_records = fail
+        log.created_count = created_count
+        log.updated_count = updated_count
+        log.error_details = summary_text
+        log.save()
+    else:
+        log = CSVUploadLog.objects.create(
+            uploaded_by=uploaded_by,
+            file_name=file_name,
+            total_records=total_rows,
+            successful_records=success,
+            failed_records=fail,
+            created_count=created_count,
+            updated_count=updated_count,
+            status=log_status,
+            error_details=summary_text
+        )
 
     if new_students:
         Student.objects.filter(id__in=[s.id for s in new_students]).update(upload_log=log)

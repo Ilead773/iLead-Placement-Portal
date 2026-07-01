@@ -27,6 +27,63 @@ class ApplicationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        if user and user.is_authenticated:
+            if user.role == 'student':
+                # 1. Enforce restricted fields for students
+                restricted_fields = [
+                    'offer_letter_status',
+                    'offer_letter_feedback',
+                    'eligibility_snapshot',
+                    'job_snapshot',
+                    'student',
+                    'job',
+                    'is_deleted'
+                ]
+                for field in restricted_fields:
+                    if field in attrs:
+                        if self.instance and getattr(self.instance, field) == attrs[field]:
+                            continue
+                        raise serializers.ValidationError({
+                            field: f"You do not have permission to modify the '{field}' field."
+                        })
+
+                # 2. Restrict status transitions for students
+                if 'status' in attrs:
+                    new_status = attrs['status']
+                    if self.instance:
+                        old_status = self.instance.status
+                        if new_status != old_status:
+                            if new_status == 'withdrawn':
+                                pass
+                            elif new_status == 'rejected' and old_status in ['selected', 'accepted']:
+                                pass
+                            else:
+                                raise serializers.ValidationError({
+                                    'status': f"Students cannot transition application status from '{old_status}' to '{new_status}'."
+                                })
+                    else:
+                        if new_status != 'applied':
+                            raise serializers.ValidationError({
+                                'status': "New applications must start with status 'applied'."
+                            })
+
+        # 3. Enforce upload constraints: must be in selected or accepted status to upload/update offer_letter_file
+        if 'offer_letter_file' in attrs and attrs['offer_letter_file']:
+            if self.instance:
+                if self.instance.status not in ['selected', 'accepted']:
+                    raise serializers.ValidationError({
+                        'offer_letter_file': "You can only upload an offer letter for selected or accepted applications."
+                    })
+            else:
+                # When creating a new application, they can't upload an offer letter directly
+                raise serializers.ValidationError({
+                    'offer_letter_file': "You can only upload an offer letter for selected or accepted applications."
+                })
+
+        # 4. Enforce job openings limit check
         status = attrs.get('status')
         if status in ['selected', 'accepted']:
             if self.instance:

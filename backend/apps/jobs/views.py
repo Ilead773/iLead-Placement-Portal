@@ -11,6 +11,7 @@ from .models import Job, JobRound
 from .serializers import JobSerializer, JobCreateSerializer, EligibilityCheckSerializer
 from apps.applications.eligibility_engine import check_eligibility
 from apps.applications.serializers import ApplicationSerializer
+from core.permissions import IsPlacementManagerOrReadOnly
 
 from django.core.cache import cache
 
@@ -31,7 +32,7 @@ def get_serialized_job_data(job):
 
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.exclude(status='draft')
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsPlacementManagerOrReadOnly]
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:

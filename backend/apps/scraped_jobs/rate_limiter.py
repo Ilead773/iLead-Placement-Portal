@@ -30,17 +30,22 @@ class RedisRateLimiter:
         """
         key = f"ratelimit:{self.source_name}:{int(time.time() // self.window_seconds)}"
         while True:
-            current = self.cache.get(key, 0)
-            if current < self.calls_per_minute:
-                # Attempt to claim a slot atomically
-                new_val = self.cache.get(key, 0) + 1
-                self.cache.set(key, new_val, timeout=self.window_seconds + 5)
+            # Ensure key is initialized to 0 atomically (does nothing if key already exists)
+            self.cache.add(key, 0, timeout=self.window_seconds + 5)
+            
+            # Atomic increment
+            new_val = self.cache.incr(key)
+            if new_val <= self.calls_per_minute:
                 time.sleep(self.min_delay)  # enforce minimum spacing too
                 return
             else:
+                # Limit exceeded, atomic decrement to free our attempt
+                try:
+                    self.cache.decr(key)
+                except Exception:
+                    pass
                 logger.debug(
-                    f"[RateLimiter:{self.source_name}] Window full "
-                    f"({current}/{self.calls_per_minute}). Waiting..."
+                    f"[RateLimiter:{self.source_name}] Window full. Waiting..."
                 )
                 time.sleep(2)
                 # Recalculate key in case window rolled over

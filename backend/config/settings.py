@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 try:
     import dotenv
     env_path = os.path.join(BASE_DIR, '.env')
-    dotenv.load_dotenv(env_path)
+    dotenv.load_dotenv(env_path, override=True)
 except ImportError:
     pass
 
@@ -55,22 +55,27 @@ INSTALLED_APPS = [
     'apps.applications',
     'apps.scraped_jobs',
     'apps.interviews',
-    'apps.career_os',
+    'apps.north_star',
+    'apps.placement_sessions',
     'django_celery_beat',
     'job_scraper',
 ]
 
 MIDDLEWARE = [
+    'core.middleware.LimitUploadSizeMiddleware',  # Rejects massive uploads early
+    'core.middleware.AdminIPRestrictionMiddleware',  # Protects Admin URL early
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'core.middleware.EnsureCsrfCookieMiddleware',  # Sets csrf cookie for frontend
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ForcePasswordChangeMiddleware',
+    'core.middleware.SecurityHeadersMiddleware',  # Injects security headers
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -125,12 +130,12 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # Cookie Policies
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # Required so JS frontend can read cookie for header validation
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
@@ -155,16 +160,18 @@ AUTH_USER_MODEL = 'core.User'
 # REST Framework Config
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'core.cookie_auth.JWTCookieAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
     # Layer 12: Rate Limiting
     'DEFAULT_THROTTLE_RATES': {
-        'resume_generation': '10/hour',
+        'resume_generation': '100/hour',
         'resume_upload': '5/hour',
         'resume_download': '30/hour',
+        'mock_interview_start': '5/hour',
+        'mock_interview_submit': '60/hour',
     },
 }
 
@@ -181,23 +188,55 @@ SIMPLE_JWT = {
 }
 
 # CORS Config
-# Keep local development permissive by default, while staying strict in production.
-CORS_ALLOW_ALL_ORIGINS = os.environ.get(
-    'CORS_ALLOW_ALL_ORIGINS',
-    'True' if DEBUG else 'False'
-) == 'True'
+# CORS with credentials requires explicit origins (cannot be wildcard '*')
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     if origin.strip()
 ]
+if DEBUG:
+    CORS_ALLOWED_ORIGINS += [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+    ]
+
+# CSRF Trusted Origins — include CORS origins + HTTPS versions of ALLOWED_HOSTS
+# This ensures Railway's *.up.railway.app domains are trusted automatically.
+CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
+for _host in ALLOWED_HOSTS:
+    if _host not in ('localhost', '127.0.0.1', '0.0.0.0', '*'):
+        _https_origin = f'https://{_host}'
+        _http_origin = f'http://{_host}'
+        if _https_origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_https_origin)
+        if _http_origin not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_http_origin)
+
+# Also honour the RAILWAY_PUBLIC_DOMAIN variable Railway injects automatically
+_railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+if _railway_domain:
+    _r_origin = f'https://{_railway_domain}'
+    if _r_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_r_origin)
+    if _r_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_r_origin)
+
+# Django Admin Security Config
+ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'admin-secure-portal/')
+ADMIN_IP_WHITELIST = [ip.strip() for ip in os.environ.get('ADMIN_IP_WHITELIST', '').split(',') if ip.strip()] or None
 
 # Email Configuration
 EMAIL_BACKEND_ENV = os.environ.get('EMAIL_BACKEND')
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 
 if EMAIL_BACKEND_ENV:
     EMAIL_BACKEND = EMAIL_BACKEND_ENV
+elif BREVO_API_KEY:
+    EMAIL_BACKEND = 'core.email_backends.BrevoEmailBackend'
 elif RESEND_API_KEY:
     EMAIL_BACKEND = 'core.email_backends.ResendEmailBackend'
 else:
@@ -215,6 +254,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev
 RESEND_TEST_MODE = os.environ.get('RESEND_TEST_MODE', 'True') == 'True'
 RESEND_TEST_REDIRECT_EMAIL = os.environ.get('RESEND_TEST_REDIRECT_EMAIL', '')
 
+# Brevo test mode
+BREVO_TEST_MODE = os.environ.get('BREVO_TEST_MODE', os.environ.get('RESEND_TEST_MODE', 'True')) == 'True'
+BREVO_TEST_REDIRECT_EMAIL = os.environ.get('BREVO_TEST_REDIRECT_EMAIL', os.environ.get('RESEND_TEST_REDIRECT_EMAIL', ''))
+
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
@@ -228,9 +271,9 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # Password Reset Expiration (in seconds) - 1 Hour
 PASSWORD_RESET_TIMEOUT = 3600
@@ -240,8 +283,14 @@ LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5
 LOGIN_RATE_LIMIT_LOCKOUT_MINUTES = 1
 
 # ─── Resume Engine: Celery / Async (Layer 2) ────────────────────
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
+import sys
+TESTING = 'test' in sys.argv or 'pytest' in sys.modules or any('pytest' in arg for arg in sys.argv)
+if TESTING:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+else:
+    CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False').lower() == 'true'
+    CELERY_TASK_EAGER_PROPAGATES = os.environ.get('CELERY_TASK_EAGER_PROPAGATES', 'False').lower() == 'true'
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0'))
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0'))
 CELERY_ACCEPT_CONTENT = ['json']
@@ -251,21 +300,23 @@ CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_ROUTES = {
     'apps.applications.tasks.send_job_alert_task': {'queue': 'notifications'},
     'apps.applications.tasks.send_notification_email': {'queue': 'notifications'},
+    'apps.applications.tasks.send_bulk_notification_emails': {'queue': 'notifications'},
     'core.tasks.async_send_mail': {'queue': 'notifications'},
 }
 # Cache backend (used by rate limiting + scraper query caching)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        # For production with Redis:
-        # 'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        # 'LOCATION': 'redis://localhost:6379/1',
+if TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
     }
-}
-
-# ─── OneSignal Configuration ──────────────────────────────────────
-ONESIGNAL_APP_ID = os.environ.get('ONESIGNAL_APP_ID', '97a17b7a-8d2b-4daf-bba5-a0b16d31a1bb')
-ONESIGNAL_REST_API_KEY = os.environ.get('ONESIGNAL_REST_API_KEY', '')
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        }
+    }
 
 # ─── Scraped Jobs: External API Keys ─────────────────────────────
 JSEARCH_API_KEY = os.environ.get('JSEARCH_API_KEY', '')
@@ -277,6 +328,23 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'shahithu2004@gmail.com')
 MAX_JOBS_AGE_HOURS = 48
 JOBS_ARCHIVE_DAYS = 90
 JOBS_PER_COURSE_TARGET = 25
+
+# ─── Resume Engine Limits ─────────────────────────────────────────
+def _get_env_int(key, default):
+    val = os.environ.get(key, '')
+    if not val.strip():
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+MAX_BUILT_RESUMES = _get_env_int('MAX_BUILT_RESUMES', 5)
+MAX_UPLOADED_RESUMES = _get_env_int('MAX_UPLOADED_RESUMES', 5)
+MAX_RESUME_UPLOAD_SIZE = _get_env_int('MAX_RESUME_UPLOAD_SIZE', 5 * 1024 * 1024)  # default: 5MB
+MAX_PROFILE_PICTURE_SIZE = _get_env_int('MAX_PROFILE_PICTURE_SIZE', 2 * 1024 * 1024)  # default: 2MB
+
+
 
 # Centralized scraper timeouts (seconds)
 SCRAPER_TIMEOUTS = {
@@ -334,3 +402,23 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Sentry Error Monitoring Integration
+SENTRY_DSN = os.environ.get('SENTRY_DSN')
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[
+                DjangoIntegration(),
+                CeleryIntegration(),
+            ],
+            traces_sample_rate=1.0,
+            send_default_pii=True,
+        )
+    except ImportError:
+        pass

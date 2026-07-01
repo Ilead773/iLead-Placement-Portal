@@ -56,6 +56,7 @@ export default function StudentProfile() {
     linkedin: '', 
     github: '', 
     portfolio: '',
+    email_job_alerts: true,
     year: '',
     category: '',
     backlogs: false
@@ -208,6 +209,7 @@ export default function StudentProfile() {
         linkedin: profileRes.data.linkedin || '',
         github: profileRes.data.github || '',
         portfolio: profileRes.data.portfolio || '',
+        email_job_alerts: profileRes.data.email_job_alerts !== undefined ? profileRes.data.email_job_alerts : true,
         year: profileRes.data.student_year || '',
         category: profileRes.data.student_category || '',
         backlogs: profileRes.data.student_backlogs || false,
@@ -906,6 +908,20 @@ export default function StudentProfile() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group"><label>LinkedIn</label><input className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} /></div>
                 <div className="input-group"><label>GitHub</label><input className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} /></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="input-group"><label>Portfolio Website</label><input className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} /></div>
+                <div className="input-group flex flex-col justify-center">
+                  <div className="flex items-center gap-2 mt-4 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      id="email-alerts-checkbox" 
+                      checked={basicInfo.email_job_alerts} 
+                      onChange={e => setBasicInfo({...basicInfo, email_job_alerts: e.target.checked})} 
+                    />
+                    <label htmlFor="email-alerts-checkbox" className="text-sm font-semibold select-none cursor-pointer">Receive Email Job Alerts</label>
+                  </div>
+                </div>
               </div>
               <button type="submit" className="btn btn-primary btn-full mt-4">Save Changes</button>
             </form>

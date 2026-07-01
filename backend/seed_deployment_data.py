@@ -28,7 +28,7 @@ from apps.interviews.models import (
 )
 from apps.scraped_jobs.models import CourseSearchConfig
 from apps.scraped_jobs.course_config import COURSE_SEARCH_CONFIG
-from apps.career_os.models import Course
+from core.models import Course
 from django.core.management import call_command
 
 # JSON DATA REPRESENTATION
@@ -15164,13 +15164,32 @@ def seed_database():
                 feedback_summary=fb['feedback_summary']
             )
 
-        # Seed career_os courses if they don't exist (e.g. on fresh Railway deployments)
+        # Seed courses if they don't exist
+        COURSES_TO_SEED = [
+            {"name": "BBA", "category": "Business & Management"},
+            {"name": "BBA in Digital Marketing (BBA DM)", "category": "Business & Management"},
+            {"name": "BBA in Travel & Tourism Management (BBA TTM)", "category": "Business & Management"},
+            {"name": "BBA in Entrepreneurship (BBA ENT)", "category": "Business & Management"},
+            {"name": "BBA in Sports Management (BBA SM)", "category": "Business & Management"},
+            {"name": "BBA in Hospital Management (BBA HM)", "category": "Business & Management"},
+            {"name": "BSc in Media Science (BMS)", "category": "Media & Creative"},
+            {"name": "MSc in Media Science", "category": "Media & Creative"},
+            {"name": "BSc in Multimedia, Animation, Graphic Design (BMAGD)", "category": "Media & Creative"},
+            {"name": "MSc in Multimedia, Animation, Graphic Design (MMAGD)", "category": "Media & Creative"},
+            {"name": "BSc in Film and Television Production (FTP)", "category": "Creative Production"},
+            {"name": "BSc in Interior Design", "category": "Creative Production"},
+            {"name": "BSc in Sustainable Fashion Design & Management", "category": "Creative Production"},
+            {"name": "Bachelor in Optometry", "category": "Healthcare"},
+            {"name": "BSc in Critical Care Technology (CCT)", "category": "Healthcare"},
+            {"name": "BSc in Medical Laboratory Technology (BMLT)", "category": "Healthcare"},
+            {"name": "BSc in Data Science", "category": "Technology"},
+            {"name": "BSc in Cyber Security", "category": "Technology"},
+            {"name": "BSc in Computer Application (BCA)", "category": "Technology"},
+        ]
         if not Course.objects.exists():
-            print("Course table is empty. Running load_kb to populate courses and skills...")
-            try:
-                call_command('load_kb')
-            except Exception as e:
-                print(f"Error running load_kb: {e}")
+            print("Course table is empty. Seeding courses...")
+            for c_data in COURSES_TO_SEED:
+                Course.objects.get_or_create(name=c_data["name"], defaults={"category": c_data["category"]})
 
         # 8. Seed Course Search Configurations
         print("Seeding Course Search Configurations...")

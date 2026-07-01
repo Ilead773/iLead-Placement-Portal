@@ -69,26 +69,20 @@ class TemplateSecurityValidator:
         if not html_content:
             return html_content
 
-        cleaned = html_content
-
-        for pattern in DANGEROUS_HTML_PATTERNS:
-            matches = re.findall(pattern, cleaned, re.IGNORECASE)
-            if matches:
-                logger.warning(f"Dangerous HTML pattern removed: {pattern}")
-                cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
-
-        # Try bleach if available, otherwise use regex-based cleaning
+        # Enforce bleach as a hard dependency for production-grade security
         try:
             import bleach
-            cleaned = bleach.clean(
-                cleaned,
-                tags=ALLOWED_TAGS,
-                attributes=ALLOWED_ATTRIBUTES,
-                protocols=['http', 'https', 'mailto'],
-                strip=True,
-            )
         except ImportError:
-            logger.info("bleach not installed, using regex sanitization only")
+            logger.error("bleach package is not installed! Aborting HTML sanitization for safety.")
+            raise ImportError("bleach is required for secure HTML template sanitization. Please install bleach.")
+
+        cleaned = bleach.clean(
+            html_content,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            protocols=['http', 'https', 'mailto'],
+            strip=True,
+        )
 
         return cleaned
 
@@ -116,8 +110,15 @@ class TemplateSecurityValidator:
         Full template validation — sanitize HTML + validate CSS.
 
         Returns (sanitized_html, validated_css).
-        Raises ValueError on dangerous CSS.
+        Raises ValueError on dangerous CSS or templates with banned tags.
         """
+        if html_content:
+            # Check for banned template tags to prevent SSTI (Server-Side Template Injection)
+            # Banned tags: extends, include, load, ssi, debug
+            banned_tags_pattern = r'{%\s*(load|include|extends|ssi|debug)\b'
+            if re.search(banned_tags_pattern, html_content, re.IGNORECASE):
+                raise ValueError("Resume templates cannot use 'load', 'include', 'extends', 'ssi', or 'debug' tags for security reasons.")
+
         sanitized_html = cls.sanitize_html(html_content)
         validated_css = cls.validate_css(css_content)
         return sanitized_html, validated_css

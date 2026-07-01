@@ -10,17 +10,15 @@ const useAuthStore = create((set, get) => ({
 
   login: async (login_id, password) => {
     const { data } = await api.post('/auth/login/', { login_id, password });
-    setCookie('access_token', data.access);
-    setCookie('refresh_token', data.refresh);
+    setCookie('has_session', 'true', 7);
     const needsChange = data.user.temp_password_flag || data.user.password_reset_required;
     set({ user: data.user, isAuthenticated: true, passwordChangeRequired: needsChange });
     return data.user;
   },
 
   changePassword: async (current_password, new_password, confirm_password) => {
-    const { data } = await api.post('/auth/change-password/', { current_password, new_password, confirm_password });
-    setCookie('access_token', data.access);
-    setCookie('refresh_token', data.refresh);
+    await api.post('/auth/change-password/', { current_password, new_password, confirm_password });
+    setCookie('has_session', 'true', 7);
     set((s) => ({
       passwordChangeRequired: false,
       user: { ...s.user, temp_password_flag: false, password_reset_required: false },
@@ -29,25 +27,27 @@ const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      const refresh = getCookie('refresh_token');
-      await api.post('/auth/logout/', { refresh });
+      await api.post('/auth/logout/');
     } catch { /* */ }
-    eraseCookie('access_token');
-    eraseCookie('refresh_token');
-    localStorage.clear(); // Keep this for other non-auth data if any
+    eraseCookie('has_session');
+    localStorage.clear();
+    try {
+      const { default: useNotificationStore } = await import('./notificationStore');
+      useNotificationStore.getState().stopPolling();
+    } catch (e) {
+      console.error(e);
+    }
     set({ user: null, isAuthenticated: false, passwordChangeRequired: false });
   },
 
   initAuth: async () => {
-    const token = getCookie('access_token');
-    if (!token) return;
+    if (getCookie('has_session') !== 'true') return;
     try {
-      const { data } = await api.get('/me/');
+      const { data } = await api.get('/me/', { skipAuthRedirect: true });
       const needsChange = data.temp_password_flag || data.password_reset_required;
       set({ user: data, isAuthenticated: true, passwordChangeRequired: needsChange });
     } catch {
-      eraseCookie('access_token');
-      eraseCookie('refresh_token');
+      eraseCookie('has_session');
       set({ user: null, isAuthenticated: false });
     }
   },

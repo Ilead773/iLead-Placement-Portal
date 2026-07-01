@@ -14,7 +14,7 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=10)
+@shared_task(bind=True, max_retries=3, default_retry_delay=10, name='apps.resumes.tasks.generate_resume_pdf')
 def generate_resume_pdf(self, resume_id, template_id):
     """
     Async: Generate PDF from canonical JSON + template.
@@ -58,7 +58,7 @@ def generate_resume_pdf(self, resume_id, template_id):
         raise self.retry(exc=exc, countdown=2 ** self.request.retries)
 
 
-@shared_task(bind=True, max_retries=2)
+@shared_task(bind=True, max_retries=2, name='apps.resumes.tasks.parse_uploaded_resume')
 def parse_uploaded_resume(self, upload_id):
     """
     Async: Parse an uploaded PDF to canonical JSON.
@@ -72,9 +72,10 @@ def parse_uploaded_resume(self, upload_id):
         upload.status = 'parsing'
         upload.save(update_fields=['status'])
 
-        # Extract text and normalize
+        # Extract text and normalize from file stream for S3 compatibility
         normalizer = ResumeNormalizer()
-        canonical = normalizer.normalize_from_file(upload.file.path)
+        with upload.file.open('rb') as f:
+            canonical = normalizer.normalize_from_file(f)
 
         upload.canonical_json = canonical
         upload.status = 'parsed'
@@ -96,7 +97,7 @@ def parse_uploaded_resume(self, upload_id):
         raise self.retry(exc=exc, countdown=5)
 
 
-@shared_task
+@shared_task(name='apps.resumes.tasks.cleanup_old_pdfs')
 def cleanup_old_pdfs(days_old=30):
     """
     Periodic: Clean up generated PDFs older than N days.

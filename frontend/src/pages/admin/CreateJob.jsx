@@ -36,8 +36,9 @@ const CreateJob = () => {
   React.useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await axios.get('/career-os/courses/');
-        setAvailableCourses(response.data.courses || []);
+        const response = await axios.get('/north-star/courses/');
+        const coursesList = Array.isArray(response.data) ? response.data : (response.data.courses || []);
+        setAvailableCourses(coursesList);
       } catch (err) {
         console.error('Failed to fetch courses', err);
         setAvailableCourses([

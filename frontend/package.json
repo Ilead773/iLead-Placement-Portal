@@ -10,6 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@zoom/meetingsdk": "^6.1.0",
     "axios": "^1.6.2",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",

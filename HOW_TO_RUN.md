@@ -10,7 +10,7 @@ In your **first terminal**, start the Django backend server:
 
 ```powershell
 # Navigate to the backend directory
-cd backend
+python manage.py runserver
 
 # Activate your virtual environment (if you are using one)
 venv\Scripts\Activate
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 # Run the Django development server
 python manage.py runserver
 ```
-
+DEactivate
 The backend will be available at `http://127.0.0.1:8000/`.
 
 ---

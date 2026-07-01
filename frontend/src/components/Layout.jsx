@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../store/authStore';
 import NotificationBell from './NotificationBell';
+import ErrorBoundary from './ErrorBoundary';
 import { 
   LayoutDashboard, 
   Users, 
@@ -29,7 +30,9 @@ import {
   MousePointerClick,
   Workflow,
   Bell,
-  HelpCircle
+  HelpCircle,
+  Star,
+  Video
 } from 'lucide-react';
 import useThemeStore from '../store/themeStore';
 import logo from '../logo.png';
@@ -40,6 +43,8 @@ const ADMIN_NAV = [
     { to: '/students', icon: <Users size={18} strokeWidth={2} />, label: 'Students' },
     { to: '/placements', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Placements' },
     { to: '/assignments', icon: <GraduationCap size={18} strokeWidth={2} />, label: 'Assignments' },
+    { to: '/admin/sessions', icon: <Video size={18} strokeWidth={2} />, label: 'Sessions', badge: 'ZOOM' },
+    { to: '/north-star', icon: <Star size={18} strokeWidth={2} />, label: 'Project North Star' },
   ]},
   { section: 'Operations', items: [
     { to: '/admin/pipeline', icon: <Workflow size={18} strokeWidth={2} />, label: 'Job Tracking' },
@@ -66,6 +71,8 @@ const STUDENT_NAV = [
     { to: '/student', icon: <Home size={18} strokeWidth={2} />, label: 'Dashboard' },
     { to: '/student/profile', icon: <User size={18} strokeWidth={2} />, label: 'My Profile' },
     { to: '/student/notifications', icon: <Bell size={18} strokeWidth={2} />, label: 'Notifications' },
+    { to: '/student/sessions', icon: <Video size={18} strokeWidth={2} />, label: 'My Sessions', badge: 'ZOOM' },
+    { to: '/north-star', icon: <Star size={18} strokeWidth={2} />, label: 'Project North Star' },
   ]},
   { section: 'Career', items: [
     { to: '/student/resumes', icon: <FileText size={18} strokeWidth={2} />, label: 'My Resumes' },
@@ -315,7 +322,6 @@ export default function Layout() {
             >
               <Menu size={20} />
             </button>
-            {!isStudent && <div className="breadcrumb text-sm opacity-60">Admin / {location.pathname.split('/').pop()}</div>}
             <button className="theme-toggle flex items-center justify-center ml-2 w-10 h-10 rounded-xl hover:bg-card-hover transition-all text-primary" onClick={toggleTheme}>
               {isDarkMode ? <Sun size={20} className="text-orange-500" /> : <Moon size={20} />}
             </button>
@@ -357,7 +363,9 @@ export default function Layout() {
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="page-content"
             >
-              <Outlet />
+              <ErrorBoundary>
+                <Outlet />
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </div>

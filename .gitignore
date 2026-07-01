@@ -1,4 +1,6 @@
 # Virtual environments
+.venv/
+.venv-1/
 backend/venv/
 frontend/venv/
 venv/
@@ -94,7 +96,9 @@ graphify-out/
 *.dll
 *.iso
 *.zip
+*.pdf
 Antigravity.exe
+
 
 # Celery
 celerybeat-schedule
@@ -110,3 +114,29 @@ temp/
 .Python
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Scratch & Local temporary files
+backend/scratch/
+backend/test_mermaid.png
+__MACOSX/
+
+# Local data template generators/outputs
+generate_excel_template.py
+student_import_template.xlsx
+
+# Markdown documentation (keep README.md for repo landing page)
+*.md
+!README.md
+
+# Root image documentation
+/*.png
+
+# AI assistant configuration files
+.agents/
+
+# Zoom SDK large vendor binary assets (installed via npm, not committed to git)
+frontend/public/zoom-sdk/
+frontend/public/meetingsdk-assets/
+
+
+

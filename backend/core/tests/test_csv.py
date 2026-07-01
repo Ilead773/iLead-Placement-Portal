@@ -21,13 +21,16 @@ class TestCSVImport:
         
         response = auth_client.post(url, {'file': csv_file}, format='multipart')
         
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert User.objects.filter(login_id='stu_test').exists()
         assert Student.objects.filter(registration_number='STU_TEST').exists()
         
-        # Verify credentials CSV is returned
-        assert 'credentials_csv' in response.data
-        assert 'Student@STU_TEST' in response.data['credentials_csv']
+        # Verify upload_log is returned and is successful
+        assert 'upload_log' in response.data
+        log_id = response.data['upload_log']['id']
+        log = CSVUploadLog.objects.get(id=log_id)
+        assert log.status == 'success'
+        assert log.successful_records == 1
 
     def test_duplicate_registration_number_failure(self, auth_client, student_user):
         # student_user already has STU001
@@ -41,7 +44,7 @@ class TestCSVImport:
         response = auth_client.post(url, {'file': csv_file}, format='multipart')
         
         # Should be a partial or success with errors logged in CSVUploadLog
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_202_ACCEPTED
         log = CSVUploadLog.objects.first()
         assert log.failed_records == 1
         assert "Duplicate registration number" in log.error_details

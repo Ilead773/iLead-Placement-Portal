@@ -1,9 +1,9 @@
 // src/pages/SharedResumes.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from '../api/axios';
 import logo from '../logo.png';
-import { Download, ExternalLink, FileText, Briefcase, Calendar, Mail, CheckCircle, Search, Sparkles, Copy, Check } from 'lucide-react';
+import { Download, ExternalLink, FileText, Briefcase, Calendar, Mail, CheckCircle, Search, Sparkles, Copy, Check, Lock, ShieldCheck } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function SharedResumes() {
@@ -15,23 +15,86 @@ export default function SharedResumes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const fetchSharedResumes = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`/applications/shared-resumes/${logId}/`);
-        setData(response.data);
-        setError(null);
-      } catch (err) {
-        setError(err.response?.data?.error || 'Shared resumes not found or link has expired.');
-      } finally {
-        setLoading(false);
+  // PIN state
+  const [needsPin, setNeedsPin] = useState(false);
+  const [pinDigits, setPinDigits] = useState(['', '', '', '', '', '']);
+  const [pinError, setPinError] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const pinRefs = useRef([]);
+
+  const fetchSharedResumes = async (pin) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`/applications/shared-resumes/${logId}/`, {
+        params: pin ? { pin } : {},
+      });
+      setData(response.data);
+      setError(null);
+      setNeedsPin(false);
+    } catch (err) {
+      const errCode = err.response?.data?.error;
+      if (errCode === 'invalid_pin') {
+        // Show PIN entry screen instead of error
+        setNeedsPin(true);
+        if (pin) {
+          // PIN was provided but wrong
+          setPinError('Incorrect PIN. Please check the email and try again.');
+        }
+      } else if (errCode === 'link_expired') {
+        setError('This shared resume link has expired and is no longer accessible.');
+      } else {
+        setError(err.response?.data?.message || 'Shared resumes not found or link has expired.');
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (logId) {
-      fetchSharedResumes();
+      fetchSharedResumes(null);
     }
   }, [logId]);
+
+  // PIN input handlers
+  const handlePinChange = (index, value) => {
+    if (!/^[0-9]?$/.test(value)) return;
+    const next = [...pinDigits];
+    next[index] = value;
+    setPinDigits(next);
+    setPinError('');
+    if (value && index < 5) {
+      pinRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePinKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !pinDigits[index] && index > 0) {
+      pinRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePinPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setPinDigits(pasted.split(''));
+      setPinError('');
+      pinRefs.current[5]?.focus();
+    }
+  };
+
+  const handlePinSubmit = async (e) => {
+    e.preventDefault();
+    const pin = pinDigits.join('');
+    if (pin.length < 6) {
+      setPinError('Please enter all 6 digits.');
+      return;
+    }
+    setPinLoading(true);
+    await fetchSharedResumes(pin);
+    setPinLoading(false);
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -92,6 +155,204 @@ export default function SharedResumes() {
           @keyframes workspace-pulse {
             0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(0.8); }
             50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (needsPin) {
+    return (
+      <div className="pin-screen">
+        <div className="pin-card">
+          <div className="pin-logo-wrap">
+            <img src={logo} alt="iLEAD" className="pin-logo" />
+          </div>
+          <div className="pin-icon-wrap">
+            <Lock size={28} />
+          </div>
+          <h2 className="pin-title">Verification Required</h2>
+          <p className="pin-subtitle">
+            This link is PIN-protected. Enter the 6-digit code from the email to access the candidate resumes.
+          </p>
+          <form onSubmit={handlePinSubmit} className="pin-form">
+            <div className="pin-inputs" onPaste={handlePinPaste}>
+              {pinDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={el => pinRefs.current[i] = el}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => handlePinChange(i, e.target.value)}
+                  onKeyDown={e => handlePinKeyDown(i, e)}
+                  className={`pin-digit${pinError ? ' pin-digit--error' : ''}`}
+                  autoFocus={i === 0}
+                  aria-label={`PIN digit ${i + 1}`}
+                />
+              ))}
+            </div>
+            {pinError && <p className="pin-error-msg">{pinError}</p>}
+            <button type="submit" className="pin-submit-btn" disabled={pinLoading}>
+              {pinLoading ? (
+                <span className="pin-btn-loading">
+                  <span className="pin-btn-spinner" />
+                  Verifying...
+                </span>
+              ) : (
+                <span className="pin-btn-content">
+                  <ShieldCheck size={18} />
+                  Unlock Access
+                </span>
+              )}
+            </button>
+          </form>
+          <p className="pin-hint">
+            The PIN was included in the email subject or body. Check your inbox.
+          </p>
+        </div>
+
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+          .pin-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #060913;
+            padding: 24px;
+            font-family: 'Outfit', 'Inter', sans-serif;
+          }
+          .pin-card {
+            max-width: 460px;
+            width: 100%;
+            background: #0f1526;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 48px 40px;
+            border-radius: 28px;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99,102,241,0.08);
+          }
+          .pin-logo-wrap {
+            margin-bottom: 20px;
+          }
+          .pin-logo {
+            height: 36px;
+            object-fit: contain;
+            opacity: 0.85;
+          }
+          .pin-icon-wrap {
+            width: 68px;
+            height: 68px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            color: #818cf8;
+          }
+          .pin-title {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+          }
+          .pin-subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 32px;
+          }
+          .pin-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+          }
+          .pin-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 4px;
+          }
+          .pin-digit {
+            width: 52px;
+            height: 60px;
+            background: #1a2440;
+            border: 1.5px solid rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            font-family: 'Outfit', monospace;
+            caret-color: #818cf8;
+          }
+          .pin-digit:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: #1e2d55;
+          }
+          .pin-digit--error {
+            border-color: rgba(239, 68, 68, 0.6) !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+          }
+          .pin-error-msg {
+            color: #f87171;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0;
+          }
+          .pin-submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            padding: 15px 24px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+            margin-top: 8px;
+            font-family: 'Outfit', sans-serif;
+          }
+          .pin-submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+          }
+          .pin-submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+          }
+          .pin-btn-content, .pin-btn-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          }
+          .pin-btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid #fff;
+            border-radius: 50%;
+            animation: pin-spin 0.8s linear infinite;
+          }
+          .pin-hint {
+            color: #475569;
+            font-size: 0.82rem;
+            margin-top: 20px;
+          }
+          @keyframes pin-spin {
+            to { transform: rotate(360deg); }
           }
         `}</style>
       </div>
@@ -193,6 +454,37 @@ export default function SharedResumes() {
       {/* Dynamic Background Glows */}
       <div className="glow-1"></div>
       <div className="glow-2"></div>
+
+      {/* Staff Preview Banner */}
+      {data?.is_staff_preview && (
+        <div className="staff-preview-banner">
+          <span className="staff-preview-icon">🔐</span>
+          <span className="staff-preview-text">
+            <strong>Staff Preview Mode</strong> — You're viewing this as a signed-in admin.
+            External company recipients must enter the <strong>6-digit PIN</strong> sent in the email to access this page.
+          </span>
+          <style>{`
+            .staff-preview-banner {
+              position: sticky;
+              top: 0;
+              z-index: 100;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              background: linear-gradient(90deg, rgba(217,119,6,0.18) 0%, rgba(251,191,36,0.10) 100%);
+              border-bottom: 1px solid rgba(251,191,36,0.3);
+              padding: 12px 24px;
+              font-family: 'Outfit', 'Inter', sans-serif;
+              font-size: 0.9rem;
+              color: #fde68a;
+              backdrop-filter: blur(8px);
+            }
+            .staff-preview-icon { font-size: 1.1rem; flex-shrink: 0; }
+            .staff-preview-text { line-height: 1.4; }
+            .staff-preview-text strong { color: #fbbf24; }
+          `}</style>
+        </div>
+      )}
 
       <div className="workspace-content">
         

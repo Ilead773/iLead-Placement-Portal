@@ -108,8 +108,8 @@ const ApplicationDetail = () => {
         setUploadSuccess('');
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        setUploadError('File is too large. Maximum size is 10MB.');
+      if (file.size > 2 * 1024 * 1024) {
+        setUploadError('File is too large. Maximum size is 2MB.');
         setUploadSuccess('');
         return;
       }
@@ -132,8 +132,8 @@ const ApplicationDetail = () => {
         setUploadSuccess('');
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        setUploadError('File is too large. Maximum size is 10MB.');
+      if (file.size > 2 * 1024 * 1024) {
+        setUploadError('File is too large. Maximum size is 2MB.');
         setUploadSuccess('');
         return;
       }
@@ -295,7 +295,7 @@ const ApplicationDetail = () => {
                           <Upload size={18} />
                         </div>
                         <span className="dropzone-title">{isOffCampus ? 'Upload Offer Letter' : 'Accept & Upload Offer Letter'}</span>
-                        <span className="dropzone-subtitle">PDF, Word, or Image up to 10MB</span>
+                        <span className="dropzone-subtitle">PDF, Word, or Image up to 2MB</span>
                       </label>
                     </div>
                   </div>
@@ -485,7 +485,7 @@ const ApplicationDetail = () => {
                           <Upload size={18} />
                         </div>
                         <span className="dropzone-title">Re-upload Offer Letter</span>
-                        <span className="dropzone-subtitle">PDF, Word, or Image up to 10MB</span>
+                        <span className="dropzone-subtitle">PDF, Word, or Image up to 2MB</span>
                       </label>
                     </div>
                   </div>

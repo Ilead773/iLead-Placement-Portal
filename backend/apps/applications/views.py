@@ -154,6 +154,20 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     priority='critical',
                     action_url=f"/student/applications/{application.id}"
                 )
+            elif new_ol_status == 'pending_verification':
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                staff_users = User.objects.filter(role__in=['admin', 'coordinator'], is_active=True)
+                student_name = application.student.name
+                for staff in staff_users:
+                    Notification.objects.create(
+                        user=staff,
+                        notification_type='OFFER_LETTER_SUBMITTED',
+                        title=f"📁 Offer Letter Submitted: {student_name}",
+                        message=f"{student_name} has submitted an offer letter for {role} at {company_name}. Please review and verify it.",
+                        priority='medium',
+                        action_url="/admin/placements"
+                    )
 
     def create(self, request, *args, **kwargs):
         student_profile = getattr(request.user, 'student_profile', None)
@@ -241,6 +255,106 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         )
         return Response({'status': 'withdrawn'})
 
+    @action(detail=False, methods=['post'], url_path='bulk-update-status')
+    def bulk_update_status(self, request):
+        if request.user.role not in ['admin', 'coordinator']:
+            return Response({'error': 'Only admins and coordinators can perform bulk status updates.'}, status=status.HTTP_403_FORBIDDEN)
+
+        application_ids = request.data.get('application_ids', [])
+        new_status = request.data.get('status')
+
+        if not application_ids or not new_status:
+            return Response({'error': 'application_ids and status are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return Response({'error': f"Invalid status: {new_status}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                # Query base set of applications
+                applications = Application.objects.filter(id__in=application_ids, is_deleted=False).select_related('job', 'student__user')
+                if not applications.exists():
+                    return Response({'error': 'No active applications found for the given IDs.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # If moving to selected/accepted, check job vacancies limit with locking
+                if new_status in ['selected', 'accepted']:
+                    # Group by job to check limits atomically
+                    job_ids = applications.values_list('job_id', flat=True).distinct()
+                    for j_id in job_ids:
+                        locked_job = Job.objects.select_for_update().get(id=j_id)
+                        
+                        already_placed_count = Application.objects.filter(
+                            job=locked_job,
+                            status__in=['selected', 'accepted'],
+                            is_deleted=False
+                        ).exclude(id__in=application_ids).count()
+                        
+                        to_be_placed_count = applications.filter(job=locked_job).count()
+                        
+                        if already_placed_count + to_be_placed_count > locked_job.openings_count:
+                            return Response({
+                                'error': f"Cannot select candidates. Job '{locked_job.company_name} - {locked_job.role}' only has {locked_job.openings_count} openings, which will be exceeded."
+                            }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Update applications and log history
+                updated_count = 0
+                for app in applications:
+                    old_status = app.status
+                    if old_status != new_status:
+                        app.status = new_status
+                        app.save(update_fields=['status', 'updated_at'])
+                        
+                        ApplicationStatusHistory.objects.create(
+                            application=app,
+                            old_status=old_status,
+                            new_status=new_status,
+                            changed_by=request.user
+                        )
+                        updated_count += 1
+                        
+                        # Handle notification for revert
+                        if old_status in ['selected', 'accepted'] and new_status not in ['selected', 'accepted']:
+                            company_name = app.job.company_name
+                            role = app.job.role
+                            title = f"⚠️ Placement Update: {company_name}"
+                            message = f"Your placement status for the role of {role} at {company_name} has been reverted. Your application status is now {new_status.capitalize()}."
+                            
+                            Notification.objects.create(
+                                user=app.student.user,
+                                notification_type='APPLICATION_UPDATE',
+                                title=title,
+                                message=message,
+                                priority='high',
+                                action_url=f"/student/applications/{app.id}"
+                            )
+
+            return Response({'status': 'success', 'updated_count': updated_count})
+        except Exception as e:
+            logger.error(f"Error in bulk_update_status: {e}", exc_info=True)
+            return Response({'error': f"Failed to perform bulk status update: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        if request.user.role not in ['admin', 'coordinator']:
+            return Response({'error': 'Only admins and coordinators can perform bulk deletions.'}, status=status.HTTP_403_FORBIDDEN)
+
+        application_ids = request.data.get('application_ids', [])
+        if not application_ids:
+            return Response({'error': 'application_ids list is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                applications = Application.objects.filter(id__in=application_ids, is_deleted=False)
+                deleted_count = 0
+                for app in applications:
+                    self.perform_destroy(app)
+                    deleted_count += 1
+            return Response({'status': 'success', 'deleted_count': deleted_count})
+        except Exception as e:
+            logger.error(f"Error in bulk_delete: {e}", exc_info=True)
+            return Response({'error': f"Failed to perform bulk deletions: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -327,17 +441,18 @@ class NotificationViewSet(viewsets.ModelViewSet):
             for user in users
         ]
         
-        created_notifications = Notification.objects.bulk_create(notifications_to_create)
+        created_notifications = Notification.objects.bulk_create(notifications_to_create, batch_size=500)
 
-        # Trigger background email/push dispatches (requires Celery + Redis to be running)
-        from .tasks import send_notification_email
+        # Trigger background email dispatch in a SINGLE batched Celery task
+        from .tasks import send_bulk_notification_emails
         email_queued = 0
-        for notif in created_notifications:
-            try:
-                send_notification_email.delay(notif.id)
-                email_queued += 1
-            except Exception as e:
-                logger.warning(f"Could not queue email for notification {notif.id} (is Celery running?): {e}")
+        try:
+            ids_to_email = [str(notif.id) for notif in created_notifications]
+            if ids_to_email:
+                send_bulk_notification_emails.delay(ids_to_email)
+                email_queued = len(ids_to_email)
+        except Exception as e:
+            logger.warning(f"Could not queue bulk email task (is Celery running?): {e}")
 
         return Response({
             'status': 'success',
@@ -499,18 +614,72 @@ class ResumeEmailLogView(APIView):
         serializer = ResumeEmailLogSerializer(logs, many=True)
         return Response(serializer.data)
 
+from rest_framework.throttling import SimpleRateThrottle
+
+class SharedResumePINThrottle(SimpleRateThrottle):
+    """
+    Worst-case security protection: limits unauthenticated PIN verification attempts
+    to 10 requests per minute per IP to prevent brute-forcing the 6-digit PIN.
+    """
+    scope = 'shared_resume_pin'
+    rate = '10/minute'
+
+    def get_cache_key(self, request, view):
+        # Authenticated staff/admins are bypassed
+        if request.user and request.user.is_authenticated and (
+            getattr(request.user, 'role', None) in ('admin', 'coordinator')
+        ):
+            return None
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': self.get_ident(request)
+        }
+
 class SharedResumeView(APIView):
     """
     GET /api/v1/applications/shared-resumes/{log_id}/
     Public endpoint to view shared resumes.
+    Authenticated staff/admin users can preview without a PIN.
+    External (unauthenticated) users must provide the correct PIN.
     """
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [SharedResumePINThrottle]
 
     def get(self, request, log_id):
         from .models import ResumeEmailLog, Application
         from .serializers import ApplicationSerializer
         
+        from django.utils import timezone
+        
         log = get_object_or_404(ResumeEmailLog, id=log_id)
+        
+        # Check link expiration
+        if log.expires_at and timezone.now() > log.expires_at:
+            return Response(
+                {
+                    'error': 'link_expired',
+                    'message': 'This shared resume link has expired and is no longer accessible due to privacy settings.'
+                },
+                status=status.HTTP_410_GONE
+            )
+
+        # Staff/admin users can preview without a PIN
+        is_staff_preview = bool(
+            request.user and request.user.is_authenticated and
+            getattr(request.user, 'role', None) in ('admin', 'coordinator')
+        )
+
+        # Check link PIN code verification (skipped for internal staff)
+        if not is_staff_preview:
+            pin_code = request.query_params.get('pin') or request.headers.get('X-Shared-Resume-PIN')
+            if log.pin_code and log.pin_code != pin_code:
+                return Response(
+                    {
+                        'error': 'invalid_pin',
+                        'message': 'A valid verification PIN is required to access this shared link.'
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         app_ids = log.application_ids
         applications = Application.objects.filter(id__in=app_ids).select_related('student', 'student__user', 'job')
@@ -522,11 +691,11 @@ class SharedResumeView(APIView):
             'subject': log.subject,
             'body': log.body,
             'sent_at': log.sent_at,
+            'is_staff_preview': is_staff_preview,
             'job': {
                 'company_name': log.job.company_name,
                 'role': log.job.role,
             },
             'applications': serializer.data
         })
-
 

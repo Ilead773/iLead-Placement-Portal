@@ -23,7 +23,7 @@ def get_student_eligibility_state_key(student):
     max_uploaded_ts = getattr(student, '_max_uploaded_updated_ts', None)
     if max_uploaded_ts is None:
         from apps.resumes.models import ResumeUpload
-        max_uploaded = ResumeUpload.objects.filter(student=student).aggregate(Max('updated_at'))['updated_at__max']
+        max_uploaded = ResumeUpload.objects.filter(student=student).aggregate(Max('uploaded_at'))['uploaded_at__max']
         max_uploaded_ts = max_uploaded.timestamp() if max_uploaded else 0
         student._max_uploaded_updated_ts = max_uploaded_ts
         
@@ -101,7 +101,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
         if profile is None:
             # Try standard django access if not already populated or set to None
             profile = student.resume_profile
-    except StudentProfile.DoesNotExist:
+    except (StudentProfile.DoesNotExist, AttributeError):
         profile = None
 
     if profile:

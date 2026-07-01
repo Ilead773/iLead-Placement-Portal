@@ -67,7 +67,7 @@ def test_admin_can_assign_mcq_and_student_submission_is_scored(auth_client, api_
     assert results_response.data[0]['score'] == 2
 
 
-def test_admin_can_reassign_mcq_and_resets_attempt(auth_client, api_client, admin_user, student_user):
+def test_admin_can_reassign_mcq_and_creates_new_attempt(auth_client, api_client, admin_user, student_user):
     payload = {
         'course': 'BCA',
         'title': 'Aptitude Basics',
@@ -126,12 +126,23 @@ def test_admin_can_reassign_mcq_and_resets_attempt(auth_client, api_client, admi
     )
     assert assign_resp2.status_code == 201
     assert assign_resp2.data['assigned'] == 1
-    assert assign_resp2.data['duplicates'] == 0
+    assert assign_resp2.data['created'] == 1
 
-    # Check that it resets
-    student_assignment.refresh_from_db()
-    assert student_assignment.status == 'assigned'
-    assert student_assignment.score is None
-    assert student_assignment.submitted_at is None
-    assert student_assignment.answers.count() == 0
+    # Check that a new attempt is created and old one is untouched
+    attempts = StudentLearningAssignment.objects.filter(student=student, assignment_id=assignment_id).order_by('assigned_at')
+    assert attempts.count() == 2
+
+    # Old attempt check
+    old_attempt = attempts[0]
+    assert old_attempt.id == student_assignment.id
+    assert old_attempt.status == 'submitted'
+    assert old_attempt.score == 2
+    assert old_attempt.answers.count() == 1
+
+    # New attempt check
+    new_attempt = attempts[1]
+    assert new_attempt.id != student_assignment.id
+    assert new_attempt.status == 'assigned'
+    assert new_attempt.score is None
+    assert new_attempt.answers.count() == 0
 

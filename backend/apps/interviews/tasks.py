@@ -8,8 +8,8 @@ from .conversation import AIConversationService
 
 logger = logging.getLogger(__name__)
 
-@shared_task(name='apps.interviews.tasks.evaluate_answer_task')
-def evaluate_answer_task(answer_id):
+@shared_task(bind=True, max_retries=2, default_retry_delay=30, name='apps.interviews.tasks.evaluate_answer_task')
+def evaluate_answer_task(self, answer_id):
     """
     Background task to evaluate an interview answer and generate a reaction.
     """
@@ -53,12 +53,13 @@ def evaluate_answer_task(answer_id):
         answer.eval_status = 'evaluated'
         answer.save()
         
-        if is_final:
-            # Check if all answers in this session are finished evaluating
-            # (eval_status must be 'evaluated' or 'failed' — not 'evaluating' or 'submitted')
+        # Check if all questions have been answered and evaluated
+        total_questions = len(session.questions)
+        total_answers = session.answers.count()
+        if total_answers >= total_questions:
             still_processing = session.answers.exclude(
                 eval_status__in=['evaluated', 'failed']
-            ).exclude(id=answer.id).exists()
+            ).exists()
             if not still_processing:
                 from .views import _generate_session_feedback
                 if session.status != 'pending_review':
@@ -71,7 +72,18 @@ def evaluate_answer_task(answer_id):
         return True
 
     except Exception as exc:
-        logger.error(f"[CELERY] Task failed for answer {answer_id}: {exc}")
+        # Retry up to max_retries times for transient failures (network, AI timeout, etc.).
+        # Only fall through to the manual-review path once retries are exhausted.
+        if self.request.retries < self.max_retries:
+            logger.warning(
+                f"[CELERY] Transient failure for answer {answer_id} "
+                f"(attempt {self.request.retries + 1}/{self.max_retries + 1}): {exc}. Retrying.",
+                exc_info=True,
+            )
+            raise self.retry(exc=exc)
+
+        # All retries exhausted — escalate to manual review.
+        logger.error(f"[CELERY] Task permanently failed for answer {answer_id} after {self.max_retries + 1} attempts: {exc}")
         try:
             answer = InterviewAnswer.objects.get(id=answer_id)
             session = answer.session
@@ -112,10 +124,13 @@ def evaluate_answer_task(answer_id):
                     fail_silently=True,
                 )
             
-            if is_final:
+            # Check if all questions have been answered and evaluated/failed
+            total_questions = len(session.questions)
+            total_answers = session.answers.count()
+            if total_answers >= total_questions:
                 still_processing = session.answers.exclude(
                     eval_status__in=['evaluated', 'failed']
-                ).exclude(id=answer.id).exists()
+                ).exists()
                 if not still_processing:
                     from .views import _generate_session_feedback
                     session.completed_at = timezone.now()
@@ -124,4 +139,5 @@ def evaluate_answer_task(answer_id):
         except Exception as inner_exc:
             logger.error(f"[CELERY] Failed to handle task failure cleanly: {inner_exc}")
         return False
+
 

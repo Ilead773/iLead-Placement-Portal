@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.conf import settings
 
 from core.permissions import IsStudentUser
 from apps.templates_engine.models import ResumeTemplate
@@ -69,6 +70,11 @@ class ResumeViewSet(viewsets.ViewSet):
         title = request.data.get('title', f"Resume - {request.user.name}")
         
         student = request.user.student_profile
+        if BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
+            return Response(
+                {'error': f'Maximum limit of {settings.MAX_BUILT_RESUMES} built resumes reached.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         from apps.profiles.models import StudentProfile
         resume_profile, _ = StudentProfile.objects.get_or_create(student=student)
         template = get_object_or_404(ResumeTemplate, id=template_id, is_active=True)
@@ -79,7 +85,6 @@ class ResumeViewSet(viewsets.ViewSet):
         canonical_json = normalizer.normalize_from_profile(resume_profile)
 
         # 1.5 Handle Duplicate Titles (append suffix)
-        from .models import BuiltResume
         base_title = title
         suffix = 1
         while BuiltResume.all_objects.filter(student=student, title=title).exists():
@@ -116,8 +121,12 @@ class ResumeViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         student = request.user.student_profile
+        if BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
+            return Response(
+                {'error': f'Maximum limit of {settings.MAX_BUILT_RESUMES} built resumes reached.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         title = serializer.validated_data['title']
-        from .models import BuiltResume
         if BuiltResume.all_objects.filter(student=student, title=title).exists():
             return Response(
                 {'title': ['A resume with this title already exists.']},
@@ -207,28 +216,22 @@ class ResumeViewSet(viewsets.ViewSet):
                 custom_html,
                 tags=allowed_tags,
                 attributes=allowed_attrs,
-                css_sanitizer=css_sanitizer
+                css_sanitizer=css_sanitizer,
+                protocols=['http', 'https', 'mailto', 'data']
             )
             serializer.validated_data['custom_html'] = sanitized
             print(f"DEBUG UPDATE: Sanitized HTML length: {len(sanitized)}")
 
-        # FORCE SAVE using direct update to bypass any serializer sync issues
-        BuiltResume.objects.filter(id=resume.id).update(
-            custom_html=sanitized if custom_html is not None else resume.custom_html,
-            state='draft'
-        )
+        serializer.save()
+        resume.state = 'draft'
+        resume.save(update_fields=['state'])
         resume.refresh_from_db()
         print(f"DEBUG UPDATE: DB Updated. New custom_html length in DB: {len(resume.custom_html) if resume.custom_html else 0}")
         
-        # Trigger Task AFTER Commit
-        from django.db import transaction
+        # Trigger Task
         from apps.resumes.tasks import generate_resume_pdf
-        
-        def run_task():
-            print(f"DEBUG UPDATE: Commit successful. Queueing PDF task for {resume.id}")
-            generate_resume_pdf.delay(str(resume.id), str(resume.template_id))
-            
-        transaction.on_commit(run_task)
+        print(f"DEBUG UPDATE: Queueing PDF task for {resume.id}")
+        generate_resume_pdf.delay(str(resume.id), str(resume.template_id))
         
         return Response(BuiltResumeSerializer(resume, context={'request': request}).data)
 
@@ -265,6 +268,12 @@ class ResumeUploadViewSet(viewsets.ViewSet):
             return Response({'error': 'No file provided.'}, status=400)
 
         student = request.user.student_profile
+        if ResumeUpload.objects.filter(student=student).count() >= settings.MAX_UPLOADED_RESUMES:
+            return Response(
+                {'error': f'Maximum limit of {settings.MAX_UPLOADED_RESUMES} uploaded resumes reached.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         service = ResumeUploadService()
         upload = service.upload_resume(
             student=student,
