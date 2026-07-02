@@ -1,8 +1,7 @@
 {
-  "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!assets/|static/|favicon.ico|logo.png|zoom-sdk/|meetingsdk-assets/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
