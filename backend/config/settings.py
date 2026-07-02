@@ -251,12 +251,12 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev
 # Resend test mode: when True, ALL emails are redirected to RESEND_TEST_REDIRECT_EMAIL.
 # Use this when your Resend account has no verified domain (free/testing tier).
 # Set to False once you have a verified domain on resend.com/domains.
-RESEND_TEST_MODE = os.environ.get('RESEND_TEST_MODE', 'True') == 'True'
+RESEND_TEST_MODE = os.environ.get('RESEND_TEST_MODE', 'False') == 'True'
 RESEND_TEST_REDIRECT_EMAIL = os.environ.get('RESEND_TEST_REDIRECT_EMAIL', '')
 
 # Brevo test mode
-BREVO_TEST_MODE = os.environ.get('BREVO_TEST_MODE', os.environ.get('RESEND_TEST_MODE', 'True')) == 'True'
-BREVO_TEST_REDIRECT_EMAIL = os.environ.get('BREVO_TEST_REDIRECT_EMAIL', os.environ.get('RESEND_TEST_REDIRECT_EMAIL', ''))
+BREVO_TEST_MODE = os.environ.get('BREVO_TEST_MODE', 'False') == 'True'
+BREVO_TEST_REDIRECT_EMAIL = os.environ.get('BREVO_TEST_REDIRECT_EMAIL', '')
 
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
