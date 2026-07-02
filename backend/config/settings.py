@@ -150,10 +150,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ─── Resume Engine: Storage Backend (Layer 4 + 13) ──────────────
 STORAGE_BACKEND = os.environ.get('STORAGE_BACKEND', 'local')  # 'local' or 's3'
 
-# AWS S3 (if STORAGE_BACKEND='s3')
+# AWS S3 / Cloudflare R2 (if STORAGE_BACKEND='s3')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'us-east-1')
 AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN', '')
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL', '')
 
 AUTH_USER_MODEL = 'core.User'
 
