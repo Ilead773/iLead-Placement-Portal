@@ -28,8 +28,9 @@ class JWTCookieAuthentication(JWTAuthentication):
             user = self.get_user(validated_token)
 
             # Enforce CSRF check if authenticated via cookie
-            if from_cookie:
-                self.enforce_csrf(request)
+            # Disabled to support cross-domain Vercel -> Railway requests
+            # if from_cookie:
+            #     self.enforce_csrf(request)
 
             return user, validated_token
         except (InvalidToken, TokenError):
