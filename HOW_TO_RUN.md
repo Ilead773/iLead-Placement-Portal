@@ -63,6 +63,7 @@ venv\Scripts\Activate
 
 # Start the Celery worker
 celery -A config worker -l info --pool=solo
+celery -A config worker -l info --pool=solo -Q celery,notifications
 ```
 
 You should see logs indicating that Celery has successfully connected to the broker (e.g., Redis) and is ready to process tasks like `generate_resume_pdf`.
