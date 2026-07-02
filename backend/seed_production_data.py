@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
 Production-safe Database Seeding Script.
-Seeds 9 core iLEAD courses, 1 admin, 1 test student with complete profile data,
-and the base AI Mock Interview question bank.
+Seeds all 19 core iLEAD courses, 1 admin, 1 test student with complete profile data,
+and the base AI Mock Interview question bank for all departments (Tech, Business, Media).
 Does not wipe existing production tables.
 """
 import os
@@ -21,15 +21,34 @@ from apps.interviews.models import InterviewDomain, InterviewType, Competency, Q
 from apps.templates_engine.seed_templates import seed_modern_template, seed_ilead_kolkata_template
 
 COURSES_TO_SEED = [
-    {"name": "BSc in Computer Application (BCA)", "category": "Technology"},
-    {"name": "BSc in Data Science", "category": "Technology"},
+    # Business & Management
     {"name": "BBA", "category": "Business & Management"},
     {"name": "BBA in Digital Marketing (BBA DM)", "category": "Business & Management"},
+    {"name": "BBA in Travel & Tourism Management (BBA TTM)", "category": "Business & Management"},
+    {"name": "BBA in Entrepreneurship (BBA ENT)", "category": "Business & Management"},
+    {"name": "BBA in Sports Management (BBA SM)", "category": "Business & Management"},
     {"name": "BBA in Hospital Management (BBA HM)", "category": "Business & Management"},
+    
+    # Media & Creative
     {"name": "BSc in Media Science (BMS)", "category": "Media & Creative"},
+    {"name": "MSc in Media Science", "category": "Media & Creative"},
     {"name": "BSc in Multimedia, Animation, Graphic Design (BMAGD)", "category": "Media & Creative"},
+    {"name": "MSc in Multimedia, Animation, Graphic Design (MMAGD)", "category": "Media & Creative"},
+    
+    # Creative Production
     {"name": "BSc in Film and Television Production (FTP)", "category": "Creative Production"},
+    {"name": "BSc in Interior Design", "category": "Creative Production"},
+    {"name": "BSc in Sustainable Fashion Design & Management", "category": "Creative Production"},
+    
+    # Healthcare
+    {"name": "Bachelor in Optometry", "category": "Healthcare"},
+    {"name": "BSc in Critical Care Technology (CCT)", "category": "Healthcare"},
+    {"name": "BSc in Medical Laboratory Technology (BMLT)", "category": "Healthcare"},
+    
+    # Technology
+    {"name": "BSc in Data Science", "category": "Technology"},
     {"name": "BSc in Cyber Security", "category": "Technology"},
+    {"name": "BSc in Computer Application (BCA)", "category": "Technology"},
 ]
 
 def seed_production():
@@ -37,7 +56,7 @@ def seed_production():
     
     with transaction.atomic():
         # 1. Seed Courses
-        print("Seeding 9 core courses...")
+        print("Seeding all 19 courses...")
         for c_data in COURSES_TO_SEED:
             course, created = Course.objects.get_or_create(
                 name=c_data["name"],
@@ -167,69 +186,85 @@ def seed_production():
 
         # 6. Seed AI Mock Interview domain & questions
         print("Seeding AI Mock Interview datasets...")
-        domain, _ = InterviewDomain.objects.get_or_create(
+        
+        # ─── Tech Domain ───
+        tech_domain, _ = InterviewDomain.objects.get_or_create(
             name="Technology",
             defaults={"description": "Software development, data engineering, and system administration fields.", "icon": "Code"}
         )
-        
-        int_type, _ = InterviewType.objects.get_or_create(
-            domain=domain,
+        tech_type, _ = InterviewType.objects.get_or_create(
+            domain=tech_domain,
             code="BCA_TECH",
-            defaults={
-                "name": "Software Engineering & Databases",
-                "description": "Evaluates algorithms, Python programming, and relational database system designs.",
-                "duration_minutes": 20,
-                "questions_per_session": 3
-            }
+            defaults={"name": "Software Engineering", "description": "Algorithms and databases.", "duration_minutes": 20, "questions_per_session": 3}
         )
-
-        comp1, _ = Competency.objects.get_or_create(
-            interview_type=int_type,
+        tech_comp, _ = Competency.objects.get_or_create(
+            interview_type=tech_type,
             name="Python Programming",
-            defaults={
-                "description": "Measures OOP paradigms, data structures (lists, dicts), and decorators.",
-                "weight": 5.0,
-                "mastery_keywords": "inheritance, decorators, list comprehension, generators, dynamic typing"
-            }
+            defaults={"description": "OOP, decorators and data structures.", "weight": 5.0}
         )
-
-        comp2, _ = Competency.objects.get_or_create(
-            interview_type=int_type,
-            name="Database Systems (SQL)",
-            defaults={
-                "description": "Measures normalization, joins, indexing, and transaction properties.",
-                "weight": 5.0,
-                "mastery_keywords": "ACID, indexing, inner join, outer join, normalization, primary key"
-            }
-        )
-
-        # Create Questions
-        q1_text = "What is the difference between list comprehension and generator expressions in Python, and when should you use each?"
         Question.objects.get_or_create(
-            text=q1_text,
+            text="What is the difference between list comprehension and generator expressions in Python?",
             defaults={
-                "competency": comp1,
+                "competency": tech_comp,
                 "question_type": "technical",
                 "difficulty_level": "medium",
-                "ideal_answer": "List comprehension loads all items into memory immediately and returns a list. Generator expressions evaluate items lazily (one-by-one) and return an iterator. Use generator expressions for large data sets to conserve memory.",
-                "evaluation_rubric": "Look for keywords: lazy evaluation, memory conservation, iterator, list object.",
+                "ideal_answer": "List comprehension returns a list and loads all items into memory. Generators return an iterator and evaluate lazily.",
                 "max_score": 10.0
             }
         )
 
-        q2_text = "Explain the difference between an INNER JOIN and a LEFT JOIN in SQL, and what is the purpose of database indexing?"
+        # ─── Business Domain ───
+        biz_domain, _ = InterviewDomain.objects.get_or_create(
+            name="Business",
+            defaults={"description": "Business administration, marketing, sales, and management roles.", "icon": "Briefcase"}
+        )
+        biz_type, _ = InterviewType.objects.get_or_create(
+            domain=biz_domain,
+            code="BBA_MGMT",
+            defaults={"name": "General Management & Marketing", "description": "Principles of marketing, strategy, and operations.", "duration_minutes": 15, "questions_per_session": 2}
+        )
+        biz_comp, _ = Competency.objects.get_or_create(
+            interview_type=biz_type,
+            name="Marketing Strategy",
+            defaults={"description": "4Ps of marketing and segmentation strategies.", "weight": 5.0}
+        )
         Question.objects.get_or_create(
-            text=q2_text,
+            text="Explain the 4 Ps of marketing and how a new business should apply them.",
             defaults={
-                "competency": comp2,
+                "competency": biz_comp,
                 "question_type": "technical",
                 "difficulty_level": "easy",
-                "ideal_answer": "An INNER JOIN returns only records that have matching values in both tables. A LEFT JOIN returns all records from the left table and matching records from the right. Indexing is used to speed up SELECT query retrieval speeds by avoiding full table scans.",
-                "evaluation_rubric": "Look for keywords: matching records, left table, speed up query, full table scan.",
+                "ideal_answer": "The 4 Ps are Product, Price, Place, and Promotion. A business applies them by aligning the product offering, pricing strategy, distribution channel, and advertising campaign to their target audience.",
                 "max_score": 10.0
             }
         )
-        print("  AI Mock Interview questions seeded.")
+
+        # ─── Media Domain ───
+        media_domain, _ = InterviewDomain.objects.get_or_create(
+            name="Media & Creative",
+            defaults={"description": "Journalism, public relations, graphic design, and media science.", "icon": "Tv"}
+        )
+        media_type, _ = InterviewType.objects.get_or_create(
+            domain=media_domain,
+            code="MEDIA_SCI",
+            defaults={"name": "Media Science & Communications", "description": "Public relations, digital media, and communication theory.", "duration_minutes": 15, "questions_per_session": 2}
+        )
+        media_comp, _ = Competency.objects.get_or_create(
+            interview_type=media_type,
+            name="Public Relations (PR)",
+            defaults={"description": "Handling press releases and crisis communication.", "weight": 5.0}
+        )
+        Question.objects.get_or_create(
+            text="What is a press release, and what are the essential elements required in a media kit?",
+            defaults={
+                "competency": media_comp,
+                "question_type": "technical",
+                "difficulty_level": "easy",
+                "ideal_answer": "A press release is an official statement sent to the media. A media kit must include a company backgrounder, bios of key executives, press releases, high-resolution logos, and contact information.",
+                "max_score": 10.0
+            }
+        )
+        print("  AI Mock Interview questions seeded for all domains.")
 
         # 7. Seed Resume Templates
         print("Seeding premium PDF resume templates...")
