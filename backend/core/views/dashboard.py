@@ -93,6 +93,13 @@ class DashboardViewSet(viewsets.ViewSet):
         listing_type = request.query_params.get('listing_type')
         is_internship_view = (listing_type == 'internship')
 
+        # Check Redis cache for pre-computed stats to eliminate database query roundtrips
+        from django.core.cache import cache
+        cache_key = f"dashboard_stats_{user.role}_{can_manage_students}_{can_manage_placements}_{listing_type}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
         # Setup querysets (exclude soft-deleted applications)
         students_qs = Student.objects.all() if can_manage_students else Student.objects.none()
         jobs_qs = Job.objects.all() if can_manage_placements else Job.objects.none()
@@ -1164,6 +1171,8 @@ class DashboardViewSet(viewsets.ViewSet):
                 response_data['location_distribution'] = []
                 response_data['role_distribution'] = []
 
+        # Cache the dashboard statistics for 30 seconds
+        cache.set(cache_key, response_data, 30)
         return Response(response_data)
 
     @action(detail=False, methods=['get'], url_path='reports')
