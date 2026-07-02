@@ -21,12 +21,15 @@ def _set_auth_cookies(response, request, access_token, refresh_token):
     cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
     secure = not settings.DEBUG or request.is_secure()
     
+    # Use SameSite=None in production to support cross-site requests (Vercel -> Railway)
+    samesite = 'None' if secure else 'Lax'
+    
     response.set_cookie(
         key='access_token',
         value=access_token,
         httponly=True,
         secure=secure,
-        samesite='Lax',
+        samesite=samesite,
         domain=cookie_domain,
         max_age=3600,
     )
@@ -35,7 +38,7 @@ def _set_auth_cookies(response, request, access_token, refresh_token):
         value=refresh_token,
         httponly=True,
         secure=secure,
-        samesite='Lax',
+        samesite=samesite,
         domain=cookie_domain,
         max_age=7 * 24 * 3600,
     )
