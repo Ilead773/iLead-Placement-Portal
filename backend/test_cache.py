@@ -4,13 +4,16 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from django.core.cache import cache
+from django.conf import settings
+from django.core.files.storage import default_storage
+from apps.resumes.models import BuiltResume
+
+print("STORAGE BACKEND CONFIG:", getattr(settings, 'STORAGE_BACKEND', 'None'))
+print("DEFAULT STORAGE CLASS:", default_storage.__class__.__name__)
+
 try:
-    print("Writing to cache...")
-    cache.set('test_live_key', 'it works!', 30)
-    print("Reading from cache...")
-    val = cache.get('test_live_key')
-    print("Value:", val)
+    resume = BuiltResume.objects.get(id='420221ed-518f-4ee0-8a81-6befda0f4256')
+    print("Resume PDF Name in DB:", resume.generated_pdf.name)
+    print("Resume PDF URL in DB:", resume.generated_pdf.url)
 except Exception as e:
-    import traceback
-    traceback.print_exc()
+    print("Could not fetch resume:", e)
