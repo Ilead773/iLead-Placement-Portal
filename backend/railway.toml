@@ -5,5 +5,3 @@ dockerfilePath = "Dockerfile"
 [deploy]
 # Run DB migrations on every deploy before traffic is switched over
 releaseCommand = "python manage.py migrate --noinput"
-# Railway injects $PORT; gunicorn binds to it
-startCommand = "sh -c 'gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 config.wsgi:application'"

@@ -190,7 +190,7 @@ def seed_production():
         # ─── Tech Domain ───
         tech_domain, _ = InterviewDomain.objects.get_or_create(
             name="Technology",
-            defaults={"description": "Software development, data engineering, and system administration fields.", "icon": "Code"}
+            defaults={"description": "Software development, data engineering, and system administration fields.", "icon": "💻"}
         )
         tech_type, _ = InterviewType.objects.get_or_create(
             domain=tech_domain,
@@ -216,7 +216,7 @@ def seed_production():
         # ─── Business Domain ───
         biz_domain, _ = InterviewDomain.objects.get_or_create(
             name="Business",
-            defaults={"description": "Business administration, marketing, sales, and management roles.", "icon": "Briefcase"}
+            defaults={"description": "Business administration, marketing, sales, and management roles.", "icon": "💼"}
         )
         biz_type, _ = InterviewType.objects.get_or_create(
             domain=biz_domain,
@@ -242,7 +242,7 @@ def seed_production():
         # ─── Media Domain ───
         media_domain, _ = InterviewDomain.objects.get_or_create(
             name="Media & Creative",
-            defaults={"description": "Journalism, public relations, graphic design, and media science.", "icon": "Tv"}
+            defaults={"description": "Journalism, public relations, graphic design, and media science.", "icon": "📺"}
         )
         media_type, _ = InterviewType.objects.get_or_create(
             domain=media_domain,

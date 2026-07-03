@@ -7,6 +7,15 @@ import InterviewRoom from '../../components/interview/InterviewRoom';
 import InterviewFeedback from '../../components/interview/InterviewFeedback';
 import ProctoringInstructionGate from '../../components/interview/ProctoringInstructionGate';
 
+const getDomainIcon = (iconStr) => {
+  const mapping = {
+    'Briefcase': '💼',
+    'Tv': '📺',
+    'Code': '💻'
+  };
+  return mapping[iconStr] || iconStr || '📋';
+};
+
 export default function MockInterview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -594,7 +603,7 @@ export default function MockInterview() {
                       overflow: 'hidden'
                     }}
                   >
-                    <span className="domain-icon" style={{ transform: selectedDomain === d.id ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.3s' }}>{d.icon}</span>
+                    <span className="domain-icon" style={{ transform: selectedDomain === d.id ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.3s' }}>{getDomainIcon(d.icon)}</span>
                     <span className="domain-name" style={{ marginTop: '4px' }}>{d.name}</span>
                     <span className="domain-meta">{d.interview_type_count} templates</span>
                     {selectedDomain === d.id && (
