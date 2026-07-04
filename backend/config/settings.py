@@ -124,6 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Session Security (30 Minute Timeout)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
