@@ -176,23 +176,19 @@ export default function StudentDashboard() {
       toast.loading('Preparing Zoom session...');
       const res = await northStarAPI.joinClass(classId);
       toast.dismiss();
-      
-      const joinUrl = res.data.join_url || '';
-      const passcodeMatch = joinUrl.match(/[?&]pwd=([^&#]+)/);
-      const passcode = passcodeMatch ? decodeURIComponent(passcodeMatch[1]) : '';
 
-      setActiveClassInfo({
-        meetingNumber: res.data.meeting_number,
-        signature: res.data.sdk_signature,
-        sdkKey: res.data.sdk_key,
-        role: res.data.role,
-        passcode: passcode
-      });
-      setShowZoom(true);
+      const joinUrl = res.data.join_url || '';
+      if (!joinUrl) {
+        toast.error('No Zoom join link found for this class.');
+        return;
+      }
+
+      // Open the Zoom join URL directly in a new tab
+      window.open(joinUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.dismiss();
       console.error(err);
-      toast.error('Could not join class. Zoom credentials might not be configured.');
+      toast.error('Could not join class. Please try again.');
     }
   };
 

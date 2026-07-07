@@ -164,23 +164,16 @@ export default function AdminDashboard() {
       const res = await northStarAPI.startClass(classId);
       toast.dismiss();
 
-      const joinUrl = res.data.join_url || '';
-      const startUrl = res.data.start_url || '';
-      const targetUrl = joinUrl || startUrl;
-      const passcodeMatch = targetUrl.match(/[?&]pwd=([^&#]+)/);
-      const passcode = passcodeMatch ? decodeURIComponent(passcodeMatch[1]) : '';
-      const zakMatch = startUrl.match(/[?&]zak=([^&#]+)/);
-      const zak = zakMatch ? decodeURIComponent(zakMatch[1]) : '';
+      // Admins get the start_url (contains ZAK token, auto-logs in as host)
+      // Fall back to join_url if start_url is not present
+      const startUrl = res.data.start_url || res.data.join_url || '';
+      if (!startUrl) {
+        toast.error('No Zoom start link found for this class.');
+        return;
+      }
 
-      setActiveClassInfo({
-        meetingNumber: res.data.meeting_number,
-        signature: res.data.sdk_signature,
-        sdkKey: res.data.sdk_key,
-        role: res.data.role,
-        passcode: passcode,
-        zak: zak
-      });
-      setShowZoom(true);
+      // Open directly in a new tab — Zoom app or browser will handle it
+      window.open(startUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.dismiss();
       console.error(err);
