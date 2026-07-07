@@ -90,15 +90,13 @@ export default function StudentPlacementSessions() {
     try {
       const res = await placementSessionsAPI.join(session.id);
       const joinUrl = res.data.join_url || '';
-      const passcodeMatch = joinUrl.match(/[?&]pwd=([^&#]+)/);
-      const passcode = passcodeMatch ? decodeURIComponent(passcodeMatch[1]) : '';
-
-      setJoinData({
-        ...res.data,
-        passcode: passcode
-      });
-      setJoinSession(session);
-      toast.success('Joining session...', { id: tid });
+      if (!joinUrl) {
+        toast.error('No Zoom join link found for this session.', { id: tid });
+        return;
+      }
+      toast.success('Opening Zoom session...', { id: tid });
+      // Open Zoom directly in a new tab
+      window.open(joinUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.error(err?.response?.data?.detail || 'Failed to join session', { id: tid });
     } finally {

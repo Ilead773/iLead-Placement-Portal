@@ -8,7 +8,7 @@ import {
   Filter, X, UserCheck, UserX, Loader, BookOpen
 } from 'lucide-react';
 import placementSessionsAPI from '../../api/placementSessionsAPI';
-import ZoomMeetingFrame from '../north-star/ZoomMeetingFrame';
+
 import useAuthStore from '../../store/authStore';
 
 const SESSION_TYPES = [
@@ -48,8 +48,7 @@ export default function AdminPlacementSessions() {
   const [attendanceData, setAttendanceData] = useState(null);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [activeTab, setActiveTab] = useState('sessions'); // sessions | attendance | live
-  const [liveSession, setLiveSession] = useState(null);
-  const [liveJoinData, setLiveJoinData] = useState(null);
+
 
   const [form, setForm] = useState({
     title: '',
@@ -128,22 +127,14 @@ export default function AdminPlacementSessions() {
     const tid = toast.loading('Getting host credentials...');
     try {
       const res = await placementSessionsAPI.start(session.id);
-      const joinUrl = res.data.join_url || '';
-      const startUrl = res.data.start_url || '';
-      const targetUrl = joinUrl || startUrl;
-      const passcodeMatch = targetUrl.match(/[?&]pwd=([^&#]+)/);
-      const passcode = passcodeMatch ? decodeURIComponent(passcodeMatch[1]) : '';
-      const zakMatch = startUrl.match(/[?&]zak=([^&#]+)/);
-      const zak = zakMatch ? decodeURIComponent(zakMatch[1]) : '';
-
-      setLiveJoinData({
-        ...res.data,
-        passcode: passcode,
-        zak: zak
-      });
-      setLiveSession(session);
-      setActiveTab('live');
-      toast.success('Starting meeting as host!', { id: tid });
+      // Open the Zoom start_url directly in a new tab (auto-logs in as host)
+      const startUrl = res.data.start_url || res.data.join_url || '';
+      if (!startUrl) {
+        toast.error('No Zoom start link found for this session.', { id: tid });
+        return;
+      }
+      toast.success('Opening Zoom as host...', { id: tid });
+      window.open(startUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
       toast.error(err?.response?.data?.detail || 'Failed to start session', { id: tid });
     }
@@ -366,27 +357,10 @@ export default function AdminPlacementSessions() {
 
       {/* ── LIVE HOST TAB ── */}
       {activeTab === 'live' && (
-        <div>
-          {!liveJoinData ? (
-            <div className="text-center py-20 card rounded-2xl">
-              <Play size={48} className="text-text-muted mx-auto mb-4 opacity-30" />
-              <p className="text-text-muted">Click "Start as Host" on a live or upcoming session to host here</p>
-            </div>
-          ) : (
-            <div style={{ height: 'calc(100vh - 200px)' }}>
-               <ZoomMeetingFrame
-                 meetingNumber={liveJoinData.meeting_number}
-                 signature={liveJoinData.signature}
-                 sdkKey={liveJoinData.sdk_key}
-                 userName={liveJoinData.user_name}
-                 userEmail={liveJoinData.user_email}
-                 role={liveJoinData.role}
-                 passcode={liveJoinData.passcode}
-                 zak={liveJoinData.zak}
-                 onLeave={() => { setLiveJoinData(null); setActiveTab('sessions'); }}
-               />
-            </div>
-          )}
+        <div className="text-center py-20 card rounded-2xl">
+          <Play size={48} className="text-text-muted mx-auto mb-4 opacity-30" />
+          <p className="text-text-muted font-medium">Click <strong>"Start as Host"</strong> on any live or upcoming session.</p>
+          <p className="text-text-muted text-sm mt-1">Zoom will open in a new tab — you'll be automatically logged in as host.</p>
         </div>
       )}
 

@@ -18,7 +18,7 @@ import {
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
 import northStarAPI from '../../../api/northStarAPI';
-import ZoomMeetingFrame from '../ZoomMeetingFrame';
+
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -100,8 +100,7 @@ export default function StudentDashboard() {
   const [submitFile, setSubmitFile] = useState(null);
   const [mcqAnswers, setMcqAnswers] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [showZoom, setShowZoom] = useState(false);
-  const [activeClassInfo, setActiveClassInfo] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [stars, setStars] = useState([]);
   const [dragActive, setDragActive] = useState(false);
@@ -265,24 +264,7 @@ export default function StudentDashboard() {
     return submissions.find(s => s.assignment === assignmentId);
   };
 
-  if (showZoom && activeClassInfo) {
-    return (
-      <ZoomMeetingFrame
-        meetingNumber={activeClassInfo.meetingNumber}
-        signature={activeClassInfo.signature}
-        sdkKey={activeClassInfo.sdkKey}
-        role={activeClassInfo.role}
-        userName={user.name || user.login_id}
-        userEmail={user.email}
-        passcode={activeClassInfo.passcode}
-        onLeave={() => {
-          setShowZoom(false);
-          setActiveClassInfo(null);
-          fetchDashboardData();
-        }}
-      />
-    );
-  }
+
 
 
   return (

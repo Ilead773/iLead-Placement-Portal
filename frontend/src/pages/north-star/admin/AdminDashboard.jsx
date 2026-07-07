@@ -21,7 +21,7 @@ import {
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
 import northStarAPI from '../../../api/northStarAPI';
-import ZoomMeetingFrame from '../ZoomMeetingFrame';
+
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
@@ -78,9 +78,7 @@ export default function AdminDashboard() {
   const [emailCourse, setEmailCourse] = useState('');
 
 
-  // Zoom States
-  const [showZoom, setShowZoom] = useState(false);
-  const [activeClassInfo, setActiveClassInfo] = useState(null);
+
   
   const [loading, setLoading] = useState(true);
 
@@ -306,25 +304,7 @@ export default function AdminDashboard() {
     }
   }, [filterClass]);
 
-  if (showZoom && activeClassInfo) {
-    return (
-      <ZoomMeetingFrame
-        meetingNumber={activeClassInfo.meetingNumber}
-        signature={activeClassInfo.signature}
-        sdkKey={activeClassInfo.sdkKey}
-        role={activeClassInfo.role}
-        userName={user.name || user.login_id}
-        userEmail={user.email}
-        passcode={activeClassInfo.passcode}
-        zak={activeClassInfo.zak}
-        onLeave={() => {
-          setShowZoom(false);
-          setActiveClassInfo(null);
-          fetchAdminData();
-        }}
-      />
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-6 transition-colors duration-500">
