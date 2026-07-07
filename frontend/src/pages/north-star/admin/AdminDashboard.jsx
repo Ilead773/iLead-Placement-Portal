@@ -189,15 +189,19 @@ export default function AdminDashboard() {
       // Fall back to join_url if start_url is not present
       const startUrl = res.data.start_url || res.data.join_url || '';
       if (!startUrl) {
-        newWindow.close();
+        if (newWindow) newWindow.close();
         toast.error('No Zoom start link found for this class.');
         return;
       }
 
       // Redirect the opened tab to the Zoom start URL
-      newWindow.location.href = startUrl;
+      if (newWindow) {
+        newWindow.location.href = startUrl;
+      } else {
+        window.open(startUrl, '_blank', 'noopener,noreferrer');
+      }
     } catch (err) {
-      newWindow.close();
+      if (newWindow) newWindow.close();
       toast.dismiss();
       console.error(err);
       toast.error('Could not initialize meeting. Zoom credentials are required.');

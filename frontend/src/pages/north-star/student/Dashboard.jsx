@@ -181,15 +181,19 @@ export default function StudentDashboard() {
 
       const joinUrl = res.data.join_url || '';
       if (!joinUrl) {
-        newWindow.close();
+        if (newWindow) newWindow.close();
         toast.error('No Zoom join link found for this class.');
         return;
       }
 
       // Redirect the opened tab to the Zoom join URL
-      newWindow.location.href = joinUrl;
+      if (newWindow) {
+        newWindow.location.href = joinUrl;
+      } else {
+        window.open(joinUrl, '_blank', 'noopener,noreferrer');
+      }
     } catch (err) {
-      newWindow.close();
+      if (newWindow) newWindow.close();
       toast.dismiss();
       console.error(err);
       toast.error('Could not join class. Please try again.');

@@ -133,14 +133,18 @@ export default function AdminPlacementSessions() {
       // Open the Zoom start_url directly in a new tab (auto-logs in as host)
       const startUrl = res.data.start_url || res.data.join_url || '';
       if (!startUrl) {
-        newWindow.close();
+        if (newWindow) newWindow.close();
         toast.error('No Zoom start link found for this session.', { id: tid });
         return;
       }
       toast.success('Opening Zoom as host...', { id: tid });
-      newWindow.location.href = startUrl;
+      if (newWindow) {
+        newWindow.location.href = startUrl;
+      } else {
+        window.open(startUrl, '_blank', 'noopener,noreferrer');
+      }
     } catch (err) {
-      newWindow.close();
+      if (newWindow) newWindow.close();
       toast.error(err?.response?.data?.detail || 'Failed to start session', { id: tid });
     }
   };
