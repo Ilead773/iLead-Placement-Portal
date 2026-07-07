@@ -6,6 +6,7 @@ Provides hardcoded defaults + DB-driven override via CourseSearchConfig model.
 
 COURSE_SEARCH_CONFIG = {
     "BBA": {
+        "domain_terms": ["bba", "business", "administration", "management", "sales", "marketing", "hr", "operations"],
         "keywords": [
             "Business Development Executive", "Marketing Executive", "Sales Executive",
             "HR Executive / HR Recruiter", "Operations Executive", "Customer Relationship Executive",
@@ -22,6 +23,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "VP", "director"],
     },
     "BBA (Finance)": {
+        "domain_terms": ["finance", "financial", "accounting", "tax", "audit", "wealth", "equity"],
         "keywords": [
             "Finance Executive", "Financial Analyst (Entry Level)", "Accounts Executive",
             "Accounts Payable/Receivable Executive", "Banking Associate", "Relationship Manager",
@@ -38,6 +40,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "VP finance", "CFO", "director"],
     },
     "BBA in Digital Marketing (BBA DM)": {
+        "domain_terms": ["digital marketing", "seo", "social media", "content", "performance marketing", "growth"],
         "keywords": [
             "Digital Marketing Executive", "Social Media Executive", "Social Media Manager",
             "SEO Executive", "SEM/PPC Executive", "Content Marketing Executive",
@@ -54,6 +57,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "VP marketing", "CMO"],
     },
     "BBA in Travel & Tourism Management (BBA TTM)": {
+        "domain_terms": ["travel", "tourism", "ticketing", "hospitality", "tour", "aviation", "guest"],
         "keywords": [
             "Travel Consultant", "Tour Executive", "Ticketing Executive", "Travel Coordinator",
             "Holiday Consultant", "Reservation Executive", "Visa Processing Executive",
@@ -70,6 +74,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "general manager"],
     },
     "BBA in Entrepreneurship (BBA ENT)": {
+        "domain_terms": ["founder", "entrepreneur", "startup", "growth", "strategy", "gtm", "business development"],
         "keywords": [
             "Business Development Executive", "Startup Operations Executive", "Entrepreneur / Startup Founder",
             "Management Trainee", "Operations Executive", "Project Coordinator", "Product Executive",
@@ -86,6 +91,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "CXO", "C-suite"],
     },
     "BBA in Sports Management (BBA SM)": {
+        "domain_terms": ["sports", "athletics", "fitness", "stadium", "event"],
         "keywords": [
             "Sports Management Executive", "Sports Operations Executive", "Event Management Executive",
             "Sports Marketing Executive", "Athlete Relations Executive", "Team Coordinator",
@@ -103,6 +109,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["10+ years", "director"],
     },
     "BBA in Hospital Management (BBA HM)": {
+        "domain_terms": ["hospital", "healthcare", "medical admin", "clinic", "patient", "health administration"],
         "keywords": [
             "Hospital Administration Executive", "Healthcare Operations Executive", "Patient Relationship Executive",
             "Front Office Executive", "Medical Coordinator", "Healthcare Administrator",
@@ -120,6 +127,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["doctor", "physician", "surgeon", "10+ years"],
     },
     "BSc in Media Science (BMS)": {
+        "domain_terms": ["media", "journalism", "pr", "public relations", "content", "communication", "broadcast", "editor"],
         "keywords": [
             "Content Writer", "Copywriter", "Video Editor", "Graphic Designer", "Social Media Executive",
             "Digital Marketing Executive", "Public Relations Executive", "Media Planner",
@@ -135,6 +143,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["editor in chief", "10+ years"],
     },
     "MSc in Media Science": {
+        "domain_terms": ["media", "journalism", "pr", "public relations", "content", "communication", "broadcast", "editor"],
         "keywords": [
             "Content Writer", "Copywriter", "Video Editor", "Graphic Designer", "Social Media Executive",
             "Digital Marketing Executive", "Public Relations Executive", "Media Planner",
@@ -150,6 +159,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["editor in chief", "10+ years"],
     },
     "BSc in Multimedia, Animation, Graphic Design (BMAGD)": {
+        "domain_terms": ["multimedia", "animation", "graphic", "ui/ux", "video", "visual", "illustrator", "3d", "2d", "vfx", "motion"],
         "keywords": [
             "Graphic Designer", "Motion Graphic Designer", "2D Animator", "3D Animator",
             "Multimedia Designer", "UI/UX Designer", "Video Editor", "Visual Designer",
@@ -165,6 +175,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["senior", "lead", "manager", "director", "10+ years"],
     },
     "MSc in Multimedia, Animation, Graphic Design (MMAGD)": {
+        "domain_terms": ["multimedia", "animation", "graphic", "ui/ux", "video", "visual", "illustrator", "3d", "2d", "vfx", "motion"],
         "keywords": [
             "Graphic Designer", "Motion Graphic Designer", "2D Animator", "3D Animator",
             "Multimedia Designer", "UI/UX Designer", "Video Editor", "Visual Designer",
@@ -180,6 +191,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["senior", "lead", "manager", "director", "10+ years"],
     },
     "BSc in Film and Television Production (FTP)": {
+        "domain_terms": ["film", "television", "video", "production", "camera", "director", "script", "audio", "cinematography"],
         "keywords": [
             "Video Editor", "Assistant Director", "Production Assistant", "Cinematographer",
             "Camera Assistant", "Script Writer", "Screenwriter", "Content Creator",
@@ -195,6 +207,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["senior director", "executive producer", "10+ years"],
     },
     "BSc in Interior Design": {
+        "domain_terms": ["interior", "architecture", "spatial", "furniture", "cad", "decor", "home interiors"],
         "keywords": [
             "Interior Designer", "Junior Interior Designer", "Space Planner", "3D Visualizer",
             "Furniture Designer", "Design Consultant", "Residential Interior Designer",
@@ -209,6 +222,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["senior architect", "10+ years"],
     },
     "BSc in Sustainable Fashion Design & Management": {
+        "domain_terms": ["fashion", "apparel", "textile", "garment", "styling", "merchandiser", "boutique", "clothing"],
         "keywords": [
             "fashion design", "fashion designer", "sustainable fashion",
             "apparel merchandiser", "fashion stylist", "textile designer",
@@ -221,6 +235,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["senior designer", "10+ years", "creative director"],
     },
     "Bachelor in Optometry": {
+        "domain_terms": ["optometrist", "optometry", "optical", "vision", "eye", "ophthalmic"],
         "keywords": [
             "optometrist", "optometry", "optical", "vision care",
             "eye care specialist", "ophthalmic technician",
@@ -232,6 +247,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["ophthalmologist MD", "10+ years"],
     },
     "BSc in Critical Care Technology (CCT)": {
+        "domain_terms": ["critical care", "icu", "biomedical", "respiratory", "dialysis", "medical equipment"],
         "keywords": [
             "critical care technician", "ICU technician", "medical equipment",
             "biomedical technician", "respiratory therapist",
@@ -244,6 +260,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["doctor", "physician", "10+ years"],
     },
     "BSc in Medical Laboratory Technology (BMLT)": {
+        "domain_terms": ["lab technician", "mlt", "laboratory", "pathology", "clinical lab", "diagnostic", "phlebotomist"],
         "keywords": [
             "medical lab technician", "MLT", "laboratory technician",
             "pathology lab", "clinical lab", "diagnostic lab", "lab analyst",
@@ -254,6 +271,7 @@ COURSE_SEARCH_CONFIG = {
         "exclude_keywords": ["doctor", "physician", "10+ years"],
     },
     "BSc in Data Science": {
+        "domain_terms": ["data science", "data analyst", "machine learning", "ml", "ai", "artificial intelligence", "data engineer", "analytics"],
         "keywords": [
             "Data Analyst", "Business Analyst", "Junior Data Scientist",
             "Machine Learning Intern", "AI/ML Trainee", "BI (Business Intelligence) Analyst",
@@ -268,6 +286,7 @@ COURSE_SEARCH_CONFIG = {
         ],
     },
     "BSc in Cyber Security": {
+        "domain_terms": ["cyber", "security", "soc", "penetration", "hacker", "vulnerability", "infosec"],
         "keywords": [
             "SOC Level-1 Analyst", "Junior Penetration Tester", "Ethical Hacker",
             "Vulnerability Analyst", "Network Security Associate", "Compliance Service Associate",
@@ -281,6 +300,7 @@ COURSE_SEARCH_CONFIG = {
         ],
     },
     "BSc in Computer Application (BCA)": {
+        "domain_terms": ["software", "developer", "programmer", "web", "app", "react", "java", "python", "php", "node", "frontend", "backend", "full stack"],
         "keywords": [
             "software developer fresher", "web developer", "junior developer",
             "full stack developer fresher", "PHP developer",
@@ -325,13 +345,7 @@ COURSE_TO_DEPARTMENT_MAP = {
 
 # ─── Per-course source priority — configurable waterfall ─────────────────────
 SCRAPER_STRATEGIES = {
-    "BSc in Data Science": ["jsearch", "greenhouse", "lever", "adzuna"],
-    "BSc in Cyber Security": ["jsearch", "greenhouse", "adzuna"],
-    "BSc in Computer Application (BCA)": ["jsearch", "greenhouse", "lever", "adzuna"],
-    "BBA in Digital Marketing (BBA DM)": ["jsearch", "lever", "adzuna"],
-    "BBA in Entrepreneurship (BBA ENT)": ["jsearch", "lever", "adzuna"],
-    "BBA (Finance)": ["jsearch", "lever", "adzuna"],
-    "DEFAULT": ["jsearch", "adzuna"],
+    "DEFAULT": ["linkedin"],
 }
 
 
@@ -464,6 +478,12 @@ def get_course_keywords(course_name: str) -> list:
     """Returns search keywords for a specific course."""
     config = COURSE_SEARCH_CONFIG.get(course_name, {})
     return config.get('keywords', [])
+
+
+def get_domain_terms(course_name: str) -> list:
+    """Returns strict domain terms for a specific course for filtering."""
+    config = COURSE_SEARCH_CONFIG.get(course_name, {})
+    return config.get('domain_terms', [])
 
 
 def get_course_internship_keywords(course_name: str) -> list:

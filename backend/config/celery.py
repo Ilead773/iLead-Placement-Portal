@@ -42,7 +42,7 @@ from celery.schedules import crontab
 app.conf.beat_schedule = {
     'nightly-job-scrape': {
         'task': 'scraped_jobs.tasks.run_nightly_scrape',
-        'schedule': crontab(hour=17, minute=30),  # 11:00 PM IST = 17:30 UTC
+        'schedule': crontab(day_of_month='*/3', hour=17, minute=30),  # Every 3 days at 11:00 PM IST (17:30 UTC)
         'options': {'expires': 3600},
     },
     'deactivate-expired-jobs': {

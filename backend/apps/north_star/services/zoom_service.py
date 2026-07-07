@@ -253,3 +253,118 @@ class ZoomService:
             return False
             
         return True
+
+    def _is_simulated(self, meeting_id: str) -> bool:
+        """
+        Helper to check if a meeting ID is simulated/offline (dev mode fallback).
+        Simulated IDs are usually 10-digit Unix timestamps.
+        """
+        meeting_id = str(meeting_id).replace(' ', '').strip()
+        return len(meeting_id) == 10 and meeting_id.isdigit() and settings.DEBUG
+
+    def get_meeting(self, meeting_id: str) -> dict:
+        """
+        GET /meetings/{meetingId} - Retrieves meeting details from Zoom.
+        """
+        if self._is_simulated(meeting_id):
+            logger.info(f"Simulating Zoom get_meeting for ID {meeting_id}")
+            return {
+                'id': int(meeting_id),
+                'topic': 'Simulated Meeting',
+                'start_time': timezone.now().strftime('%Y-%m-%dT%H:%M:%SZ') if hasattr(timezone, 'now') else datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'duration': 60,
+                'join_url': f"https://zoom.us/j/{meeting_id}",
+                'start_url': f"https://zoom.us/s/{meeting_id}"
+            }
+
+        token = self.get_access_token()
+        url = f"https://api.zoom.us/v2/meetings/{meeting_id}"
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
+    def update_meeting(self, meeting_id: str, topic: str, start_time: datetime, duration_minutes: int) -> bool:
+        """
+        PATCH /meetings/{meetingId} - Updates meeting details on Zoom.
+        """
+        if self._is_simulated(meeting_id):
+            logger.info(f"Simulating Zoom update_meeting for ID {meeting_id}")
+            return True
+
+        token = self.get_access_token()
+        url = f"https://api.zoom.us/v2/meetings/{meeting_id}"
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        start_time_iso = start_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+        payload = {
+            "topic": topic,
+            "start_time": start_time_iso,
+            "duration": duration_minutes
+        }
+        
+        response = requests.patch(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        return response.status_code == 204
+
+    def delete_meeting(self, meeting_id: str) -> bool:
+        """
+        DELETE /meetings/{meetingId} - Deletes/cancels meeting on Zoom.
+        """
+        if self._is_simulated(meeting_id):
+            logger.info(f"Simulating Zoom delete_meeting for ID {meeting_id}")
+            return True
+
+        token = self.get_access_token()
+        url = f"https://api.zoom.us/v2/meetings/{meeting_id}"
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        
+        try:
+            response = requests.delete(url, headers=headers, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            err_msg = e.response.text if e.response is not None else str(e)
+            logger.error(f"Zoom delete_meeting failed for meeting {meeting_id}: {err_msg}")
+            raise
+        return response.status_code == 204
+
+    def get_participant_report(self, meeting_id: str) -> list:
+        """
+        GET /report/meetings/{meetingId}/participants - Retrieves the participant report.
+        Handles pagination and returns a combined list of participant dicts.
+        """
+        if self._is_simulated(meeting_id):
+            logger.info(f"Simulating Zoom get_participant_report for ID {meeting_id}")
+            # Return an empty list so finalization falls back to local webhook-logged events
+            return []
+
+        token = self.get_access_token()
+        url = f"https://api.zoom.us/v2/report/meetings/{meeting_id}/participants"
+        params = {'page_size': 300}
+        participants = []
+
+        while True:
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            }
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            participants.extend(data.get('participants', []))
+            
+            next_page_token = data.get('next_page_token')
+            if not next_page_token:
+                break
+            params['next_page_token'] = next_page_token
+            
+        return participants

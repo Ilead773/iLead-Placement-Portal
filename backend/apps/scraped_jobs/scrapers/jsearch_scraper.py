@@ -406,7 +406,7 @@ class JSearchScraper(BaseJobScraper):
                     'job_employment_type': raw.get('job_employment_type'),
                     'job_required_experience': raw.get('job_required_experience'),
                 }),
-                'dedup_hash': self.compute_dedup_hash(title, company),
+                'dedup_hash': self.compute_dedup_hash(title, company, apply_url),
             }
             job_data['quality_score'] = self.calculate_quality_score(job_data)
             return job_data

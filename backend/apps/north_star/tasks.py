@@ -32,8 +32,84 @@ def finalize_attendance(self, scheduled_class_id):
     # Calculate scheduled class duration in minutes
     class_duration = int((scheduled_class.end_time - scheduled_class.start_time).total_seconds() / 60)
     if class_duration <= 0:
-        class_duration = 60  # Default fallback
+        class_duration = 60
         
+    # Query Zoom Participant Report API & Recreate Events
+    if scheduled_class.zoom_meeting_id:
+        from .services import ZoomService
+        zoom_service = ZoomService()
+        try:
+            participants = zoom_service.get_participant_report(scheduled_class.zoom_meeting_id)
+            if participants:
+                logger.info(f"Retrieved Zoom Participant Report with {len(participants)} entries.")
+                # Rebuild events from the official report
+                AttendanceEvent.objects.filter(scheduled_class=scheduled_class).delete()
+                for p in participants:
+                    email = p.get('user_email', '')
+                    name = p.get('name', '')
+                    join_time_str = p.get('join_time')
+                    leave_time_str = p.get('leave_time')
+                    
+                    # Resolve student
+                    student_user = User.objects.filter(email__iexact=email).first()
+                    if not student_user and email:
+                        prefix = email.split('@')[0]
+                        student_user = User.objects.filter(login_id__iexact=prefix).first()
+                        if not student_user:
+                            from core.models import Student
+                            std_profile = Student.objects.filter(registration_number__iexact=prefix).first()
+                            if std_profile:
+                                student_user = std_profile.user
+                                
+                    if not student_user and name:
+                        import re
+                        digits_match = re.search(r'\b\d{8,12}\b', name)
+                        if digits_match:
+                            reg_no = digits_match.group(0)
+                            from core.models import Student
+                            std_profile = Student.objects.filter(registration_number__iexact=reg_no).first()
+                            if std_profile:
+                                student_user = std_profile.user
+                                
+                    if not student_user and name:
+                        student_user = User.objects.filter(name__iexact=name.strip(), role='student').first()
+                        if not student_user:
+                            from core.models import Student
+                            std_profile = Student.objects.filter(name__iexact=name.strip()).first()
+                            if std_profile:
+                                student_user = std_profile.user
+
+                    try:
+                        join_time = datetime.strptime(join_time_str, '%Y-%m-%dT%H:%M:%SZ')
+                        join_time = timezone.make_aware(join_time, timezone.utc)
+                    except Exception:
+                        join_time = timezone.now()
+
+                    try:
+                        leave_time = datetime.strptime(leave_time_str, '%Y-%m-%dT%H:%M:%SZ')
+                        leave_time = timezone.make_aware(leave_time, timezone.utc)
+                    except Exception:
+                        leave_time = timezone.now()
+
+                    AttendanceEvent.objects.create(
+                        scheduled_class=scheduled_class,
+                        student=student_user,
+                        participant_email=email,
+                        participant_name=name,
+                        event_type='join',
+                        timestamp=join_time
+                    )
+                    AttendanceEvent.objects.create(
+                        scheduled_class=scheduled_class,
+                        student=student_user,
+                        participant_email=email,
+                        participant_name=name,
+                        event_type='leave',
+                        timestamp=leave_time
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to sync Zoom Participant Report, falling back to webhook events: {e}")
+
     # Get all events for this class
     events = AttendanceEvent.objects.filter(scheduled_class=scheduled_class).order_by('timestamp')
     
@@ -250,8 +326,28 @@ def check_certificate_eligibility(self, student_id, course_id):
         raise self.retry(exc=exc)
 
     # Check conditions
-    if progress.attendance_percent >= 75.0 and progress.completion_percent == 100.0 and not progress.certificate_unlocked:
-        logger.info(f"Student {student_user.email} qualified for certificate in course {course.name}!")
+    attendance_threshold = getattr(settings, 'NORTH_STAR_MIN_ATTENDANCE_PERCENT', 80.0)
+    completion_threshold = getattr(settings, 'NORTH_STAR_MIN_COMPLETION_PERCENT', 100.0)
+    marks_threshold = getattr(settings, 'NORTH_STAR_MIN_ASSIGNMENT_MARKS_PERCENT', 70.0)
+    
+    from .models import AssignmentSubmission
+    submissions = AssignmentSubmission.objects.filter(
+        assignment__course=course,
+        student=student_user,
+        status='graded'
+    )
+    total_score = sum(sub.score for sub in submissions if sub.score is not None)
+    total_max_score = sum(sub.assignment.max_score for sub in submissions if sub.score is not None)
+    average_marks_percent = (total_score * 100.0 / total_max_score) if total_max_score > 0 else 100.0
+    
+    is_eligible = (
+        progress.attendance_percent >= attendance_threshold and
+        progress.completion_percent >= completion_threshold and
+        average_marks_percent >= marks_threshold
+    )
+    
+    if is_eligible and not progress.certificate_unlocked:
+        logger.info(f"Student {student_user.email} qualified for certificate in course {course.name}! Attendance: {progress.attendance_percent}%, Completion: {progress.completion_percent}%, Avg Marks: {average_marks_percent:.1f}%")
         
         # HTML certificate template
         html_content = f"""

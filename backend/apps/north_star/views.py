@@ -231,6 +231,75 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
             ).distinct()
         return self.queryset
 
+    def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError
+        zoom_service = ZoomService()
+        title = serializer.validated_data.get('title')
+        start_time = serializer.validated_data.get('start_time')
+        end_time = serializer.validated_data.get('end_time')
+        duration = int((end_time - start_time).total_seconds() / 60)
+        
+        try:
+            meeting_details = zoom_service.create_meeting(
+                topic=title,
+                start_time=start_time,
+                duration_minutes=duration,
+                host_email=self.request.user.email
+            )
+        except Exception as e:
+            logger.error(f"Failed to create Zoom meeting, class scheduled without meeting: {e}")
+            raise ValidationError({"detail": f"Zoom Integration Error: {e}"})
+
+        scheduled_class = serializer.save(
+            host=self.request.user,
+            zoom_meeting_id=meeting_details['zoom_meeting_id'],
+            zoom_join_url=meeting_details['zoom_join_url'],
+            zoom_start_url=meeting_details['zoom_start_url']
+        )
+        
+        countdown_secs = int((end_time - timezone.now()).total_seconds()) + (15 * 60)
+        if countdown_secs < 0:
+            countdown_secs = 5
+            
+        finalize_attendance.apply_async(args=[scheduled_class.id], countdown=countdown_secs)
+        logger.info(f"Scheduled attendance finalization for class {scheduled_class.id} in {countdown_secs} seconds")
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old_title = instance.title
+        old_start = instance.start_time
+        old_end = instance.end_time
+        
+        scheduled_class = serializer.save()
+        
+        new_title = scheduled_class.title
+        new_start = scheduled_class.start_time
+        new_end = scheduled_class.end_time
+        
+        if (new_title != old_title or new_start != old_start or new_end != old_end) and scheduled_class.zoom_meeting_id:
+            duration = int((new_end - new_start).total_seconds() / 60)
+            zoom_service = ZoomService()
+            try:
+                zoom_service.update_meeting(
+                    meeting_id=scheduled_class.zoom_meeting_id,
+                    topic=new_title,
+                    start_time=new_start,
+                    duration_minutes=duration
+                )
+                logger.info(f"Zoom meeting {scheduled_class.zoom_meeting_id} updated successfully.")
+            except Exception as e:
+                logger.error(f"Failed to update Zoom meeting {scheduled_class.zoom_meeting_id}: {e}")
+
+    def perform_destroy(self, instance):
+        if instance.zoom_meeting_id:
+            zoom_service = ZoomService()
+            try:
+                zoom_service.delete_meeting(instance.zoom_meeting_id)
+                logger.info(f"Zoom meeting {instance.zoom_meeting_id} deleted successfully.")
+            except Exception as e:
+                logger.error(f"Failed to delete Zoom meeting {instance.zoom_meeting_id}: {e}")
+        instance.delete()
+
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
     def join(self, request, pk=None):
         """

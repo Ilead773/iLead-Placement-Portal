@@ -126,3 +126,43 @@ def test_schedule_class_multiple_courses(mock_create, api_client, admin_user):
     scheduled_class = ScheduledClass.objects.get(title='Intro to Pandas')
     assert scheduled_class.course in {course1, course2}
     assert set(scheduled_class.courses.all()) == {course1, course2}
+
+@pytest.mark.django_db
+@pytest.mark.filterwarnings("ignore:.*DateTimeField.*received a naive datetime.*")
+@patch('apps.north_star.views.ZoomService.delete_meeting')
+def test_delete_class_endpoint(mock_delete, api_client, admin_user):
+    course = Course.objects.create(name="BSc DS 3", category="Tech")
+    scheduled_class = ScheduledClass.objects.create(
+        course=course,
+        title='Intro to Pandas',
+        start_time=timezone.now(),
+        end_time=timezone.now() + timedelta(hours=1),
+        host=admin_user,
+        zoom_meeting_id='123456789'
+    )
+    api_client.force_authenticate(user=admin_user)
+    response = api_client.delete(f'/api/v1/north-star/classes/{scheduled_class.id}/')
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    mock_delete.assert_called_once_with('123456789')
+    assert not ScheduledClass.objects.filter(id=scheduled_class.id).exists()
+
+@pytest.mark.django_db
+@pytest.mark.filterwarnings("ignore:.*DateTimeField.*received a naive datetime.*")
+@patch('apps.north_star.views.ZoomService.update_meeting')
+def test_update_class_endpoint(mock_update, api_client, admin_user):
+    course = Course.objects.create(name="BSc DS 4", category="Tech")
+    scheduled_class = ScheduledClass.objects.create(
+        course=course,
+        title='Intro to Pandas',
+        start_time=timezone.now(),
+        end_time=timezone.now() + timedelta(hours=1),
+        host=admin_user,
+        zoom_meeting_id='123456789'
+    )
+    api_client.force_authenticate(user=admin_user)
+    payload = {
+        'title': 'Intro to Pandas - Part 2'
+    }
+    response = api_client.patch(f'/api/v1/north-star/classes/{scheduled_class.id}/', payload)
+    assert response.status_code == status.HTTP_200_OK
+    mock_update.assert_called_once()

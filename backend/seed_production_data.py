@@ -97,92 +97,51 @@ def seed_production():
             print("  Student user already exists.")
 
         # 4. Seed Student Core Record
-        student_rec = Student.objects.filter(user=student_user).first()
-        if not student_rec:
-            student_rec = Student.objects.create(
-                user=student_user,
-                name="Demo Student",
-                registration_number="REG-2026-BCA01",
-                email="student@ileadportal.com",
-                passing_year=2026,
-                course="BSc in Computer Application (BCA)",
-                stream="Technology",
-                semester=6,
-                attendance=92.5,
-                cgpa=8.85,
-                phone_number="+919876543210",
-                year=3,
-                category="General",
-                backlogs=0,
-                backlogs_count=0,
-                training_attendance=95.0
-            )
-            print("  Created Student database record.")
-        else:
-            print("  Student database record already exists.")
-
-        # 5. Seed Student Career Profile details
-        profile, created = StudentProfile.objects.get_or_create(
-            student=student_rec,
+        student_rec, _ = Student.objects.update_or_create(
+            user=student_user,
             defaults={
-                "phone": "+919876543210",
-                "location": "Kolkata, India",
-                "professional_summary": "Aspiring software developer with a strong foundation in Python, web architectures, and algorithms. Looking to build scalable solutions.",
-                "linkedin": "linkedin.com/in/demostudent",
-                "github": "github.com/demostudent",
-                "portfolio": "demostudent.dev"
+                "name": "Demo Student",
+                "registration_number": "REG-2026-BCA01",
+                "email": "",
+                "passing_year": 2026,
+                "course": "BSc in Computer Application (BCA)",
+                "stream": "Technology",
+                "semester": 6,
+                "attendance": 92.5,
+                "cgpa": 8.85,
+                "phone_number": "",
+                "year": 3,
+                "category": "General",
+                "backlogs": 0,
+                "backlogs_count": 0,
+                "training_attendance": 95.0
             }
         )
-        if created:
-            print("  Created Student Career Profile.")
-            
-            # Add Skills
-            skills_data = [
-                ("Programming Languages", "Python", "Advanced"),
-                ("Programming Languages", "JavaScript", "Intermediate"),
-                ("Web Technologies", "Django REST Framework", "Advanced"),
-                ("Web Technologies", "React.js", "Intermediate"),
-                ("Databases", "PostgreSQL", "Intermediate"),
-            ]
-            for cat, name, prof in skills_data:
-                Skill.objects.create(profile=profile, category=cat, name=name, proficiency=prof)
-            print("    Added default skills.")
+        print("  Seeded Demo Student record with empty email/phone.")
 
-            # Add Education
-            Education.objects.create(
-                profile=profile,
-                institution="iLEAD Institute",
-                degree="Bachelor of Science",
-                field="Computer Applications",
-                graduation_date="2026-06-30",
-                gpa="8.85",
-                honors="First Class with Distinction"
-            )
-            print("    Added default education.")
-
-            # Add Project
-            Project.objects.create(
-                profile=profile,
-                title="iLEAD Placement Portal",
-                description="Contributed to building the automated college recruitment workflow engine, handling PDF resumes and AI interview logging.",
-                technologies=["Python", "Django", "React", "PostgreSQL"],
-                link="github.com/demostudent/ilead-portal",
-                date="2026-03-01"
-            )
-            print("    Added default project.")
-
-            # Add Experience
-            Experience.objects.create(
-                profile=profile,
-                company="Tech Solutions India",
-                position="Backend Engineering Intern",
-                start_date="2025-06-01",
-                end_date="2025-08-31",
-                is_current=False,
-                description="Designed and optimized REST endpoints using Django. Wrote unit tests and improved API response speeds.",
-                achievements="Decreased database query latency by 15% through indexing."
-            )
-            print("    Added default work experience.")
+        # 5. Seed Student Career Profile details (empty to force fallback placeholders)
+        profile, _ = StudentProfile.objects.update_or_create(
+            student=student_rec,
+            defaults={
+                "phone": "",
+                "location": "",
+                "professional_summary": "",
+                "linkedin": "",
+                "github": "",
+                "portfolio": ""
+            }
+        )
+        
+        # Delete sub-entries to trigger template fallback placeholders
+        Skill.objects.filter(profile=profile).delete()
+        Education.objects.filter(profile=profile).delete()
+        Project.objects.filter(profile=profile).delete()
+        Experience.objects.filter(profile=profile).delete()
+        from apps.profiles.models import Certification, Achievement
+        Certification.objects.filter(profile=profile).delete()
+        Achievement.objects.filter(profile=profile).delete()
+        
+        print("  Cleared Student Career Profile & all sub-entries to force fallback placeholders.")
 
         # 6. Seed AI Mock Interview domain & questions
         print("Seeding AI Mock Interview datasets...")

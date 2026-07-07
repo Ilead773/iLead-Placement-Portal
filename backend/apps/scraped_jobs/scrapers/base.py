@@ -110,24 +110,17 @@ class BaseJobScraper(ABC):
 
     def truncate_raw_data(self, raw: dict) -> dict:
         """
-        Truncate raw_data to 2KB max to prevent DB bloat from giant API payloads.
-        Keeps only a safe subset of keys; discards HTML blobs and large fields.
+        Do not store the raw API payload at all to minimize DB storage.
         """
-        safe_keys = [
-            'employer_website', 'job_employment_type', 'job_required_experience',
-            'category', 'greenhouse_company', 'lever_company', 'team',
-        ]
-        truncated = {k: v for k, v in raw.items() if k in safe_keys}
-        serialized = json.dumps(truncated)
-        if len(serialized) > 2048:
-            return {'truncated': True, 'preview': serialized[:200]}
-        return truncated
+        return {}
 
     def contains_suspicious_phrase(self, text: str) -> bool:
         text_lower = text.lower()
         return any(phrase in text_lower for phrase in SUSPICIOUS_PHRASES)
 
-    def compute_dedup_hash(self, title: str, company: str) -> str:
+    def compute_dedup_hash(self, title: str, company: str, apply_url: str = None) -> str:
+        if apply_url:
+            return hashlib.sha256(apply_url.encode('utf-8')).hexdigest()
         normalized = f"{self._normalize_text(title)}::{self._normalize_text(company)}"
         return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
 
@@ -140,32 +133,76 @@ class BaseJobScraper(ABC):
         return text
 
     def should_exclude(self, title: str, description: str, exclude_keywords: list) -> bool:
-        text = f"{title} {description}".lower()
-        if any(kw.lower() in text for kw in exclude_keywords):
-            return True
-        
-        # Hard-coded check for common senior indicators if not in list
-        senior_terms = ['senior', 'lead', 'manager', 'staff', 'principal', 'architect', 'iii', 'iv']
         title_lower = title.lower()
-        if any(term in title_lower.split() for term in senior_terms):
-            return True
-            
+        desc_lower = description.lower()
+        
+        # 1. Check exclude_keywords
+        for kw in exclude_keywords:
+            kw_l = kw.lower()
+            # If the keyword specifies experience years (e.g. "10+ years", "8+ years"), check full text
+            if "year" in kw_l or "+" in kw_l or "exp" in kw_l:
+                if kw_l in desc_lower or kw_l in title_lower:
+                    return True
+            else:
+                # Seniority terms: check title only to avoid false positives in description (e.g. "report to manager")
+                if kw_l in title_lower.split() or f" {kw_l} " in f" {title_lower} ":
+                    return True
+        
+        # 2. Hard-coded check for common senior indicators in title
+        senior_terms = [
+            'senior', 'lead', 'manager', 'staff', 'principal', 'architect', 'iii', 'iv',
+            'vp', 'director', 'president', 'chief', 'head', 'officer', 'faculty', 
+            'professor', 'teacher', 'hod', 'dean', 'expert'
+        ]
+        for term in senior_terms:
+            if term in title_lower.split() or f" {term} " in f" {title_lower} ":
+                return True
+                
         return False
 
     def is_experience_excessive(self, description: str) -> bool:
-        """Returns True if the description asks for more than 3 years of experience."""
+        """
+        Returns True if the description is NOT strictly for freshers or 0-1 years.
+        Rejects unspecified experience or experience requirements >= 2 years.
+        """
         if not description:
-            return False
-        # Look for patterns like "5+ years", "3-5 years", "min 4 years"
-        patterns = [
-            r'([3-9]|\d{2})\+\s*years?',
-            r'[3-9]\s*[-–]\s*\d+\s*years?',
-            r'min(?:imum)?\s*([3-9]|\d{2})\s*years?',
-        ]
+            return True
+            
         desc_lower = description.lower()
-        for pattern in patterns:
+        
+        # 1. Hard-reject if it explicitly states 2+ years or higher is required
+        patterns_excessive = [
+            r'\b(?:1[0-9]|[2-9])\+\s*(?:years?|yrs?)',
+            r'min(?:imum)?\s*(?:1[0-9]|[2-9])\s*(?:years?|yrs?)',
+            r'\b(?:1[0-9]|[2-9])\s*(?:-|to)\s*\d+\s*(?:years?|yrs?)',
+            r'\b(?:1[0-9]|[2-9])\s*(?:years?|yrs?)\s*(?:of\s*)?experience',
+        ]
+        for pattern in patterns_excessive:
             if re.search(pattern, desc_lower):
                 return True
+                
+        # 2. Must explicitly mention "fresher", "entry level", "0-1 year", etc.
+        fresher_patterns = [
+            r'fresher',
+            r'entry.?level',
+            r'no\s*experience',
+            r'trainee',
+            r'intern',
+            r'\b0\s*-\s*1\s*(?:years?|yrs?)',
+            r'\b0\s*to\s*1\s*(?:years?|yrs?)',
+            r'\b0\s*(?:years?|yrs?)',
+            r'\b1\s*(?:years?|yrs?)',
+        ]
+        
+        is_fresher_mention = False
+        for pattern in fresher_patterns:
+            if re.search(pattern, desc_lower):
+                is_fresher_mention = True
+                break
+                
+        if not is_fresher_mention:
+            return True # Reject since there is no explicit fresher/0-1 year mention
+            
         return False
 
     def score_job_relevance(self, title: str, description: str, course_keywords: list) -> float:

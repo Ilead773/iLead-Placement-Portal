@@ -96,3 +96,61 @@ def test_verify_webhook_signature():
     request.body = body
     
     assert service.verify_webhook_signature(request) is True
+
+@patch('apps.north_star.services.zoom_service.ZoomService.get_access_token', return_value='token123')
+@patch('requests.get')
+def test_get_meeting(mock_get, mock_token):
+    mock_response = MagicMock()
+    mock_response.json.return_value = {'id': 123456789, 'topic': 'Test Topic'}
+    mock_response.raise_for_status = MagicMock()
+    mock_get.return_value = mock_response
+    
+    service = ZoomService()
+    res = service.get_meeting("123456789")
+    assert res['id'] == 123456789
+    assert res['topic'] == 'Test Topic'
+    mock_get.assert_called_once()
+    
+@patch('apps.north_star.services.zoom_service.ZoomService.get_access_token', return_value='token123')
+@patch('requests.patch')
+def test_update_meeting(mock_patch, mock_token):
+    mock_response = MagicMock()
+    mock_response.status_code = 204
+    mock_response.raise_for_status = MagicMock()
+    mock_patch.return_value = mock_response
+    
+    service = ZoomService()
+    res = service.update_meeting("123456789", "New Topic", timezone.now(), 60)
+    assert res is True
+    mock_patch.assert_called_once()
+
+@patch('apps.north_star.services.zoom_service.ZoomService.get_access_token', return_value='token123')
+@patch('requests.delete')
+def test_delete_meeting(mock_delete, mock_token):
+    mock_response = MagicMock()
+    mock_response.status_code = 204
+    mock_response.raise_for_status = MagicMock()
+    mock_delete.return_value = mock_response
+    
+    service = ZoomService()
+    res = service.delete_meeting("123456789")
+    assert res is True
+    mock_delete.assert_called_once()
+
+@patch('apps.north_star.services.zoom_service.ZoomService.get_access_token', return_value='token123')
+@patch('requests.get')
+def test_get_participant_report(mock_get, mock_token):
+    mock_response = MagicMock()
+    mock_response.json.side_effect = [
+        {'participants': [{'name': 'User 1'}], 'next_page_token': 'page2'},
+        {'participants': [{'name': 'User 2'}], 'next_page_token': ''}
+    ]
+    mock_response.raise_for_status = MagicMock()
+    mock_get.return_value = mock_response
+    
+    service = ZoomService()
+    res = service.get_participant_report("123456789")
+    assert len(res) == 2
+    assert res[0]['name'] == 'User 1'
+    assert res[1]['name'] == 'User 2'
+    assert mock_get.call_count == 2

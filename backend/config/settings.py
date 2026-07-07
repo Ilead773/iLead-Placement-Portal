@@ -450,3 +450,8 @@ if SENTRY_DSN:
         )
     except ImportError:
         pass
+
+# ─── North Star Configurable Eligibility Criteria ────────────────
+NORTH_STAR_MIN_ATTENDANCE_PERCENT = float(os.getenv('NORTH_STAR_MIN_ATTENDANCE_PERCENT', '80.0'))
+NORTH_STAR_MIN_COMPLETION_PERCENT = float(os.getenv('NORTH_STAR_MIN_COMPLETION_PERCENT', '100.0'))
+NORTH_STAR_MIN_ASSIGNMENT_MARKS_PERCENT = float(os.getenv('NORTH_STAR_MIN_ASSIGNMENT_MARKS_PERCENT', '70.0'))

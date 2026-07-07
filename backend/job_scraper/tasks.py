@@ -59,14 +59,16 @@ def run_linkedin_scrape(self, run_id):
             # Dedup queries to minimize API cost
             queries = list(set(queries))
             
-            run_url = f"https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/runs?token={apify_token}"
+            from urllib.parse import quote
+            urls = [f"https://www.linkedin.com/jobs/search/?keywords={quote(q)}&location=India&f_TPR=r259200&sortBy=DD" for q in queries]
+            run_url = f"https://api.apify.com/v2/acts/curious_coder~linkedin-jobs-scraper/runs?token={apify_token}"
             payload = {
-                "queries": queries,
-                "location": "India",
-                "limitPerQuery": 5
+                "urls": urls,
+                "scrapeCompany": False,
+                "count": max(10, len(queries) * 5)
             }
             
-            logger.info(f"[LinkedInScrapeTask] Triggering Apify actor 'bebity/linkedin-jobs-scraper' for queries: {queries}")
+            logger.info(f"[LinkedInScrapeTask] Triggering Apify actor 'curious_coder/linkedin-jobs-scraper' for urls: {urls}")
             res = requests.post(run_url, json=payload, timeout=60)
             res.raise_for_status()
             
@@ -152,6 +154,22 @@ def run_linkedin_scrape(self, run_id):
                     required_skills = jsearch_helper.extract_skills_from_description(description) if description else []
                     experience = jsearch_helper.extract_experience(description) if description else 'Not specified'
 
+                    # Check date
+                    posted_at = timezone.now()
+                    posted_at_str = item.get('postedAt')
+                    if posted_at_str:
+                        try:
+                            from datetime import datetime
+                            posted_date = datetime.strptime(posted_at_str[:10], '%Y-%m-%d').date()
+                            now_date = timezone.now().date()
+                            days_diff = (now_date - posted_date).days
+                            if days_diff > 3:
+                                logger.warning(f"[LinkedInScrapeTask] Rejecting job posted {days_diff} days ago: '{title}'")
+                                continue
+                            posted_at = timezone.make_aware(datetime.combine(posted_date, datetime.min.time()))
+                        except Exception as ex:
+                            logger.warning(f"[LinkedInScrapeTask] Date parsing failed for '{posted_at_str}': {ex}")
+
                     job_obj = ScrapedJob.objects.create(
                         external_job_id=str(item.get('jobId') or item.get('id') or random.randint(3800000000, 3999999999)),
                         source='linkedin',
@@ -160,7 +178,7 @@ def run_linkedin_scrape(self, run_id):
                         company_logo_url=logo_url,
                         location=location,
                         is_remote='remote' in location.lower() or item.get('isRemote', False),
-                        job_type='full_time',
+                        job_type='internship' if 'intern' in title.lower() else 'fresher_job',
                         is_internship='intern' in title.lower(),
                         description=f"<h3>Job Description</h3><p>{description}</p>",
                         description_short=desc_short,
@@ -170,7 +188,7 @@ def run_linkedin_scrape(self, run_id):
                         experience_required=experience,
                         is_active=True,
                         quality_score=random.randint(85, 98),
-                        posted_at=timezone.now(),
+                        posted_at=posted_at,
                         expires_at=timezone.now() + timedelta(days=14),
                         dedup_hash=dedup_hash
                     )
@@ -256,7 +274,7 @@ def run_linkedin_scrape(self, run_id):
                             company_logo_url=logo_url,
                             location=location,
                             is_remote=parsed_job.get('is_remote', False),
-                            job_type=parsed_job.get('job_type', 'full_time'),
+                            job_type=parsed_job.get('job_type', 'fresher_job'),
                             is_internship=parsed_job.get('is_internship', False),
                             description=parsed_job.get('description', ''),
                             description_short=parsed_job.get('description_short', ''),

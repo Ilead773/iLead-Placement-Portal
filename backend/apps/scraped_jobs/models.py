@@ -26,6 +26,7 @@ class ScrapedJob(models.Model):
     ]
 
     JOB_TYPE_CHOICES = [
+        ('fresher_job', 'Fresher Job'),
         ('full_time', 'Full Time'),
         ('part_time', 'Part Time'),
         ('internship', 'Internship'),
@@ -247,6 +248,7 @@ class CourseSearchConfig(models.Model):
     exclude_keywords = models.JSONField(default=list)
     is_active = models.BooleanField(default=True)
     priority = models.IntegerField(default=5)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'course_search_configs'

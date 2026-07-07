@@ -46,7 +46,7 @@ def load_fuzzy_candidates(company_names):
         return []
     from django.db.models import Q
     from datetime import datetime, timezone, timedelta
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=20)
 
     q = Q()
     for name in set(company_names):
