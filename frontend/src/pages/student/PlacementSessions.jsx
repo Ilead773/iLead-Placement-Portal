@@ -7,7 +7,7 @@ import {
   AlertCircle, Play, Loader, BookOpen, ChevronDown, Award
 } from 'lucide-react';
 import placementSessionsAPI from '../../api/placementSessionsAPI';
-import ZoomMeetingFrame from '../north-star/ZoomMeetingFrame';
+
 import useAuthStore from '../../store/authStore';
 
 const typeEmojis = {
@@ -66,8 +66,6 @@ export default function StudentPlacementSessions() {
   const { user } = useAuthStore();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [joinSession, setJoinSession] = useState(null);
-  const [joinData, setJoinData] = useState(null);
   const [joiningId, setJoiningId] = useState(null);
 
   useEffect(() => { fetchSessions(); }, []);
@@ -104,11 +102,7 @@ export default function StudentPlacementSessions() {
     }
   };
 
-  const handleLeave = () => {
-    setJoinData(null);
-    setJoinSession(null);
-    fetchSessions();
-  };
+
 
   const getStatus = (s) => {
     const now = new Date();
@@ -133,42 +127,7 @@ export default function StudentPlacementSessions() {
   // Overall attendance stats from ended sessions
   const totalSessions = endedSessions.length;
 
-  if (joinData && joinSession) {
-    return (
-      <div className="fixed inset-0 z-50 bg-bg-main flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-border-color bg-bg-card">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">{typeEmojis[joinSession.session_type]}</span>
-            <div>
-              <h2 className="font-bold text-text-primary">{joinSession.title}</h2>
-              <p className="text-xs text-text-muted">{typeLabels[joinSession.session_type]}</p>
-            </div>
-            <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white text-xs rounded-full font-bold animate-pulse">
-              🔴 LIVE
-            </span>
-          </div>
-          <button
-            onClick={handleLeave}
-            className="btn btn-secondary text-sm px-4 py-2"
-          >
-            Leave Session
-          </button>
-        </div>
-        <div className="flex-1">
-          <ZoomMeetingFrame
-            meetingNumber={joinData.meeting_number}
-            signature={joinData.signature}
-            sdkKey={joinData.sdk_key}
-            userName={joinData.user_name}
-            userEmail={joinData.user_email}
-            role={0}
-            passcode={joinData.passcode}
-            onLeave={handleLeave}
-          />
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-6 max-w-4xl mx-auto">

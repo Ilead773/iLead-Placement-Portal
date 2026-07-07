@@ -132,15 +132,33 @@ export default function AdminDashboard() {
       return;
     }
 
+    const tid = toast.loading('Creating class & generating Zoom meeting...');
     try {
-      await northStarAPI.scheduleClass({
+      const res = await northStarAPI.scheduleClass({
         course_ids: selectedCourses,
         course_id: selectedCourses[0],
         title: classTitle,
         start_time: classStart,
         end_time: classEnd
       });
-      toast.success('Class scheduled successfully & Zoom meeting created!');
+      toast.dismiss(tid);
+      toast.success('Class scheduled! Zoom meeting created ✅');
+
+      // Show the join link to admin so they can share it
+      const joinUrl = res.data.zoom_join_url || '';
+      if (joinUrl) {
+        toast.success(
+          <span>
+            Zoom link ready!{' '}
+            <a href={joinUrl} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#818cf8', fontWeight: 700, textDecoration: 'underline' }}>
+              Open Zoom →
+            </a>
+          </span>,
+          { duration: 10000 }
+        );
+      }
+
       setClassTitle('');
       setClassStart('');
       setClassEnd('');
@@ -151,8 +169,10 @@ export default function AdminDashboard() {
       }
       fetchAdminData();
     } catch (err) {
+      toast.dismiss(tid);
       console.error(err);
-      toast.error('Failed to schedule class. Zoom S2S authentication might be failing.');
+      const detail = err?.response?.data?.detail || '';
+      toast.error(detail || 'Failed to schedule class. Check Zoom S2S credentials.');
     }
   };
 
