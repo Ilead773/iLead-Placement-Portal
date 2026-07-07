@@ -171,6 +171,9 @@ export default function StudentDashboard() {
   };
 
   const handleJoinClass = async (classId) => {
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    
     try {
       toast.loading('Preparing Zoom session...');
       const res = await northStarAPI.joinClass(classId);
@@ -178,13 +181,15 @@ export default function StudentDashboard() {
 
       const joinUrl = res.data.join_url || '';
       if (!joinUrl) {
+        newWindow.close();
         toast.error('No Zoom join link found for this class.');
         return;
       }
 
-      // Open the Zoom join URL directly in a new tab
-      window.open(joinUrl, '_blank', 'noopener,noreferrer');
+      // Redirect the opened tab to the Zoom join URL
+      newWindow.location.href = joinUrl;
     } catch (err) {
+      newWindow.close();
       toast.dismiss();
       console.error(err);
       toast.error('Could not join class. Please try again.');
@@ -542,9 +547,9 @@ export default function StudentDashboard() {
           {/* ================================================================== */}
           {activeTab === 'classes' && (() => {
             const filteredClasses = classes.filter(cls => {
-              const isUpcoming = new Date(cls.start_time) > new Date();
-              if (classFilter === 'upcoming') return isUpcoming;
-              if (classFilter === 'past') return !isUpcoming;
+              const hasEnded = new Date() > new Date(cls.end_time);
+              if (classFilter === 'upcoming') return !hasEnded;
+              if (classFilter === 'past') return hasEnded;
               return true;
             });
 
@@ -562,7 +567,7 @@ export default function StudentDashboard() {
                   <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/80">
                     {[
                       { id: 'all', label: 'All Lectures' },
-                      { id: 'upcoming', label: 'Upcoming' },
+                      { id: 'upcoming', label: 'Upcoming / Active' },
                       { id: 'past', label: 'Completed' }
                     ].map(filter => (
                       <button
@@ -583,13 +588,18 @@ export default function StudentDashboard() {
                 {filteredClasses.length > 0 ? (
                   <div className="space-y-4">
                     {filteredClasses.map(cls => {
-                      const isUpcoming = new Date(cls.start_time) > new Date();
-                      const dateObj = new Date(cls.start_time);
-                      const day = dateObj.getDate();
-                      const month = dateObj.toLocaleDateString([], { month: 'short' }).toUpperCase();
-                      const weekday = dateObj.toLocaleDateString([], { weekday: 'short' });
-                      const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const endTimeStr = new Date(cls.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const now = new Date();
+                      const startTime = new Date(cls.start_time);
+                      const endTime = new Date(cls.end_time);
+                      const isLive = now >= startTime && now <= endTime;
+                      const isUpcoming = now < startTime;
+                      const hasEnded = now > endTime;
+
+                      const day = startTime.getDate();
+                      const month = startTime.toLocaleDateString([], { month: 'short' }).toUpperCase();
+                      const weekday = startTime.toLocaleDateString([], { weekday: 'short' });
+                      const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const endTimeStr = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                       
                       return (
                         <div 
@@ -613,13 +623,19 @@ export default function StudentDashboard() {
                             <div className="space-y-2 text-left flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs text-indigo-500 dark:text-indigo-400 font-extrabold tracking-wider">{cls.course_name}</span>
-                                <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                  isUpcoming 
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25' 
-                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-900/50 dark:text-slate-500 border border-slate-200/50 dark:border-slate-800/80'
-                                }`}>
-                                  {isUpcoming ? 'Upcoming' : 'Past'}
-                                </span>
+                                {isLive ? (
+                                  <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-rose-500 text-white animate-pulse">
+                                    🔴 Live Now
+                                  </span>
+                                ) : isUpcoming ? (
+                                  <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                                    Upcoming
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-500 dark:bg-slate-900/50 dark:text-slate-500 border border-slate-200/50 dark:border-slate-800/80">
+                                    Past
+                                  </span>
+                                )}
                               </div>
                               
                               <h4 className="text-base font-extrabold text-slate-800 dark:text-white tracking-tight">{cls.title}</h4>
@@ -637,12 +653,12 @@ export default function StudentDashboard() {
 
                           {/* Right: Actions */}
                           <div className="flex items-center justify-end flex-shrink-0">
-                            {isUpcoming ? (
+                            {!hasEnded ? (
                               <button
                                 onClick={() => handleJoinClass(cls.id)}
                                 className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                               >
-                                <Play size={14} fill="currentColor" /> Join Zoom SDK
+                                <Play size={14} fill="currentColor" /> Join Zoom Session
                               </button>
                             ) : (
                               <span className="w-full md:w-auto text-center text-xs text-slate-400 dark:text-slate-500 font-bold uppercase bg-slate-50 dark:bg-slate-900/40 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">

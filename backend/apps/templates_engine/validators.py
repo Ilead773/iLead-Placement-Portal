@@ -80,7 +80,7 @@ class TemplateSecurityValidator:
             html_content,
             tags=ALLOWED_TAGS,
             attributes=ALLOWED_ATTRIBUTES,
-            protocols=['http', 'https', 'mailto'],
+            protocols=['http', 'https', 'mailto', 'data'],
             strip=True,
         )
 

@@ -124,18 +124,23 @@ export default function AdminPlacementSessions() {
   };
 
   const handleStartLive = async (session) => {
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
     const tid = toast.loading('Getting host credentials...');
+    
     try {
       const res = await placementSessionsAPI.start(session.id);
       // Open the Zoom start_url directly in a new tab (auto-logs in as host)
       const startUrl = res.data.start_url || res.data.join_url || '';
       if (!startUrl) {
+        newWindow.close();
         toast.error('No Zoom start link found for this session.', { id: tid });
         return;
       }
       toast.success('Opening Zoom as host...', { id: tid });
-      window.open(startUrl, '_blank', 'noopener,noreferrer');
+      newWindow.location.href = startUrl;
     } catch (err) {
+      newWindow.close();
       toast.error(err?.response?.data?.detail || 'Failed to start session', { id: tid });
     }
   };

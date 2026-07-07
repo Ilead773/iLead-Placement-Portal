@@ -734,7 +734,7 @@ def student_dashboard(request):
     from django.db.models import Q
     upcoming_classes = ScheduledClass.objects.filter(
         Q(course__name__iexact=student_course) | Q(courses__name__iexact=student_course),
-        start_time__gt=timezone.now()
+        end_time__gt=timezone.now()
     ).distinct().order_by('start_time')[:5]
     
     # Attendance %

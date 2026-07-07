@@ -43,6 +43,7 @@ class ResumeRenderer:
                 'extra_curricular': canonical_json.get('extra_curricular', []),
                 'strengths': canonical_json.get('strengths', []),
                 'languages': canonical_json.get('languages', []),
+                'institute_logo': canonical_json.get('personal', {}).get('institute_logo') or canonical_json.get('personal', {}).get('logo', ''),
             })
             body_html = django_template.render(context)
 

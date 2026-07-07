@@ -83,19 +83,23 @@ export default function StudentPlacementSessions() {
   };
 
   const handleJoin = async (session) => {
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
     setJoiningId(session.id);
     const tid = toast.loading('Getting your join credentials...');
+    
     try {
       const res = await placementSessionsAPI.join(session.id);
       const joinUrl = res.data.join_url || '';
       if (!joinUrl) {
+        newWindow.close();
         toast.error('No Zoom join link found for this session.', { id: tid });
         return;
       }
       toast.success('Opening Zoom session...', { id: tid });
-      // Open Zoom directly in a new tab
-      window.open(joinUrl, '_blank', 'noopener,noreferrer');
+      newWindow.location.href = joinUrl;
     } catch (err) {
+      newWindow.close();
       toast.error(err?.response?.data?.detail || 'Failed to join session', { id: tid });
     } finally {
       setJoiningId(null);

@@ -177,6 +177,9 @@ export default function AdminDashboard() {
   };
 
   const handleStartClass = async (classId) => {
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    
     try {
       toast.loading('Initializing Host Session...');
       const res = await northStarAPI.startClass(classId);
@@ -186,13 +189,15 @@ export default function AdminDashboard() {
       // Fall back to join_url if start_url is not present
       const startUrl = res.data.start_url || res.data.join_url || '';
       if (!startUrl) {
+        newWindow.close();
         toast.error('No Zoom start link found for this class.');
         return;
       }
 
-      // Open directly in a new tab — Zoom app or browser will handle it
-      window.open(startUrl, '_blank', 'noopener,noreferrer');
+      // Redirect the opened tab to the Zoom start URL
+      newWindow.location.href = startUrl;
     } catch (err) {
+      newWindow.close();
       toast.dismiss();
       console.error(err);
       toast.error('Could not initialize meeting. Zoom credentials are required.');
