@@ -46,8 +46,8 @@ class PlacementSession(models.Model):
 
     # Zoom meeting details (auto-populated on creation)
     zoom_meeting_id = models.CharField(max_length=50, blank=True, default='')
-    zoom_join_url = models.URLField(blank=True, default='')
-    zoom_start_url = models.URLField(blank=True, default='')
+    zoom_join_url = models.URLField(max_length=1000, blank=True, default='')
+    zoom_start_url = models.URLField(max_length=1000, blank=True, default='')
 
     # Status
     is_active = models.BooleanField(default=True)
