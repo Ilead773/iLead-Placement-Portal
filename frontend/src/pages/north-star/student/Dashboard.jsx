@@ -170,35 +170,7 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleJoinClass = async (classId) => {
-    // Open a blank tab immediately to bypass browser popup blockers
-    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    
-    try {
-      toast.loading('Preparing Zoom session...');
-      const res = await northStarAPI.joinClass(classId);
-      toast.dismiss();
 
-      const joinUrl = res.data.join_url || '';
-      if (!joinUrl) {
-        if (newWindow) newWindow.close();
-        toast.error('No Zoom join link found for this class.');
-        return;
-      }
-
-      // Redirect the opened tab to the Zoom join URL
-      if (newWindow) {
-        newWindow.location.href = joinUrl;
-      } else {
-        window.open(joinUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (err) {
-      if (newWindow) newWindow.close();
-      toast.dismiss();
-      console.error(err);
-      toast.error('Could not join class. Please try again.');
-    }
-  };
 
   const handleAssignmentSelect = (assignment) => {
     setSelectedAssignment(assignment);
@@ -461,12 +433,20 @@ export default function StudentDashboard() {
                             
                             <div className="ns-ticket-divider" />
                             
-                            <button
-                              onClick={() => handleJoinClass(cls.id)}
-                              className="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
-                            >
-                              <Play size={14} fill="currentColor" /> Join Zoom Session
-                            </button>
+                            {cls.zoom_join_url ? (
+                              <a
+                                href={cls.zoom_join_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-4 md:mt-0 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300 text-center"
+                              >
+                                <Play size={14} fill="currentColor" /> Join Zoom Session
+                              </a>
+                            ) : (
+                              <span className="mt-4 md:mt-0 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs font-extrabold rounded-xl border border-slate-200 dark:border-slate-700">
+                                No Zoom Link
+                              </span>
+                            )}
                           </motion.div>
                         );
                       })}
@@ -658,12 +638,20 @@ export default function StudentDashboard() {
                           {/* Right: Actions */}
                           <div className="flex items-center justify-end flex-shrink-0">
                             {!hasEnded ? (
-                              <button
-                                onClick={() => handleJoinClass(cls.id)}
-                                className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                              >
-                                <Play size={14} fill="currentColor" /> Join Zoom Session
-                              </button>
+                              cls.zoom_join_url ? (
+                                <a
+                                  href={cls.zoom_join_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full md:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-center"
+                                >
+                                  <Play size={14} fill="currentColor" /> Join Zoom Session
+                                </a>
+                              ) : (
+                                <span className="w-full md:w-auto text-center text-xs text-slate-400 dark:text-slate-500 font-bold uppercase bg-slate-50 dark:bg-slate-900/40 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+                                  No Zoom Link
+                                </span>
+                              )
                             ) : (
                               <span className="w-full md:w-auto text-center text-xs text-slate-400 dark:text-slate-500 font-bold uppercase bg-slate-50 dark:bg-slate-900/40 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
                                 Class Ended

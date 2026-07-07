@@ -66,7 +66,7 @@ export default function StudentPlacementSessions() {
   const { user } = useAuthStore();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [joiningId, setJoiningId] = useState(null);
+
 
   useEffect(() => { fetchSessions(); }, []);
 
@@ -82,33 +82,7 @@ export default function StudentPlacementSessions() {
     }
   };
 
-  const handleJoin = async (session) => {
-    // Open a blank tab immediately to bypass browser popup blockers
-    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    setJoiningId(session.id);
-    const tid = toast.loading('Getting your join credentials...');
-    
-    try {
-      const res = await placementSessionsAPI.join(session.id);
-      const joinUrl = res.data.join_url || '';
-      if (!joinUrl) {
-        if (newWindow) newWindow.close();
-        toast.error('No Zoom join link found for this session.', { id: tid });
-        return;
-      }
-      toast.success('Opening Zoom session...', { id: tid });
-      if (newWindow) {
-        newWindow.location.href = joinUrl;
-      } else {
-        window.open(joinUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (err) {
-      if (newWindow) newWindow.close();
-      toast.error(err?.response?.data?.detail || 'Failed to join session', { id: tid });
-    } finally {
-      setJoiningId(null);
-    }
-  };
+
 
 
 
@@ -170,8 +144,8 @@ export default function StudentPlacementSessions() {
               </div>
               <div className="space-y-3">
                 {liveSessions.map(s => (
-                  <SessionCard key={s.id} session={s} statusLabel="live" onJoin={handleJoin}
-                    joiningId={joiningId} canJoin={canJoin(s)} />
+                  <SessionCard key={s.id} session={s} statusLabel="live"
+                    canJoin={canJoin(s)} />
                 ))}
               </div>
             </section>
@@ -183,8 +157,8 @@ export default function StudentPlacementSessions() {
               <h2 className="font-bold text-blue-500 uppercase text-xs tracking-widest mb-3">Upcoming</h2>
               <div className="space-y-3">
                 {upcomingSessions.map(s => (
-                  <SessionCard key={s.id} session={s} statusLabel="upcoming" onJoin={handleJoin}
-                    joiningId={joiningId} canJoin={canJoin(s)} />
+                  <SessionCard key={s.id} session={s} statusLabel="upcoming"
+                    canJoin={canJoin(s)} />
                 ))}
               </div>
             </section>
@@ -196,8 +170,8 @@ export default function StudentPlacementSessions() {
               <h2 className="font-bold text-text-muted uppercase text-xs tracking-widest mb-3">Past Sessions</h2>
               <div className="space-y-3">
                 {endedSessions.map(s => (
-                  <SessionCard key={s.id} session={s} statusLabel="ended" onJoin={handleJoin}
-                    joiningId={joiningId} canJoin={canJoin(s)} />
+                  <SessionCard key={s.id} session={s} statusLabel="ended"
+                    canJoin={canJoin(s)} />
                 ))}
               </div>
             </section>
@@ -208,7 +182,7 @@ export default function StudentPlacementSessions() {
   );
 }
 
-function SessionCard({ session, statusLabel, onJoin, joiningId, canJoin }) {
+function SessionCard({ session, statusLabel, canJoin }) {
   const targetLabel = () => {
     const parts = [];
     if (session.target_courses?.length) parts.push(session.target_courses.join(', '));
@@ -272,26 +246,36 @@ function SessionCard({ session, statusLabel, onJoin, joiningId, canJoin }) {
         {/* Action area */}
         <div className="flex-shrink-0 flex flex-col items-end gap-2">
           {isLive && (
-            <button
-              onClick={() => onJoin(session)}
-              disabled={!!joiningId}
-              className="btn btn-primary flex items-center gap-2 text-sm px-5 py-2.5 animate-pulse"
-            >
-              {joiningId === session.id
-                ? <><Loader size={14} className="animate-spin" /> Joining...</>
-                : <><Play size={14} /> Join Now</>}
-            </button>
+            session.zoom_join_url ? (
+              <a
+                href={session.zoom_join_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary flex items-center gap-2 text-sm px-5 py-2.5 animate-pulse text-center"
+              >
+                <Play size={14} /> Join Now
+              </a>
+            ) : (
+              <span className="text-xs text-text-muted bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-border-color">
+                No Zoom Link
+              </span>
+            )
           )}
           {isUpcoming && canJoin && (
-            <button
-              onClick={() => onJoin(session)}
-              disabled={!!joiningId}
-              className="btn btn-primary flex items-center gap-2 text-sm px-4 py-2"
-            >
-              {joiningId === session.id
-                ? <><Loader size={14} className="animate-spin" /> Joining...</>
-                : <><Play size={14} /> Join Early</>}
-            </button>
+            session.zoom_join_url ? (
+              <a
+                href={session.zoom_join_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary flex items-center gap-2 text-sm px-4 py-2 text-center"
+              >
+                <Play size={14} /> Join Early
+              </a>
+            ) : (
+              <span className="text-xs text-text-muted bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-border-color">
+                No Zoom Link
+              </span>
+            )
           )}
           {isUpcoming && !canJoin && (
             <div className="text-center">
