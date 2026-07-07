@@ -124,8 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Session Security (30 Minute Timeout)
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
@@ -335,10 +335,14 @@ if TESTING:
         }
     }
 else:
+    # Ensure cache uses database index 1 so it doesn't conflict with Celery (index 0)
+    _raw_redis = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379')
+    _cache_url = f"{_raw_redis.rstrip('/')}/1" if not any(_raw_redis.endswith(s) for s in ('/0', '/1', '/2', '/3')) else _raw_redis
+    
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+            'LOCATION': _cache_url,
         }
     }
 

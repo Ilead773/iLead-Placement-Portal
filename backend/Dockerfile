@@ -42,4 +42,4 @@ EXPOSE 8000
 
 # Railway injects $PORT. Gunicorn binds to it.
 # Workers set to 2 to stay within Railway's free-tier memory (512MB)
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 config.wsgi:application"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 4 --timeout 120 config.wsgi:application"]
