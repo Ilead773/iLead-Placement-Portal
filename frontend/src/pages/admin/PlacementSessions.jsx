@@ -122,8 +122,31 @@ export default function AdminPlacementSessions() {
       setLoadingAttendance(false);
     }
   };
-
-
+  const handleStartLive = async (session) => {
+    // Open a blank tab immediately to bypass browser popup blockers
+    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+    const tid = toast.loading('Getting host credentials...');
+    
+    try {
+      const res = await placementSessionsAPI.start(session.id);
+      // Open the Zoom start_url directly in a new tab (auto-logs in as host)
+      const startUrl = res.data.start_url || res.data.join_url || '';
+      if (!startUrl) {
+        if (newWindow) newWindow.close();
+        toast.error('No Zoom start link found for this session.', { id: tid });
+        return;
+      }
+      toast.success('Opening Zoom as host...', { id: tid });
+      if (newWindow) {
+        newWindow.location.href = startUrl;
+      } else {
+        window.open(startUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      if (newWindow) newWindow.close();
+      toast.error(err?.response?.data?.detail || 'Failed to start session', { id: tid });
+    }
+  };
 
   const handleCancel = async (sessionId) => {
     if (!window.confirm('Cancel this session?')) return;
@@ -232,14 +255,14 @@ export default function AdminPlacementSessions() {
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Now
                   </h3>
                   {liveSessions.map(s => <SessionCard key={s.id} session={s} status="live"
-                    onViewAttendance={handleViewAttendance} onCancel={handleCancel} />)}
+                    onViewAttendance={handleViewAttendance} onStartLive={handleStartLive} onCancel={handleCancel} />)}
                 </div>
               )}
               {upcomingSessions.length > 0 && (
                 <div>
                   <h3 className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-2">Upcoming</h3>
                   {upcomingSessions.map(s => <SessionCard key={s.id} session={s} status="upcoming"
-                    onViewAttendance={handleViewAttendance} onCancel={handleCancel} />)}
+                    onViewAttendance={handleViewAttendance} onStartLive={handleStartLive} onCancel={handleCancel} />)}
                 </div>
               )}
               {endedSessions.length > 0 && (
@@ -525,7 +548,7 @@ export default function AdminPlacementSessions() {
   );
 }
 
-function SessionCard({ session, status, onViewAttendance, onCancel }) {
+function SessionCard({ session, status, onViewAttendance, onStartLive, onCancel }) {
   const statusStyles = {
     live: 'border-l-4 border-emerald-500 bg-emerald-500/5',
     upcoming: 'border-l-4 border-blue-500',
@@ -573,20 +596,12 @@ function SessionCard({ session, status, onViewAttendance, onCancel }) {
             </button>
           )}
           {(status === 'live' || status === 'upcoming') && (
-            session.zoom_start_url ? (
-              <a
-                href={session.zoom_start_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary text-xs px-3 py-1.5 flex items-center gap-1 text-center"
-              >
-                <Play size={13} /> {status === 'live' ? 'Host Live' : 'Start Early'}
-              </a>
-            ) : (
-              <span className="text-xs text-text-muted bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-border-color">
-                No Start URL
-              </span>
-            )
+            <button
+              onClick={() => onStartLive(session)}
+              className="btn btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+            >
+              <Play size={13} /> {status === 'live' ? 'Host Live' : 'Start Early'}
+            </button>
           )}
           {status !== 'ended' && (
             <button onClick={() => onCancel(session.id)} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">

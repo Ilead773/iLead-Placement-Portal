@@ -327,18 +327,20 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
         scheduled_class = self.get_object()
         zoom_service = ZoomService()
         
-        import urllib.parse
-        start_url = scheduled_class.zoom_start_url or ''
-        parsed_url = urllib.parse.urlparse(start_url)
-        params = urllib.parse.parse_qs(parsed_url.query)
-        zak = params.get('zak', [None])[0]
-        role = 1 if zak else 0
+        # Fetch fresh ZAK token from Zoom
+        host_email = scheduled_class.host.email if (scheduled_class.host and scheduled_class.host.email) else 'me'
+        zak = zoom_service.get_user_zak_token(host_email)
         
-        # Generate SDK Signature
+        start_url = scheduled_class.zoom_start_url or ''
+        if zak and start_url:
+            clean_url = start_url.split('?')[0]
+            start_url = f"{clean_url}?zak={zak}"
+            
+        role = 1 if zak else 0
         signature = zoom_service.generate_sdk_signature(scheduled_class.zoom_meeting_id, role=role)
         
         return Response({
-            'start_url': scheduled_class.zoom_start_url,
+            'start_url': start_url,
             'join_url': scheduled_class.zoom_join_url,
             'sdk_signature': signature,
             'meeting_number': scheduled_class.zoom_meeting_id,

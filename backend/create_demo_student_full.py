@@ -13,7 +13,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 django.setup()
 
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from core.models import Student
 from apps.profiles.models import StudentProfile
 import uuid
@@ -24,21 +25,20 @@ def create_demo_student():
     
     # Check if demo student already exists
     try:
-        existing = User.objects.get(username='demo.student@ilead.com')
-        print(f"Demo student already exists: {existing.username}")
+        existing = User.objects.get(email='demo.student@ilead.com')
+        print(f"Demo student already exists: {existing.email}")
         return existing.student_profile
     except User.DoesNotExist:
         pass
     
     # Create User account
     user = User.objects.create_user(
-        username='demo.student@ilead.com',
+        login_id='demo.student@ilead.com',
         email='demo.student@ilead.com',
         password='Demo@12345',
-        first_name='Demo',
-        last_name='Student'
+        name='Demo Student'
     )
-    print(f"[+] User created: {user.username}")
+    print(f"[+] User created: {user.email}")
     
     # Create Student profile with all data
     student = Student.objects.create(
@@ -89,13 +89,128 @@ def create_demo_student():
         student=student,
         phone='9999999999',
         location='New Delhi, India',
-        professional_summary='Dedicated BBA student with strong academic performance and leadership skills. Passionate about business management and entrepreneurship.',
+        professional_summary='Dedicated BBA student with strong academic performance and leadership skills. Passionate about business management and entrepreneurship. Proven track record of managing university events and leading student groups.',
         linkedin='https://linkedin.com/in/demostudent',
         github='https://github.com/demostudent',
         portfolio='https://demostudent.com',
         completion_score=0.85
     )
     print(f"[+] Resume profile created")
+    
+    from apps.profiles.models import Skill, Experience, Project, Education, Certification, Achievement
+    from datetime import date
+
+    # Education
+    Education.objects.create(
+        profile=profile,
+        institution='iLEAD, Kolkata',
+        degree='Bachelor of Business Administration',
+        field='General',
+        graduation_date=date(2025, 5, 30),
+        gpa=8.5,
+        honors="Dean's List"
+    )
+    Education.objects.create(
+        profile=profile,
+        institution='Delhi Public School',
+        degree='High School (12th Grade)',
+        field='Commerce',
+        graduation_date=date(2022, 5, 30),
+        gpa=9.2,
+        honors='Head Boy'
+    )
+
+    # Experience
+    Experience.objects.create(
+        profile=profile,
+        company='Tech Startup Inc.',
+        position='Marketing Intern',
+        start_date=date(2024, 6, 1),
+        end_date=date(2024, 8, 30),
+        is_current=False,
+        description='Supported digital marketing campaigns and managed social media outreach.',
+        achievements=['Increased social media engagement by 35%', 'Managed a marketing budget of $5,000 for ad campaigns']
+    )
+    Experience.objects.create(
+        profile=profile,
+        company='University Student Council',
+        position='Event Coordinator',
+        start_date=date(2023, 1, 1),
+        is_current=True,
+        description='Coordinating major university events and academic workshops.',
+        achievements=['Organized the annual tech fest with over 2000 attendees', 'Negotiated sponsorships worth $10,000']
+    )
+
+    # Projects
+    Project.objects.create(
+        profile=profile,
+        title='Market Analysis Tool',
+        description='A tool to scrape and analyze competitor pricing strategies for local businesses.',
+        technologies=['Python', 'Pandas', 'BeautifulSoup'],
+        link='https://github.com/demostudent/market-analysis',
+        date=date(2024, 3, 15)
+    )
+    Project.objects.create(
+        profile=profile,
+        title='E-commerce Business Plan',
+        description='A comprehensive business plan for a sustainable clothing brand.',
+        technologies=['Excel', 'Financial Modeling', 'Market Research'],
+        link='',
+        date=date(2023, 11, 20)
+    )
+
+    # Skills
+    skills_data = [
+        ('Technical', 'Data Analysis', 'Advanced'),
+        ('Technical', 'Financial Modeling', 'Intermediate'),
+        ('Technical', 'Python', 'Beginner'),
+        ('Soft Skill', 'Leadership', 'Expert'),
+        ('Soft Skill', 'Public Speaking', 'Advanced'),
+        ('Soft Skill', 'Project Management', 'Advanced'),
+        ('Language', 'English', 'Expert'),
+        ('Language', 'Hindi', 'Expert'),
+    ]
+    for category, name, proficiency in skills_data:
+        Skill.objects.create(
+            profile=profile,
+            category=category,
+            name=name,
+            proficiency=proficiency
+        )
+    
+    # Certifications
+    Certification.objects.create(
+        profile=profile,
+        name='Google Digital Marketing Certification',
+        issuer='Google',
+        date=date(2023, 8, 15),
+        credential_url='https://credentials.google.com/demo'
+    )
+    Certification.objects.create(
+        profile=profile,
+        name='Advanced Excel for Business',
+        issuer='Coursera',
+        date=date(2023, 5, 10),
+        credential_url='https://coursera.org/verify/demo'
+    )
+
+    # Achievements
+    Achievement.objects.create(
+        profile=profile,
+        title='Winner, National Business Plan Competition',
+        issuer='Startup India',
+        date=date(2024, 1, 15),
+        description='Awarded 1st place among 500+ participating teams nationwide.'
+    )
+    Achievement.objects.create(
+        profile=profile,
+        title='Best Student of the Year',
+        issuer='iLEAD',
+        date=date(2023, 12, 10),
+        description='Recognized for exceptional academic and extracurricular performance.'
+    )
+
+    profile.recalculate_completion()
     print(f"    - Completion Score: {profile.completion_score:.0%}")
     
     return student, user
@@ -111,9 +226,8 @@ def main():
     print("\n" + "="*60)
     print("LOGIN CREDENTIALS:")
     print("="*60)
-    print(f"Username: {user.username}")
-    print(f"Password: Demo@12345")
-    print(f"Email:    {user.email}")
+    print(f"Username/Email: {user.email}")
+    print(f"Password:       Demo@12345")
     print("="*60 + "\n")
     
     print("[+] Demo student created successfully!")

@@ -77,7 +77,7 @@ class ZoomService:
             "duration": duration_minutes,
             "timezone": "UTC",
             "settings": {
-                "join_before_host": True,
+                "join_before_host": False,
                 "mute_upon_entry": True,
                 "waiting_room": False,
                 "jbh_time": 0
@@ -368,3 +368,33 @@ class ZoomService:
             params['next_page_token'] = next_page_token
             
         return participants
+
+    def get_user_zak_token(self, host_email: str) -> str:
+        """
+        GET /users/{userId}/token?type=zak - retrieves a fresh ZAK token for the user.
+        """
+        token = self.get_access_token()
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        params = {'type': 'zak'}
+        
+        try:
+            url = f"https://api.zoom.us/v2/users/{host_email}/token"
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                return response.json().get('token', '')
+            else:
+                logger.warning(f"Zoom ZAK token returned {response.status_code} for {host_email}. Falling back to 'me'...")
+        except Exception as e:
+            logger.warning(f"Failed to fetch Zoom ZAK token for host {host_email}: {e}. Trying fallback to 'me'...")
+
+        try:
+            url = "https://api.zoom.us/v2/users/me/token"
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            response.raise_for_status()
+            return response.json().get('token', '')
+        except Exception as e:
+            logger.error(f"Failed to fetch Zoom ZAK token for 'me': {e}")
+            return ''

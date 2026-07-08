@@ -254,11 +254,15 @@ def start_session(request, session_id):
 
     zoom_service = ZoomService()
     try:
-        import urllib.parse
+        # Fetch fresh ZAK token from Zoom
+        host_email = session.host.email if (session.host and session.host.email) else 'me'
+        zak = zoom_service.get_user_zak_token(host_email)
+        
         start_url = session.zoom_start_url or ''
-        parsed_url = urllib.parse.urlparse(start_url)
-        params = urllib.parse.parse_qs(parsed_url.query)
-        zak = params.get('zak', [None])[0]
+        if zak and start_url:
+            clean_url = start_url.split('?')[0]
+            start_url = f"{clean_url}?zak={zak}"
+            
         role = 1 if zak else 0
         signature = zoom_service.generate_sdk_signature(session.zoom_meeting_id, role=role)
     except Exception as e:
@@ -269,7 +273,7 @@ def start_session(request, session_id):
         'signature': signature,
         'sdk_key': zoom_service.get_sdk_key(),
         'role': role,
-        'start_url': session.zoom_start_url,
+        'start_url': start_url,
         'join_url': session.zoom_join_url,
         'session_title': session.title,
         'user_name': request.user.name or request.user.email,
