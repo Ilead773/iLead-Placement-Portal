@@ -84,6 +84,10 @@ def _validate_attendance(attendance_str, row_num):
     """Validate attendance is within 0-100."""
     if not attendance_str:
         return None
+    
+    # Strip '%' to handle inputs like '3%' or '75%'
+    attendance_str = attendance_str.replace('%', '').strip()
+    
     try:
         val = float(attendance_str)
     except ValueError:
@@ -190,6 +194,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         total += 1
         name_raw = (row.get('Name') or row.get('name') or row.get('Full Name') or '').strip()
         reg_no_raw = (row.get('Registration Number') or row.get('registration_number') or 
+                      row.get('Roll Number') or row.get('roll_number') or
                       row.get('Reg No') or row.get('reg_no') or row.get('ID') or '').strip()
         try:
             with transaction.atomic():
