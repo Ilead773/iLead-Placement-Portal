@@ -128,45 +128,81 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
 
     Returns: (list_of_credentials, upload_log_object)
     """
-    # --- Step 1: Detect encoding & decode ---
-    encoding = _detect_encoding(content_bytes)
-    try:
-        decoded_file = content_bytes.decode(encoding)
-    except (UnicodeDecodeError, LookupError):
-        # Last resort: decode with replacement characters
-        decoded_file = content_bytes.decode('utf-8', errors='replace')
-        logger.warning(f"CSV decoding fell back to utf-8 with replacement chars (original: {encoding})")
+    is_excel = file_name.lower().endswith(('.xlsx', '.xls'))
 
-    # Strip BOM if present
-    if decoded_file.startswith('\ufeff'):
-        decoded_file = decoded_file[1:]
+    if is_excel:
+        import openpyxl
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
+            sheet = wb.active
+            rows = []
+            headers = []
+            for i, row in enumerate(sheet.iter_rows(values_only=True)):
+                if i == 0:
+                    headers = [str(cell).strip() if cell is not None else '' for cell in row]
+                    continue
+                # Skip completely empty rows
+                if all(cell is None or str(cell).strip() == '' for cell in row):
+                    continue
+                row_dict = {}
+                for col_idx, cell_value in enumerate(row):
+                    if col_idx < len(headers) and headers[col_idx]:
+                        # Convert floats like 7.6 to '7.6' cleanly, or int 1 to '1'
+                        if isinstance(cell_value, float) and cell_value.is_integer():
+                            cell_value = int(cell_value)
+                        row_dict[headers[col_idx]] = str(cell_value).strip() if cell_value is not None else ''
+                rows.append(row_dict)
+            
+            if not headers:
+                raise ValueError("Excel file has no headers. Expected columns: Name, Registration Number, Email ID, etc.")
+                
+            total_rows = len(rows)
+            if total_rows == 0:
+                raise ValueError("Excel file contains no data rows. Please check that the file has student records below the header row.")
+        except Exception as e:
+            if isinstance(e, ValueError):
+                raise e
+            raise ValueError(f"Failed to parse Excel file. Is it a valid .xlsx file? Error: {str(e)}")
+    else:
+        # --- Step 1: Detect encoding & decode ---
+        encoding = _detect_encoding(content_bytes)
+        try:
+            decoded_file = content_bytes.decode(encoding)
+        except (UnicodeDecodeError, LookupError):
+            # Last resort: decode with replacement characters
+            decoded_file = content_bytes.decode('utf-8', errors='replace')
+            logger.warning(f"CSV decoding fell back to utf-8 with replacement chars (original: {encoding})")
 
-    # --- Step 2: Check for binary content ---
-    if '\x00' in decoded_file[:1024]:
-        raise ValueError("File appears to be binary, not a valid CSV text file.")
+        # Strip BOM if present
+        if decoded_file.startswith('\ufeff'):
+            decoded_file = decoded_file[1:]
 
-    # --- Step 3: Detect delimiter & parse ---
-    dialect = _detect_dialect(decoded_file)
-    io_string = io.StringIO(decoded_file)
-    reader = csv.DictReader(io_string, dialect=dialect)
+        # --- Step 2: Check for binary content ---
+        if '\x00' in decoded_file[:1024]:
+            raise ValueError("File appears to be binary, not a valid CSV text file. If it's an Excel file, ensure it has a .xlsx extension.")
 
-    # --- Step 4: Validate we have headers ---
-    if reader.fieldnames is None or len(reader.fieldnames) == 0:
-        raise ValueError("CSV file has no headers. Expected columns: Name, Registration Number, Email ID, etc.")
+        # --- Step 3: Detect delimiter & parse ---
+        dialect = _detect_dialect(decoded_file)
+        io_string = io.StringIO(decoded_file)
+        reader = csv.DictReader(io_string, dialect=dialect)
 
-    # Check for suspiciously few columns (likely wrong delimiter)
-    if len(reader.fieldnames) == 1 and ',' in reader.fieldnames[0]:
-        raise ValueError(
-            f"CSV appears to have only 1 column: '{reader.fieldnames[0]}'. "
-            "The delimiter may be wrong. Please ensure the file is comma-separated."
-        )
+        # --- Step 4: Validate we have headers ---
+        if reader.fieldnames is None or len(reader.fieldnames) == 0:
+            raise ValueError("CSV file has no headers. Expected columns: Name, Registration Number, Email ID, etc.")
 
-    # Convert reader iterator to a list of dicts to know the total count beforehand
-    rows = list(reader)
-    total_rows = len(rows)
+        # Check for suspiciously few columns (likely wrong delimiter)
+        if len(reader.fieldnames) == 1 and ',' in reader.fieldnames[0]:
+            raise ValueError(
+                f"CSV appears to have only 1 column: '{reader.fieldnames[0]}'. "
+                "The delimiter may be wrong. Please ensure the file is comma-separated."
+            )
 
-    if total_rows == 0:
-        raise ValueError("CSV file contains no data rows. Please check that the file has student records below the header row.")
+        # Convert reader iterator to a list of dicts to know the total count beforehand
+        rows = list(reader)
+        total_rows = len(rows)
+
+        if total_rows == 0:
+            raise ValueError("CSV file contains no data rows. Please check that the file has student records below the header row.")
 
     if upload_log_id:
         try:

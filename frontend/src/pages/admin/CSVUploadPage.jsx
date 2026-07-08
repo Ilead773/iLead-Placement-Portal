@@ -210,7 +210,7 @@ export default function CSVUploadPage() {
       )}
 
       <div className="page-header" style={{ marginBottom: 32 }}>
-        <h1>Student CSV Import</h1>
+        <h1>Student CSV / Excel Import</h1>
         <button onClick={downloadTemplate} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Download size={16} />
           Download Template
@@ -221,7 +221,7 @@ export default function CSVUploadPage() {
         
         {/* Upload Zone */}
         <div className="card" style={{ padding: 32 }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>Upload CSV File</h2>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>Upload CSV or Excel File</h2>
           
           <div 
             style={{
@@ -240,7 +240,7 @@ export default function CSVUploadPage() {
           >
             <input 
               type="file" 
-              accept=".csv" 
+              accept=".csv,.xlsx,.xls" 
               ref={fileInputRef} 
               onChange={handleFileSelect} 
               hidden 
@@ -258,10 +258,10 @@ export default function CSVUploadPage() {
               
               <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
-                  {uploading ? 'Processing File...' : 'Click or Drag & Drop your CSV here'}
+                  {uploading ? 'Processing File...' : 'Click or Drag & Drop your file here'}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  Maximum file size: 5MB. Must be a valid comma-separated .csv file.
+                  Maximum file size: 5MB. Must be a valid .csv or .xlsx file.
                 </p>
               </div>
             </div>
@@ -420,7 +420,7 @@ export default function CSVUploadPage() {
 
         {/* Instructions / Info Panel */}
         <div className="card" style={{ padding: 32 }}>
-          <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>How to format your CSV</h2>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>How to format your File</h2>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', gap: 12 }}>

@@ -70,8 +70,8 @@ class StudentViewSet(viewsets.ViewSet):
         file = request.FILES.get('file')
         if not file:
             return Response({'error': 'CSV file is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        if not file.name.lower().endswith('.csv'):
-            return Response({'error': 'Only .csv files are accepted.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not file.name.lower().endswith(('.csv', '.xlsx', '.xls')):
+            return Response({'error': 'Only .csv and .xlsx Excel files are accepted.'}, status=status.HTTP_400_BAD_REQUEST)
         if file.size > 5 * 1024 * 1024:
             return Response({'error': 'File must be < 5MB.'}, status=status.HTTP_400_BAD_REQUEST)
 
