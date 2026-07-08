@@ -1238,12 +1238,14 @@ ilead_kolkata_html = """<div class="resume-container">
                             {% endif %}
                         </td>
                         <td>
-                            {% if "UG" in edu.degree %}
-                                20XX – Present
-                            {% elif "Class" in edu.degree %}
-                                Year
+                            {% if edu.graduation_date %}
+                                {% if "UG" in edu.degree %}
+                                    {{ edu.graduation_date|slice:":4"|add:"-3" }} – Present
+                                {% else %}
+                                    {{ edu.graduation_date|slice:":4" }}
+                                {% endif %}
                             {% else %}
-                                {% if edu.graduation_date %}{{ edu.graduation_date|slice:":4" }}{% else %}Year{% endif %}
+                                {% if "UG" in edu.degree %}20XX – Present{% else %}Year{% endif %}
                             {% endif %}
                         </td>
                         <td class="bold-text">

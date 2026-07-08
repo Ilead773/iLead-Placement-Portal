@@ -119,20 +119,20 @@ def seed_production():
         )
         print("  Seeded Demo Student record with empty email/phone.")
 
-        # 5. Seed Student Career Profile details (empty to force fallback placeholders)
+        # 5. Seed Student Career Profile details with full realistic data
         profile, _ = StudentProfile.objects.update_or_create(
             student=student_rec,
             defaults={
-                "phone": "",
-                "location": "",
-                "professional_summary": "",
-                "linkedin": "",
-                "github": "",
-                "portfolio": ""
+                "phone": "+91 98765 43210",
+                "location": "Kolkata, West Bengal",
+                "professional_summary": "A highly motivated and detail-oriented undergraduate student in Computer Applications. Strong foundation in software development, modern web technologies, and database management. Eager to contribute effectively to team success while gaining valuable industry exposure.",
+                "linkedin": "https://linkedin.com/in/arjun-mehta",
+                "github": "https://github.com/arjunmehta",
+                "portfolio": "https://arjunmehta.dev"
             }
         )
         
-        # Delete sub-entries to trigger template fallback placeholders
+        # Clear related profile entities to prevent duplicates on re-run
         Skill.objects.filter(profile=profile).delete()
         Education.objects.filter(profile=profile).delete()
         Project.objects.filter(profile=profile).delete()
@@ -141,7 +141,112 @@ def seed_production():
         Certification.objects.filter(profile=profile).delete()
         Achievement.objects.filter(profile=profile).delete()
         
-        print("  Cleared Student Career Profile & all sub-entries to force fallback placeholders.")
+        # Seed Education entries
+        from datetime import date
+        Education.objects.create(
+            profile=profile,
+            institution="iLEAD - Institute of Leadership, Entrepreneurship and Development",
+            degree="UG Degree (BCA)",
+            field="MAKAUT",
+            graduation_date=date(2026, 6, 30),
+            gpa=8.85
+        )
+        Education.objects.create(
+            profile=profile,
+            institution="St. Xavier's Collegiate School",
+            degree="Class XII (Science)",
+            field="CISCE",
+            graduation_date=date(2023, 5, 15),
+            gpa=92.4
+        )
+        Education.objects.create(
+            profile=profile,
+            institution="St. Xavier's Collegiate School",
+            degree="Class X",
+            field="CISCE",
+            graduation_date=date(2021, 5, 20),
+            gpa=94.6
+        )
+        
+        # Seed Skills
+        skills_data = [
+            ('Technical', 'Python'),
+            ('Technical', 'JavaScript'),
+            ('Technical', 'React.js'),
+            ('Technical', 'Django'),
+            ('Technical', 'SQL & PostgreSQL'),
+            ('Technical', 'MS Office Suite (Excel, Word, PowerPoint)'),
+            ('Soft Skill', 'Problem Solving'),
+            ('Soft Skill', 'Effective Communication'),
+            ('Language', 'English'),
+            ('Language', 'Bengali'),
+            ('Language', 'Hindi'),
+        ]
+        for category, name in skills_data:
+            Skill.objects.create(profile=profile, category=category, name=name, proficiency='Advanced')
+            
+        # Seed Experiences
+        Experience.objects.create(
+            profile=profile,
+            company="TechSolutions Private Limited",
+            position="Web Development Intern",
+            start_date=date(2025, 6, 1),
+            end_date=date(2025, 8, 31),
+            is_current=False,
+            description="Worked in a team of 4 to design and develop responsive web pages using React.js. Participated in daily standups and code reviews.",
+            achievements=["Developed and optimized 10+ UI components, reducing page load time by 15%", "Integrated REST APIs with front-end components using Axios", "Identified and fixed 20+ bug tickets during QA phase"]
+        )
+        Experience.objects.create(
+            profile=profile,
+            company="Innovate Media",
+            position="Software Engineer Trainee",
+            start_date=date(2025, 12, 1),
+            end_date=date(2026, 2, 28),
+            is_current=False,
+            description="Gained hands-on experience in backend development using Django and PostgreSQL. Wrote API endpoints and database migrations.",
+            achievements=["Designed and implemented 5 secure REST endpoints for user authentication", "Wrote unit tests achieving 90% code coverage", "Optimized database queries, reducing response time by 10%"]
+        )
+        
+        # Seed Projects
+        Project.objects.create(
+            profile=profile,
+            title="Smart Campus Placement Portal",
+            description="A Django-based web application facilitating campus placements with student profiles, mock interviews, and resume generation.",
+            technologies=["Python", "Django", "PostgreSQL", "React.js"],
+            link="https://github.com/arjunmehta/placement-portal",
+            date=date(2025, 11, 15)
+        )
+        
+        # Seed Certifications
+        Certification.objects.create(
+            profile=profile,
+            name="Python for Data Science",
+            issuer="IBM & Coursera",
+            date=date(2024, 4, 10)
+        )
+        Certification.objects.create(
+            profile=profile,
+            name="Full-Stack Web Development",
+            issuer="Meta & Coursera",
+            date=date(2024, 11, 20)
+        )
+        
+        # Seed Achievements & Positions of Responsibility
+        Achievement.objects.create(
+            profile=profile,
+            title="First Place - Hackathon Kolkata 2025",
+            issuer="Kolkata Tech Council",
+            date=date(2025, 3, 15),
+            description="Led a team of 3 to build a smart trash management system using IoT and Python."
+        )
+        Achievement.objects.create(
+            profile=profile,
+            title="Class Representative & Coordinator",
+            issuer="iLEAD Student Council",
+            date=date(2024, 7, 1),
+            description="Coordinated with faculty members and students to organize academic events and placement drives."
+        )
+        print("  Seeded Demo Student profile with complete rich datasets.")
 
         # 6. Seed AI Mock Interview domain & questions
         print("Seeding AI Mock Interview datasets...")

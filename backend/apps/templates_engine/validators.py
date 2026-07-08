@@ -76,13 +76,30 @@ class TemplateSecurityValidator:
             logger.error("bleach package is not installed! Aborting HTML sanitization for safety.")
             raise ImportError("bleach is required for secure HTML template sanitization. Please install bleach.")
 
+        # Temporarily extract <table>...</table> blocks to prevent HTML5 parser from hoisting Django template loops
+        tables = []
+        def replace_table(match):
+            tables.append(match.group(0))
+            return f"__TABLE_PLACEHOLDER_{len(tables)-1}__"
+
+        placeholder_html = re.sub(r'<table\b[^>]*>.*?</table>', replace_table, html_content, flags=re.DOTALL | re.IGNORECASE)
+
         cleaned = bleach.clean(
-            html_content,
+            placeholder_html,
             tags=ALLOWED_TAGS,
             attributes=ALLOWED_ATTRIBUTES,
             protocols=['http', 'https', 'mailto', 'data'],
             strip=True,
         )
+
+        # Restore <table>...</table> blocks and validate their security
+        for idx, table_html in enumerate(tables):
+            # Verify no dangerous elements are inside the table
+            for pattern in DANGEROUS_HTML_PATTERNS:
+                if re.search(pattern, table_html, re.IGNORECASE):
+                    raise ValueError(f"Dangerous HTML pattern detected in table: {pattern}")
+            
+            cleaned = cleaned.replace(f"__TABLE_PLACEHOLDER_{idx}__", table_html)
 
         return cleaned
 
