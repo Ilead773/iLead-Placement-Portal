@@ -92,6 +92,12 @@ def _validate_attendance(attendance_str, row_num):
         val = float(attendance_str)
     except ValueError:
         raise ValueError(f"Row {row_num}: Attendance '{attendance_str}' is not a valid number.")
+        
+    # If the value is a decimal between 0.0 and 1.0 (e.g. 0.75 or 0.03), 
+    # it was likely parsed from an Excel percentage cell. Convert to 0-100 scale.
+    if 0.0 < val <= 1.0:
+        val = val * 100.0
+        
     if val < 0 or val > 100:
         raise ValueError(f"Row {row_num}: Attendance {val} is out of range (must be 0-100).")
     return val
@@ -284,7 +290,9 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 backlogs_raw = str(row.get('Backlogs') or row.get('backlogs') or '').strip().lower()
                 backlogs = backlogs_raw in ['yes', 'true', '1', 'y']
 
-                training_attendance_raw = (row.get('Training Attendance') or row.get('training_attendance') or '').strip()
+                training_attendance_raw = (row.get('Training Attendance') or row.get('training_attendance') or 
+                                           row.get('Training Attd') or row.get('training_attd') or
+                                           row.get('Training') or row.get('training') or '').strip()
                 backlogs_count_raw = (row.get('Backlog Count') or row.get('Backlogs Count') or row.get('backlogs_count') or '').strip()
 
                 # ===== VALIDATION PHASE =====
@@ -309,7 +317,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 semester = _validate_semester(semester_raw, total)
                 attendance = _validate_attendance(attendance_raw, total)
                 
-                training_attendance = _validate_attendance(training_attendance_raw, total) if training_attendance_raw else (attendance if attendance is not None else 100.0)
+                training_attendance = _validate_attendance(training_attendance_raw, total) if training_attendance_raw else None
                 try:
                     backlogs_count = int(backlogs_count_raw) if backlogs_count_raw else (1 if backlogs else 0)
                 except ValueError:
@@ -353,7 +361,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                     student.stream = stream
                     student.semester = semester if semester is not None else student.semester
                     student.attendance = attendance if attendance is not None else student.attendance
-                    student.training_attendance = training_attendance
+                    student.training_attendance = training_attendance if training_attendance is not None else student.training_attendance
                     student.backlogs_count = backlogs_count
                     student.cgpa = cgpa if cgpa is not None else student.cgpa
                     student.phone_number = phone if phone else student.phone_number
@@ -400,7 +408,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                         stream=stream,
                         semester=semester,
                         attendance=attendance,
-                        training_attendance=training_attendance,
+                        training_attendance=training_attendance if training_attendance is not None else 100.0,
                         backlogs_count=backlogs_count,
                         cgpa=cgpa,
                         phone_number=phone,
