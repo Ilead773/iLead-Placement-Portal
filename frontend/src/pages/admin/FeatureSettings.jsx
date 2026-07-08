@@ -262,7 +262,6 @@ export default function FeatureSettings() {
                         <button
                           onClick={() => handleClearCourses(originalIndex)}
                           className="text-[10px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer font-bold"
-                          disabled={!config.is_enabled}
                         >
                           Allow All (Check All)
                         </button>
@@ -282,19 +281,16 @@ export default function FeatureSettings() {
                           <label 
                             key={courseName} 
                             className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer select-none transition-colors border ${
-                              !config.is_enabled 
-                                ? 'opacity-40 cursor-not-allowed border-transparent' 
-                                : isSelected
-                                  ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
-                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
+                              isSelected
+                                ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
                             }`}
                           >
                             <input 
                               type="checkbox"
-                              disabled={!config.is_enabled}
                               checked={isSelected}
                               onChange={() => handleCourseToggle(originalIndex, courseName)}
-                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer"
                             />
                             <span className="truncate" title={courseName}>{courseName}</span>
                           </label>
@@ -313,7 +309,6 @@ export default function FeatureSettings() {
                         <button
                           onClick={() => handleClearYears(originalIndex)}
                           className="text-[10px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer font-bold"
-                          disabled={!config.is_enabled}
                         >
                           Allow All (Check All)
                         </button>
@@ -333,19 +328,16 @@ export default function FeatureSettings() {
                           <label 
                             key={y.key} 
                             className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer select-none transition-colors border ${
-                              !config.is_enabled 
-                                ? 'opacity-40 cursor-not-allowed border-transparent' 
-                                : isSelected
-                                  ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
-                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
+                              isSelected
+                                ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
                             }`}
                           >
                             <input 
                               type="checkbox"
-                              disabled={!config.is_enabled}
                               checked={isSelected}
                               onChange={() => handleYearToggle(originalIndex, y.key)}
-                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer"
                             />
                             <span>{y.label}</span>
                           </label>
