@@ -474,9 +474,9 @@ def seed_ilead_kolkata_template():
                                 <span class="company-name">{{ exp.company }}</span> |
                                 <span class="designation"> {{ exp.position }}</span> |
                                 <span class="duration">
-                                    ({% if exp.duration.start %}{{ exp.duration.start|slice:":7" }}{% else %}{{ exp.start_date|default:"" }}{% endif %}
+                                    ({% if exp.duration.start_formatted %}{{ exp.duration.start_formatted }}{% else %}{{ exp.start_date_formatted|default:"" }}{% endif %}
                                     –
-                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end|slice:":7" }}{% endif %})
+                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end_formatted }}{% endif %})
                                 </span>
                             </div>
                             {% if exp.achievements %}
@@ -513,33 +513,94 @@ def seed_ilead_kolkata_template():
 
     <div class="full-width-section">
         <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
-        <ul class="bullet-list horiz-list">
-            {% if achievements %}
-                {% for ach in achievements %}
-                    <li>
-                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
-                    </li>
-                {% endfor %}
-            {% else %}
-                <li>Achievement/Award – Organizing body/Institution</li>
-                <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
-            {% endif %}
-        </ul>
+        {% if achievements %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for ach in achievements %}
+                                {% if not forloop.counter|divisibleby:2 %}
+                                    <li>
+                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for ach in achievements %}
+                                {% if forloop.counter|divisibleby:2 %}
+                                    <li>
+                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% else %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Achievement/Award – Organizing body/Institution</li>
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% endif %}
     </div>
 
     <div class="full-width-section">
         <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
-        <ul class="bullet-list horiz-list">
-            {% if extra_curricular %}
-                {% for activity in extra_curricular %}
-                    <li>{{ activity }}</li>
-                {% endfor %}
-            {% else %}
-                <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
-                <li>NSS / NCC / Community Service</li>
-            {% endif %}
-        </ul>
+        {% if extra_curricular %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for activity in extra_curricular %}
+                                {% if not forloop.counter|divisibleby:2 %}
+                                    <li>{{ activity }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for activity in extra_curricular %}
+                                {% if forloop.counter|divisibleby:2 %}
+                                    <li>{{ activity }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% else %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>NSS / NCC / Community Service</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% endif %}
     </div>
 
     <footer class="resume-footer">
@@ -549,21 +610,21 @@ def seed_ilead_kolkata_template():
 
     css_styles = """:root {
     --primary-color: #1F4E79;
-    --text-color: #000000;
-    --muted-color: #475569;
+    --text-color: #1a1a1a;
+    --muted-color: #555555;
     --border-color: #1F4E79;
     --bg-light: #EBF2F7;
 }
 
 @page {
     size: A4;
-    margin: 12mm 15mm 12mm 15mm;
+    margin: 12mm 14mm 10mm 14mm;
 }
 
 body {
-    font-family: 'Arial', 'Helvetica', sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     color: var(--text-color);
-    line-height: 1.25;
+    line-height: 1.3;
     margin: 0;
     padding: 0;
     font-size: 9pt;
@@ -696,12 +757,14 @@ body {
 }
 
 .section-title {
-    font-size: 9.5pt;
+    font-size: 9pt;
     font-weight: bold;
     color: var(--primary-color);
     text-transform: uppercase;
-    margin: 0 0 4px 0;
-    letter-spacing: 0.3px;
+    margin: 0 0 3px 0;
+    letter-spacing: 0.5px;
+    border-bottom: 0.5px solid #c8d8e8;
+    padding-bottom: 1px;
 }
 
 .summary-text {
@@ -771,16 +834,18 @@ body {
 
 .bullet-list {
     margin: 2px 0 0 0;
-    padding-left: 14px;
-    font-size: 9pt;
+    padding-left: 12px;
+    font-size: 8.5pt;
 }
 
 .bullet-list li {
-    margin-bottom: 1px;
+    margin-bottom: 1.5px;
+    line-height: 1.3;
 }
 
 .bullet-list li::marker {
     color: var(--primary-color);
+    font-size: 8pt;
 }
 
 .ach-desc {
@@ -797,22 +862,24 @@ body {
 
 .exp-header {
     font-size: 9pt;
-    font-weight: bold;
-    color: var(--primary-color);
     margin-bottom: 2px;
+    line-height: 1.3;
 }
 
 .company-name {
     color: var(--primary-color);
+    font-weight: bold;
 }
 
 .designation {
     color: var(--text-color);
+    font-weight: bold;
 }
 
 .duration {
-    color: var(--text-color);
+    color: var(--muted-color);
     font-weight: normal;
+    font-size: 8.5pt;
 }
 
 .exp-desc {
@@ -822,20 +889,27 @@ body {
 }
 
 .full-width-section {
-    margin-top: 6px;
-    margin-bottom: 6px;
+    margin-top: 5px;
+    margin-bottom: 5px;
     page-break-inside: avoid;
 }
 
 .horiz-list {
-    column-count: 2;
-    column-gap: 20px;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.horiz-list td {
+    vertical-align: top;
+    padding-right: 10px;
+    font-size: 8.5pt;
 }
 
 .ach-desc {
     font-size: 8pt;
     color: var(--muted-color);
     font-weight: normal;
+    font-style: italic;
 }
 
 .resume-footer {

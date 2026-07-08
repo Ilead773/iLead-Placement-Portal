@@ -7,9 +7,32 @@ into final output formats (HTML string, PDF bytes).
 """
 
 import logging
-from django.template import Template, Context
+from django.template import Template, Context, Library
+from django.template.base import TextNode
 
 logger = logging.getLogger(__name__)
+
+# Register a custom filter for date formatting
+_register = Library()
+
+@_register.filter(name='month_year')
+def month_year_filter(value):
+    """Convert YYYY-MM or YYYY-MM-DD to 'Mon YYYY' e.g. '2025-12' → 'Dec 2025'."""
+    if not value:
+        return value
+    try:
+        parts = str(value).split('-')
+        if len(parts) >= 2:
+            month_map = {
+                '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr',
+                '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Aug',
+                '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec'
+            }
+            return f"{month_map.get(parts[1], parts[1])} {parts[0]}"
+    except Exception:
+        pass
+    return value
+
 
 
 class ResumeRenderer:
@@ -30,14 +53,45 @@ class ResumeRenderer:
             logger.info("Rendering resume HTML")
             django_template = Template(template.html_template)
             
+            # Deep copy and format dates for clean display
+            import copy
+            
+            experience_list = copy.deepcopy(canonical_json.get('experience', []))
+            for exp in experience_list:
+                dur = exp.get('duration', {})
+                if dur:
+                    if dur.get('start'):
+                        dur['start_formatted'] = month_year_filter(dur['start'])
+                    if dur.get('end'):
+                        dur['end_formatted'] = month_year_filter(dur['end'])
+                if exp.get('start_date'):
+                    exp['start_date_formatted'] = month_year_filter(exp['start_date'])
+                if exp.get('end_date'):
+                    exp['end_date_formatted'] = month_year_filter(exp['end_date'])
+
+            education_list = copy.deepcopy(canonical_json.get('education', []))
+            for edu in education_list:
+                if edu.get('graduation_date'):
+                    edu['graduation_date_formatted'] = month_year_filter(edu['graduation_date'])
+
+            certifications_list = copy.deepcopy(canonical_json.get('certifications', []))
+            for cert in certifications_list:
+                if cert.get('date'):
+                    cert['date_formatted'] = month_year_filter(cert.get('date'))
+
+            projects_list = copy.deepcopy(canonical_json.get('projects', []))
+            for proj in projects_list:
+                if proj.get('date'):
+                    proj['date_formatted'] = month_year_filter(proj.get('date'))
+
             context = Context({
                 'resume': canonical_json,
                 'personal': canonical_json.get('personal', {}),
                 'skills': canonical_json.get('skills', []),
-                'experience': canonical_json.get('experience', []),
-                'projects': canonical_json.get('projects', []),
-                'education': canonical_json.get('education', []),
-                'certifications': canonical_json.get('certifications', []),
+                'experience': experience_list,
+                'projects': projects_list,
+                'education': education_list,
+                'certifications': certifications_list,
                 'summary': canonical_json.get('professional_summary', ''),
                 'achievements': canonical_json.get('achievements', []),
                 'extra_curricular': canonical_json.get('extra_curricular', []),

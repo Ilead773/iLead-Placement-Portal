@@ -228,9 +228,9 @@ HTML_TEMPLATE = """<div class="resume-container">
                                 <span class="company-name">{{ exp.company }}</span> |
                                 <span class="designation"> {{ exp.position }}</span> |
                                 <span class="duration">
-                                    ({% if exp.duration.start %}{{ exp.duration.start|slice:":7" }}{% else %}{{ exp.start_date|default:"" }}{% endif %}
+                                    ({% if exp.duration.start_formatted %}{{ exp.duration.start_formatted }}{% else %}{{ exp.start_date_formatted|default:"" }}{% endif %}
                                     –
-                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end|slice:":7" }}{% endif %})
+                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end_formatted }}{% endif %})
                                 </span>
                             </div>
                             {% if exp.achievements %}
@@ -267,33 +267,94 @@ HTML_TEMPLATE = """<div class="resume-container">
 
     <div class="full-width-section">
         <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
-        <ul class="bullet-list horiz-list">
-            {% if achievements %}
-                {% for ach in achievements %}
-                    <li>
-                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
-                    </li>
-                {% endfor %}
-            {% else %}
-                <li>Achievement/Award – Organizing body/Institution</li>
-                <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
-            {% endif %}
-        </ul>
+        {% if achievements %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for ach in achievements %}
+                                {% if not forloop.counter|divisibleby:2 %}
+                                    <li>
+                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for ach in achievements %}
+                                {% if forloop.counter|divisibleby:2 %}
+                                    <li>
+                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% else %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Achievement/Award – Organizing body/Institution</li>
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% endif %}
     </div>
 
     <div class="full-width-section">
         <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
-        <ul class="bullet-list horiz-list">
-            {% if extra_curricular %}
-                {% for activity in extra_curricular %}
-                    <li>{{ activity }}</li>
-                {% endfor %}
-            {% else %}
-                <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
-                <li>NSS / NCC / Community Service</li>
-            {% endif %}
-        </ul>
+        {% if extra_curricular %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for activity in extra_curricular %}
+                                {% if not forloop.counter|divisibleby:2 %}
+                                    <li>{{ activity }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            {% for activity in extra_curricular %}
+                                {% if forloop.counter|divisibleby:2 %}
+                                    <li>{{ activity }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% else %}
+            <table class="horiz-list">
+                <tr>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
+                        </ul>
+                    </td>
+                    <td style="width: 50%;">
+                        <ul class="bullet-list">
+                            <li>NSS / NCC / Community Service</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+        {% endif %}
     </div>
 
     <footer class="resume-footer">
@@ -303,24 +364,24 @@ HTML_TEMPLATE = """<div class="resume-container">
 
 CSS_STYLES = """:root {
     --primary-color: #1F4E79;
-    --text-color: #000000;
-    --muted-color: #475569;
+    --text-color: #1a1a1a;
+    --muted-color: #555555;
     --border-color: #1F4E79;
     --bg-light: #EBF2F7;
 }
 
 @page {
     size: A4;
-    margin: 15mm;
+    margin: 12mm 14mm 10mm 14mm;
 }
 
 body {
-    font-family: 'Arial', 'Helvetica', 'Calibri', sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     color: var(--text-color);
     line-height: 1.3;
     margin: 0;
     padding: 0;
-    font-size: 10pt;
+    font-size: 9pt;
 }
 
 .resume-container {
@@ -332,17 +393,17 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .header-left {
-    flex: 0 0 90px;
+    flex: 0 0 80px;
 }
 
 .photo-frame {
-    width: 90px;
-    height: 90px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
@@ -360,7 +421,7 @@ body {
 }
 
 .photo-placeholder {
-    font-size: 7.5pt;
+    font-size: 7pt;
     color: var(--primary-color);
     padding: 4px;
     line-height: 1.2;
@@ -371,19 +432,19 @@ body {
 .header-center {
     flex: 1;
     text-align: center;
-    padding: 0 10px;
+    padding: 0 8px;
 }
 
 .candidate-name {
-    font-size: 18pt;
+    font-size: 14pt;
     font-weight: bold;
     color: var(--primary-color);
-    margin: 0 0 3px 0;
+    margin: 0 0 2px 0;
 }
 
 .linkedin-link, .portfolio-link {
-    font-size: 9.5pt;
-    margin-bottom: 2px;
+    font-size: 8.5pt;
+    margin-bottom: 1px;
 }
 
 .linkedin-link a, .portfolio-link a {
@@ -401,8 +462,8 @@ body {
 }
 
 .contact-row {
-    font-size: 9.5pt;
-    margin-top: 4px;
+    font-size: 8.5pt;
+    margin-top: 3px;
     color: #333333;
 }
 
@@ -410,71 +471,77 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     border: 1px solid #333333;
-    margin-right: 3px;
+    margin-right: 2px;
     vertical-align: middle;
     background-color: transparent;
 }
 
 .icon-circle svg {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     color: #333333;
     vertical-align: middle;
     display: block;
 }
 
 .header-right {
-    flex: 0 0 110px;
+    flex: 0 0 100px;
     display: flex;
     justify-content: flex-end;
 }
 
 .logo-container {
-    width: 110px;
+    width: 100px;
     height: auto;
 }
 
 .institute-logo {
     width: 100%;
-    max-height: 55px;
+    max-height: 50px;
     object-fit: contain;
 }
 
 .resume-section {
-    margin-bottom: 10px;
+    margin-bottom: 7px;
     page-break-inside: avoid;
 }
 
 .section-title {
-    font-size: 11pt;
+    font-size: 9pt;
     font-weight: bold;
     color: var(--primary-color);
     text-transform: uppercase;
-    margin: 0 0 6px 0;
+    margin: 0 0 3px 0;
     letter-spacing: 0.5px;
+    border-bottom: 0.5px solid #c8d8e8;
+    padding-bottom: 1px;
+}
+
+.section-title i {
+    text-transform: none;
 }
 
 .summary-text {
-    font-size: 9.5pt;
+    font-size: 9pt;
     text-align: justify;
     margin: 0;
-    line-height: 1.35;
+    line-height: 1.3;
 }
 
 .education-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 10px;
-    font-size: 9.5pt;
+    margin-bottom: 7px;
+    font-size: 8.5pt;
 }
 
 .education-table th, .education-table td {
     border: 1px solid var(--border-color);
-    padding: 4px 6px;
+    padding: 3px 5px;
     text-align: center;
 }
 
@@ -483,7 +550,7 @@ body {
     color: var(--primary-color);
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 9pt;
+    font-size: 8.5pt;
     text-decoration: underline;
 }
 
@@ -524,71 +591,83 @@ body {
 }
 
 .bullet-list {
-    margin: 0;
-    padding-left: 18px;
-    font-size: 9.5pt;
+    margin: 2px 0 0 0;
+    padding-left: 12px;
+    font-size: 8.5pt;
 }
 
 .bullet-list li {
-    margin-bottom: 2px;
+    margin-bottom: 1.5px;
+    line-height: 1.3;
 }
 
 .bullet-list li::marker {
     color: var(--primary-color);
+    font-size: 8pt;
 }
 
 .ach-desc {
-    font-size: 8.5pt;
+    font-size: 8pt;
     color: var(--muted-color);
     margin-top: 1px;
+    line-height: 1.2;
 }
 
 .experience-item {
-    margin-bottom: 8px;
-    page-break-inside: avoid;
-}
-
-.exp-header {
-    font-size: 9.5pt;
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-bottom: 3px;
-}
-
-.company-name {
-    color: var(--primary-color);
-}
-
-.designation {
-    color: var(--text-color);
-}
-
-.duration {
-    color: var(--text-color);
-    font-weight: normal;
-}
-
-.exp-desc {
-    font-size: 9.5pt;
-    margin: 3px 0 0 0;
-    text-align: justify;
-}
-
-.full-width-section {
-    margin-top: 6px;
     margin-bottom: 6px;
     page-break-inside: avoid;
 }
 
+.exp-header {
+    font-size: 9pt;
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.company-name {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.designation {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.duration {
+    color: var(--muted-color);
+    font-weight: normal;
+    font-size: 8.5pt;
+}
+
+.exp-desc {
+    font-size: 9pt;
+    margin: 2px 0 0 0;
+    text-align: justify;
+}
+
+.full-width-section {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    page-break-inside: avoid;
+}
+
 .horiz-list {
-    column-count: 2;
-    column-gap: 20px;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.horiz-list td {
+    vertical-align: top;
+    padding-right: 10px;
+    font-size: 8.5pt;
 }
 
 .ach-desc {
     font-size: 8pt;
     color: var(--muted-color);
     font-weight: normal;
+    font-style: italic;
 }
 
 .resume-footer {
