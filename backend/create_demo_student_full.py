@@ -49,7 +49,7 @@ def create_demo_student():
         phone_number='9999999999',
         
         # Academic Info
-        course='BBA (GEN)',
+        course='BBA',
         stream='BBA General',
         semester=6,
         year='3rd',
