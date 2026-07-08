@@ -11,6 +11,7 @@ export default function CSVUploadPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedLogSummary, setSelectedLogSummary] = useState(null);
   const fileInputRef = useRef(null);
+  const [sendingEmails, setSendingEmails] = useState({});
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -140,6 +141,41 @@ export default function CSVUploadPage() {
       } else {
         showToast(err.response?.data?.error || 'Failed to revert upload.', 'error');
       }
+    }
+  };
+
+  const handleSendEmails = async (logId) => {
+    if (!window.confirm("Are you sure you want to send welcome emails to newly created students for this upload?")) {
+      return;
+    }
+    
+    setSendingEmails(prev => ({ ...prev, [logId]: true }));
+    try {
+      const { data } = await api.post(`/students/upload-status/${logId}/send-emails/`);
+      showToast(data.message, 'success');
+      
+      // Update selected summary if open
+      if (selectedLogSummary && selectedLogSummary.id === logId) {
+        setSelectedLogSummary(prev => ({ ...prev, emails_sent: true, emails_sent_at: new Date().toISOString() }));
+      }
+      
+      // Update uploadResult if open
+      if (uploadResult && uploadResult.upload_log && uploadResult.upload_log.id === logId) {
+        setUploadResult(prev => ({
+          ...prev,
+          upload_log: {
+            ...prev.upload_log,
+            emails_sent: true,
+            emails_sent_at: new Date().toISOString()
+          }
+        }));
+      }
+
+      fetchHistory();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to send welcome emails.', 'error');
+    } finally {
+      setSendingEmails(prev => ({ ...prev, [logId]: false }));
     }
   };
 
@@ -328,6 +364,42 @@ export default function CSVUploadPage() {
                     )}
                   </div>
 
+                  {/* Manual Welcome Emails Trigger */}
+                  {uploadResult.upload_log.status !== 'failed' && uploadResult.upload_log.status !== 'reverted' && uploadResult.upload_log.created_count > 0 && (
+                    <div style={{ 
+                      marginBottom: 16, 
+                      padding: '12px 16px', 
+                      borderRadius: '8px', 
+                      background: 'rgba(99, 102, 241, 0.05)', 
+                      border: '1px solid rgba(99, 102, 241, 0.15)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 12
+                    }}>
+                      <div style={{ textAlign: 'left' }}>
+                        <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 2 }}>Student Welcome Emails</strong>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {uploadResult.upload_log.emails_sent 
+                            ? `Sent on ${new Date(uploadResult.upload_log.emails_sent_at).toLocaleString()}` 
+                            : `Send login credentials to ${uploadResult.upload_log.created_count} new student accounts.`}
+                        </span>
+                      </div>
+                      {uploadResult.upload_log.emails_sent ? (
+                        <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.8rem' }}>✓ Sent</span>
+                      ) : (
+                        <button 
+                          onClick={() => handleSendEmails(uploadResult.upload_log.id)}
+                          className="btn btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', border: 'none', background: 'var(--accent-primary)', color: '#fff', cursor: 'pointer', borderRadius: '4px' }}
+                          disabled={sendingEmails[uploadResult.upload_log.id]}
+                        >
+                          {sendingEmails[uploadResult.upload_log.id] ? 'Sending...' : '✉ Send Emails'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
 
                   {uploadResult.upload_log.error_details && (
                     <div style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.6)' }}>
@@ -449,6 +521,23 @@ export default function CSVUploadPage() {
                           👁️ View Summary
                         </button>
 
+                        {log.status !== 'reverted' && log.status !== 'failed' && log.created_count > 0 && (
+                          log.emails_sent ? (
+                            <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }} title={`Sent on ${new Date(log.emails_sent_at).toLocaleString()}`}>
+                              ✓ Emails Sent
+                            </span>
+                          ) : (
+                            <button 
+                              onClick={() => handleSendEmails(log.id)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', background: 'transparent' }}
+                              disabled={sendingEmails[log.id]}
+                            >
+                              {sendingEmails[log.id] ? 'Sending...' : '✉ Send Emails'}
+                            </button>
+                          )
+                        )}
+
                         {log.status !== 'reverted' && log.status !== 'failed' && (
                           <button 
                             onClick={() => handleRevert(log.id)}
@@ -494,6 +583,44 @@ export default function CSVUploadPage() {
                 {new Date(selectedLogSummary.uploaded_at).toLocaleString()}
               </span>
             </div>
+
+            {/* Manual Welcome Emails Trigger in Modal */}
+            {selectedLogSummary.status !== 'failed' && selectedLogSummary.status !== 'reverted' && selectedLogSummary.created_count > 0 && (
+              <div style={{ 
+                marginBottom: 20, 
+                padding: '12px 16px', 
+                borderRadius: '8px', 
+                background: 'rgba(99, 102, 241, 0.05)', 
+                border: '1px solid rgba(99, 102, 241, 0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 2 }}>Student Welcome Emails</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {selectedLogSummary.emails_sent 
+                      ? `Sent on ${new Date(selectedLogSummary.emails_sent_at).toLocaleString()}` 
+                      : `Send login details to ${selectedLogSummary.created_count} newly created student accounts.`}
+                  </span>
+                </div>
+                {selectedLogSummary.emails_sent ? (
+                  <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    ✓ Emails Sent
+                  </span>
+                ) : (
+                  <button 
+                    onClick={() => handleSendEmails(selectedLogSummary.id)}
+                    className="btn btn-primary"
+                    style={{ padding: '8px 16px', fontSize: '0.8rem', border: 'none', background: 'var(--accent-primary)', color: '#fff', cursor: 'pointer', borderRadius: '4px' }}
+                    disabled={sendingEmails[selectedLogSummary.id]}
+                  >
+                    {sendingEmails[selectedLogSummary.id] ? 'Sending...' : '✉ Send Emails'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Stat boxes */}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>

@@ -21,6 +21,8 @@ urlpatterns = [
     path('students/upload-history/', views.StudentViewSet.as_view({'get': 'upload_history'})),
     path('students/upload-status/<uuid:pk>/', views.StudentViewSet.as_view({'get': 'upload_status'})),
     path('students/upload-status/<uuid:pk>/download-credentials/', views.StudentViewSet.as_view({'get': 'download_credentials'})),
+    path('students/upload-status/<uuid:pk>/send-emails/', views.StudentViewSet.as_view({'post': 'send_welcome_emails'})),
+    path('students/<uuid:pk>/revert-upload/', views.StudentViewSet.as_view({'post': 'revert_upload'})),
 
     # Placements (Admin/Coordinator)
     path('placements/', views.PlacementViewSet.as_view({'get': 'list_placements', 'post': 'create_placement'})),

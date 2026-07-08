@@ -95,31 +95,8 @@ def process_student_csv_task(self, log_id, temp_file_path, user_id):
         credentials_file_path = f"private_credentials/credentials_{log_id}.xlsx"
         default_storage.save(credentials_file_path, ContentFile(output.getvalue()))
 
-        # Send welcome emails to newly created students
-        sent_emails_count = 0
-        for cred in credentials:
-            if cred['temporary_password'] != '(UNCHANGED)':
-                subject = "Welcome to iLEAD Placement Portal - Account Created"
-                message = (
-                    f"Dear {cred['name']},\n\n"
-                    f"Your student account has been successfully created on the iLEAD Placement Portal.\n\n"
-                    f"Here are your login credentials:\n"
-                    f"- Login ID: {cred['login_id']}\n"
-                    f"- Temporary Password: {cred['temporary_password']}\n\n"
-                    f"Please log in and update your password immediately at your first login.\n\n"
-                    f"Best regards,\n"
-                    f"Placement Team\n"
-                    f"iLEAD Institute of Leadership, Entrepreneurship and Development"
-                )
-                async_send_mail.delay(
-                    subject=subject,
-                    message=message,
-                    recipient_list=[cred['email']]
-                )
-                sent_emails_count += 1
-            
-        log_audit(user, 'csv_upload_complete', f"{log.file_name}: {updated_log.successful_records}/{updated_log.total_records} (Sent {sent_emails_count} emails)")
-        logger.info(f"[CELERY] CSV processed successfully for log {log_id}. Excel saved to {credentials_file_path}. Queued {sent_emails_count} emails.")
+        log_audit(user, 'csv_upload_complete', f"{log.file_name}: {updated_log.successful_records}/{updated_log.total_records}")
+        logger.info(f"[CELERY] CSV processed successfully for log {log_id}. Excel saved to {credentials_file_path}.")
         
     except (FileNotFoundError, ValueError) as permanent_exc:
         # Permanent failure — file missing or bad data. Do not retry.

@@ -173,6 +173,80 @@ class StudentViewSet(viewsets.ViewSet):
         except CSVUploadLog.DoesNotExist:
             return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['post'], url_path='send-emails')
+    def send_welcome_emails(self, request, pk=None):
+        """Manually trigger sending welcome emails to newly created students from this CSV upload."""
+        if request.user.role not in ['admin', 'coordinator']:
+            return Response({'error': 'Only admins and coordinators can send welcome emails.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        try:
+            log = CSVUploadLog.objects.get(pk=pk)
+            
+            # Read from the saved excel credentials file
+            from django.core.files.storage import default_storage
+            import openpyxl
+            
+            credentials_file_path = f"private_credentials/credentials_{log.id}.xlsx"
+            if not default_storage.exists(credentials_file_path):
+                return Response({'error': 'Credentials sheet not found for this upload.'}, status=status.HTTP_404_NOT_FOUND)
+                
+            # Load the credentials
+            with default_storage.open(credentials_file_path, 'rb') as f:
+                wb = openpyxl.load_workbook(f)
+                ws = wb.active
+                
+                # Rows are: Name, Registration Number, Login ID, Email, Temporary Password
+                # Header row is index 1.
+                rows = list(ws.iter_rows(min_row=2, values_only=True))
+                
+            from core.tasks import async_send_mail
+            from django.utils import timezone
+            
+            sent_emails_count = 0
+            for row in rows:
+                if not row or len(row) < 5:
+                    continue
+                name, reg_no, login_id, email, temp_password = row
+                
+                # Only send email if a temporary password exists and is not "(UNCHANGED)"
+                if temp_password and temp_password != '(UNCHANGED)' and email:
+                    subject = "Welcome to iLEAD Placement Portal - Account Created"
+                    message = (
+                        f"Dear {name},\n\n"
+                        f"Your student account has been successfully created on the iLEAD Placement Portal.\n\n"
+                        f"Here are your login credentials:\n"
+                        f"- Login ID: {login_id}\n"
+                        f"- Temporary Password: {temp_password}\n\n"
+                        f"Please log in and update your password immediately at your first login.\n\n"
+                        f"Best regards,\n"
+                        f"Placement Team\n"
+                        f"iLEAD Institute of Leadership, Entrepreneurship and Development"
+                    )
+                    async_send_mail.delay(
+                        subject=subject,
+                        message=message,
+                        recipient_list=[email]
+                    )
+                    sent_emails_count += 1
+            
+            # Update log
+            log.emails_sent = True
+            log.emails_sent_at = timezone.now()
+            log.save(update_fields=['emails_sent', 'emails_sent_at'])
+            
+            log_audit(request.user, 'emails_sent_manual', f'Sent welcome emails to {sent_emails_count} students for log {log.id}', request)
+            
+            return Response({
+                'message': f'Welcome emails have been sent successfully to {sent_emails_count} students.',
+                'emails_sent_count': sent_emails_count
+            })
+            
+        except CSVUploadLog.DoesNotExist:
+            return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception("Error sending manual emails")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=False, methods=['get'], url_path='list')
     def list_students(self, request):
         """List all students with search, filters, and pagination."""

@@ -391,6 +391,8 @@ class CSVUploadLog(models.Model):
     created_count = models.IntegerField(default=0)   # New accounts created
     updated_count = models.IntegerField(default=0)   # Existing profiles updated
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='success')
+    emails_sent = models.BooleanField(default=False)
+    emails_sent_at = models.DateTimeField(null=True, blank=True)
     error_details = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

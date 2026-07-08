@@ -61,3 +61,58 @@ class TestCSVImport:
         log = CSVUploadLog.objects.first()
         assert log.failed_records == 1
         assert "cgpa" in log.error_details.lower()
+
+    def test_send_welcome_emails(self, auth_client):
+        # 1. Import a CSV to create a student and save the credentials excel
+        url = '/api/v1/students/import-csv/'
+        csv_content = (
+            "name,registration_number,email,passing_year,course,semester,marks\n"
+            "Test Student,STU_TEST,test@student.com,2025,BCA,6,8.5"
+        )
+        csv_file = SimpleUploadedFile(
+            "students.csv", 
+            csv_content.encode('utf-8'), 
+            content_type="text/csv"
+        )
+        response = auth_client.post(url, {'file': csv_file}, format='multipart')
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        log_id = response.data['upload_log']['id']
+        log = CSVUploadLog.objects.get(id=log_id)
+        assert not log.emails_sent
+        
+        # 2. Call the manual email trigger endpoint
+        send_url = f'/api/v1/students/upload-status/{log_id}/send-emails/'
+        send_response = auth_client.post(send_url)
+        assert send_response.status_code == status.HTTP_200_OK
+        assert send_response.data['emails_sent_count'] == 1
+        
+        # 3. Verify database updates
+        log.refresh_from_db()
+        assert log.emails_sent
+        assert log.emails_sent_at is not None
+
+    def test_revert_upload_success(self, auth_client):
+        # 1. Import a student
+        url = '/api/v1/students/import-csv/'
+        csv_content = (
+            "name,registration_number,email,passing_year,course,semester,marks\n"
+            "Test Student,STU_TEST,test@student.com,2025,BCA,6,8.5"
+        )
+        csv_file = SimpleUploadedFile("students.csv", csv_content.encode('utf-8'), content_type="text/csv")
+        response = auth_client.post(url, {'file': csv_file}, format='multipart')
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        log_id = response.data['upload_log']['id']
+        
+        assert User.objects.filter(login_id='stu_test').exists()
+        assert Student.objects.filter(registration_number='STU_TEST').exists()
+        
+        # 2. Revert the import
+        revert_url = f'/api/v1/students/{log_id}/revert-upload/'
+        revert_response = auth_client.post(revert_url)
+        assert revert_response.status_code == status.HTTP_200_OK
+        
+        # 3. Verify user and student are deleted
+        assert not User.objects.filter(login_id='stu_test').exists()
+        assert not Student.objects.filter(registration_number='STU_TEST').exists()
+        log = CSVUploadLog.objects.get(id=log_id)
+        assert log.status == 'reverted'
