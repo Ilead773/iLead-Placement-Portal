@@ -109,38 +109,36 @@ class ResumeNormalizer:
             'photo': photo_url,
         }
         canonical['professional_summary'] = profile.professional_summary or ''
-        
         skills_by_category = {}
         for skill in profile.skills.all():
             cat = skill.category
             if cat not in skills_by_category: skills_by_category[cat] = []
-            skills_by_category[cat].append(skill.name)
+            clean_name = re.sub(r'^[•\-\*–\s]+', '', skill.name).strip()
+            skills_by_category[cat].append(clean_name)
 
         canonical['skills'] = [{'category': cat, 'items': items} for cat, items in skills_by_category.items()]
         canonical['languages'] = skills_by_category.get('Language', [])
         canonical['strengths'] = skills_by_category.get('Soft Skill', [])
         canonical['extra_curricular'] = [] # Staged for UI input override
-
-
         
         canonical['experience'] = [
             {
-                'company': exp.company,
-                'position': exp.position,
+                'company': re.sub(r'^[•\-\*–\s]+', '', exp.company).strip(),
+                'position': re.sub(r'^[•\-\*–\s]+', '', exp.position).strip(),
                 'duration': {
                     'start': exp.start_date.isoformat() if exp.start_date else None,
                     'end': exp.end_date.isoformat() if exp.end_date else None,
                     'current': exp.is_current,
                 },
                 'description': exp.description,
-                'achievements': exp.achievements or [],
+                'achievements': [re.sub(r'^[•\-\*–\s]+', '', ach).strip() for ach in (exp.achievements or [])],
             }
             for exp in profile.experiences.all()
         ]
         
         canonical['projects'] = [
             {
-                'title': proj.title,
+                'title': re.sub(r'^[•\-\*–\s]+', '', proj.title).strip(),
                 'description': proj.description,
                 'technologies': proj.technologies or [],
                 'link': proj.link or '',
@@ -151,8 +149,8 @@ class ResumeNormalizer:
 
         canonical['education'] = [
             {
-                'institution': edu.institution,
-                'degree': edu.degree,
+                'institution': re.sub(r'^[•\-\*–\s]+', '', edu.institution).strip(),
+                'degree': re.sub(r'^[•\-\*–\s]+', '', edu.degree).strip(),
                 'field': edu.field or '',
                 'graduation_date': edu.graduation_date.isoformat() if edu.graduation_date else None,
                 'gpa': edu.gpa,
@@ -163,7 +161,7 @@ class ResumeNormalizer:
 
         canonical['certifications'] = [
             {
-                'name': cert.name,
+                'name': re.sub(r'^[•\-\*–\s]+', '', cert.name).strip(),
                 'issuer': cert.issuer,
                 'date': cert.date.isoformat() if cert.date else None,
                 'credential_url': cert.credential_url or '',
@@ -173,7 +171,7 @@ class ResumeNormalizer:
 
         canonical['achievements'] = [
             {
-                'title': ach.title,
+                'title': re.sub(r'^[•\-\*–\s]+', '', ach.title).strip(),
                 'issuer': ach.issuer or '',
                 'date': ach.date.isoformat() if ach.date else None,
                 'description': ach.description or '',

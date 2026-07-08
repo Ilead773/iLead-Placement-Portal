@@ -18,12 +18,17 @@ ALLOWED_TAGS = [
     'table', 'tr', 'td', 'th', 'thead', 'tbody', 'tfoot',
     'div', 'span', 'section', 'header', 'footer', 'article', 'aside',
     'img', 'a', 'hr',
+    'svg', 'path', 'polyline', 'circle',
 ]
 
 ALLOWED_ATTRIBUTES = {
     '*': ['class', 'id', 'style'],
     'a': ['href', 'title', 'target'],
     'img': ['src', 'alt', 'width', 'height'],
+    'svg': ['width', 'height', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style'],
+    'path': ['d', 'style'],
+    'polyline': ['points', 'style'],
+    'circle': ['cx', 'cy', 'r', 'style'],
 }
 
 DANGEROUS_CSS_PATTERNS = [
