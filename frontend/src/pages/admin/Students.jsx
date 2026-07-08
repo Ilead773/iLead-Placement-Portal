@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
+import { ILEAD_COURSES } from '../../constants/courses';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
@@ -588,25 +589,9 @@ export default function Students() {
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Course</label>
             <select className="input-field" value={filters.course} onChange={(e) => setFilters({...filters, course: e.target.value})} style={{ width: '100%' }}>
               <option value="">All Courses</option>
-              <option value="BBA">BBA</option>
-              <option value="BBA in Digital Marketing (BBA DM)">BBA in Digital Marketing (BBA DM)</option>
-              <option value="BBA in Travel & Tourism Management (BBA TTM)">BBA in Travel & Tourism (BBA TTM)</option>
-              <option value="BBA in Entrepreneurship (BBA ENT)">BBA in Entrepreneurship (BBA ENT)</option>
-              <option value="BBA in Sports Management (BBA SM)">BBA in Sports Management (BBA SM)</option>
-              <option value="BBA in Hospital Management (BBA HM)">BBA in Hospital Management (BBA HM)</option>
-              <option value="BSc in Media Science (BMS)">BSc in Media Science (BMS)</option>
-              <option value="MSc in Media Science">MSc in Media Science</option>
-              <option value="BSc in Multimedia, Animation, Graphic Design (BMAGD)">BSc in Multimedia & Animation (BMAGD)</option>
-              <option value="MSc in Multimedia, Animation, Graphic Design (MMAGD)">MSc in Multimedia & Animation (MMAGD)</option>
-              <option value="BSc in Film and Television Production (FTP)">BSc in Film & TV Production (FTP)</option>
-              <option value="BSc in Interior Design">BSc in Interior Design</option>
-              <option value="BSc in Sustainable Fashion Design & Management">BSc in Sustainable Fashion</option>
-              <option value="Bachelor in Optometry">Bachelor in Optometry</option>
-              <option value="BSc in Critical Care Technology (CCT)">BSc in Critical Care Technology (CCT)</option>
-              <option value="BSc in Medical Laboratory Technology (BMLT)">BSc in Medical Lab Tech (BMLT)</option>
-              <option value="BSc in Data Science">BSc in Data Science</option>
-              <option value="BSc in Cyber Security">BSc in Cyber Security</option>
-              <option value="BSc in Computer Application (BCA)">BSc in Computer Application (BCA)</option>
+              {ILEAD_COURSES.map(course => (
+                <option key={course} value={course}>{course}</option>
+              ))}
             </select>
           </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
+import { ILEAD_COURSES_OBJ } from '../../constants/courses';
 import { 
   Building2, Briefcase, MapPin, GraduationCap, Users, 
   Mail, Settings, Zap, DollarSign, Calendar, ListOrdered, FileText,
@@ -41,17 +42,7 @@ const CreateJob = () => {
         setAvailableCourses(coursesList);
       } catch (err) {
         console.error('Failed to fetch courses', err);
-        setAvailableCourses([
-          { name: "BBA" }, { name: "BBA in Digital Marketing (BBA DM)" },
-          { name: "BBA in Travel & Tourism Management (BBA TTM)" }, { name: "BBA in Entrepreneurship (BBA ENT)" },
-          { name: "BBA in Sports Management (BBA SM)" }, { name: "BBA in Hospital Management (BBA HM)" },
-          { name: "BSc in Media Science (BMS)" }, { name: "MSc in Media Science" },
-          { name: "BSc in Multimedia, Animation, Graphic Design (BMAGD)" }, { name: "MSc in Multimedia, Animation, Graphic Design (MMAGD)" },
-          { name: "BSc in Film and Television Production (FTP)" }, { name: "BSc in Interior Design" },
-          { name: "BSc in Sustainable Fashion Design & Management" }, { name: "Bachelor in Optometry" },
-          { name: "BSc in Critical Care Technology (CCT)" }, { name: "BSc in Medical Laboratory Technology (BMLT)" },
-          { name: "BSc in Data Science" }, { name: "BSc in Cyber Security" }, { name: "BSc in Computer Application (BCA)" }
-        ]);
+        setAvailableCourses(ILEAD_COURSES_OBJ);
       }
     };
     fetchCourses();

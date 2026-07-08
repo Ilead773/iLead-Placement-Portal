@@ -1,4 +1,3 @@
-// src/pages/admin/PlacementSessions.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -8,8 +7,8 @@ import {
   Filter, X, UserCheck, UserX, Loader, BookOpen
 } from 'lucide-react';
 import placementSessionsAPI from '../../api/placementSessionsAPI';
-
 import useAuthStore from '../../store/authStore';
+import { ILEAD_COURSES } from '../../constants/courses';
 
 const SESSION_TYPES = [
   { value: 'orientation', label: '🎓 Orientation' },
@@ -20,7 +19,7 @@ const SESSION_TYPES = [
   { value: 'general', label: '📋 General Session' },
 ];
 
-const COURSE_OPTIONS = ['BCA', 'MCA', 'MBA', 'BBA', 'B.Tech', 'M.Tech', 'B.Sc', 'M.Sc', 'B.Com', 'M.Com'];
+// COURSE_OPTIONS is imported from constants/courses.js (ILEAD_COURSES)
 const STREAM_OPTIONS = ['CS', 'IT', 'EC', 'EE', 'ME', 'CE', 'Finance', 'Marketing', 'HR'];
 const YEAR_OPTIONS = ['1st', '2nd', '3rd', '4th'];
 
@@ -467,7 +466,7 @@ export default function AdminPlacementSessions() {
                     <div>
                       <label className="block text-xs text-text-muted mb-1.5">By Course</label>
                       <div className="flex flex-wrap gap-1.5">
-                        {COURSE_OPTIONS.map(c => (
+                        {ILEAD_COURSES.map(c => (
                           <button
                             key={c} type="button"
                             onClick={() => handleToggleFilter('target_courses', c)}
