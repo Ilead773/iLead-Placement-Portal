@@ -418,50 +418,36 @@ def seed_ilead_kolkata_template():
                             <li>MS Office Suite (Excel, Word, PowerPoint)</li>
                             <li>Industry-Specific Software (if applicable)</li>
                             <li>AI Tools (ChatGPT, Gemini, Canva AI, etc.)</li>
-                            <li>Data Analysis / Design / Programming Tools (as applicable)</li>
+                            <li>Data Analysis / Design / Programming Tools</li>
                         {% endif %}
                     </ul>
                 </div>
 
+                {% if certifications %}
                 <div class="sidebar-section">
                     <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
                     <ul class="bullet-list">
-                        {% if certifications %}
-                            {% for cert in certifications %}
-                                <li>{{ cert.name }}{% if cert.issuer %} – {{ cert.issuer }}{% endif %}</li>
-                            {% endfor %}
-                        {% else %}
-                            <li>Certification Name – Issuing Organization</li>
-                            <li>Certification Name – Issuing Organization</li>
-                            <li>Certification Name – Issuing Organization</li>
-                        {% endif %}
+                        {% for cert in certifications %}
+                            <li>{{ cert.name }}{% if cert.issuer %} – {{ cert.issuer }}{% endif %}</li>
+                        {% endfor %}
                     </ul>
                 </div>
-
+                {% else %}
                 <div class="sidebar-section">
-                    <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
+                    <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
                     <ul class="bullet-list">
-                        {% if achievements %}
-                            {% for ach in achievements %}
-                                <li>
-                                    <strong>{{ ach.title }}</strong>
-                                    {% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                                    {% if ach.description %}<div class="ach-desc">{{ ach.description }}</div>{% endif %}
-                                </li>
-                            {% endfor %}
-                        {% else %}
-                            <li>Achievement/Award</li>
-                            <li>Club Coordinator / Event Volunteer / Team Lead</li>
-                        {% endif %}
+                        <li>Certification – Issuing Organization</li>
+                        <li>Certification – Issuing Organization</li>
                     </ul>
                 </div>
+                {% endif %}
 
-                {% if extra_curricular %}
+                {% if languages %}
                 <div class="sidebar-section">
-                    <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
+                    <h3 class="section-title">LANGUAGES KNOWN</h3>
                     <ul class="bullet-list">
-                        {% for activity in extra_curricular %}
-                            <li>{{ activity }}</li>
+                        {% for lang in languages %}
+                            <li>{{ lang }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -473,17 +459,6 @@ def seed_ilead_kolkata_template():
                     <ul class="bullet-list">
                         {% for s in strengths %}
                             <li>{{ s }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                {% if languages %}
-                <div class="sidebar-section">
-                    <h3 class="section-title">LANGUAGES KNOWN</h3>
-                    <ul class="bullet-list">
-                        {% for lang in languages %}
-                            <li>{{ lang }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -536,6 +511,36 @@ def seed_ilead_kolkata_template():
         </tr>
     </table>
 
+    <div class="full-width-section">
+        <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
+        <ul class="bullet-list horiz-list">
+            {% if achievements %}
+                {% for ach in achievements %}
+                    <li>
+                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                    </li>
+                {% endfor %}
+            {% else %}
+                <li>Achievement/Award – Organizing body/Institution</li>
+                <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="full-width-section">
+        <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
+        <ul class="bullet-list horiz-list">
+            {% if extra_curricular %}
+                {% for activity in extra_curricular %}
+                    <li>{{ activity }}</li>
+                {% endfor %}
+            {% else %}
+                <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
+                <li>NSS / NCC / Community Service</li>
+            {% endif %}
+        </ul>
+    </div>
 
     <footer class="resume-footer">
         Campus: 113, Matheswartola Road, Kolkata 700 046, West Bengal, India, Ph: +91.33.4018 2000/02 Fax: +91.33.4018 2016
@@ -814,6 +819,23 @@ body {
     font-size: 9pt;
     margin: 2px 0 0 0;
     text-align: justify;
+}
+
+.full-width-section {
+    margin-top: 6px;
+    margin-bottom: 6px;
+    page-break-inside: avoid;
+}
+
+.horiz-list {
+    column-count: 2;
+    column-gap: 20px;
+}
+
+.ach-desc {
+    font-size: 8pt;
+    color: var(--muted-color);
+    font-weight: normal;
 }
 
 .resume-footer {
