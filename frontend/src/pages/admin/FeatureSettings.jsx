@@ -64,11 +64,11 @@ export default function FeatureSettings() {
   const handleSelectAllCourses = (featureIndex, isAllSelected) => {
     const updated = [...configs];
     if (isAllSelected) {
-      // Clear allowed so that it is enabled for ALL courses
-      updated[featureIndex].allowed_courses = [];
-    } else {
-      // Set to all courses explicitly
+      // Currently enabled for all (empty allowed_courses). Switch to restricted mode by checking all.
       updated[featureIndex].allowed_courses = [...courses];
+    } else {
+      // Currently restricted (not empty). Switch back to enabled for all by clearing it.
+      updated[featureIndex].allowed_courses = [];
     }
     setConfigs(updated);
   };
@@ -88,11 +88,11 @@ export default function FeatureSettings() {
   const handleSelectAllYears = (featureIndex, isAllSelected) => {
     const updated = [...configs];
     if (isAllSelected) {
-      // Clear allowed so that it is enabled for ALL years
-      updated[featureIndex].allowed_years = [];
-    } else {
-      // Set to all years explicitly
+      // Currently enabled for all (empty allowed_years). Switch to restricted mode by checking all.
       updated[featureIndex].allowed_years = yearsList.map(y => y.key);
+    } else {
+      // Currently restricted (not empty). Switch back to enabled for all by clearing it.
+      updated[featureIndex].allowed_years = [];
     }
     setConfigs(updated);
   };
