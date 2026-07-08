@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../../api/axios';
-import { Settings, Plus, Search, Shield, Save, CheckSquare, Square, ToggleLeft, ToggleRight, Trash2, X, AlertTriangle, Calendar, GraduationCap } from 'lucide-react';
+import { Settings, Plus, Search, Shield, Save, ToggleLeft, ToggleRight, Trash2, X, AlertTriangle, Calendar, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function FeatureSettings() {
@@ -51,49 +51,59 @@ export default function FeatureSettings() {
 
   const handleCourseToggle = (featureIndex, courseName) => {
     const updated = [...configs];
-    const allowed = updated[featureIndex].allowed_courses || [];
+    const isAll = !updated[featureIndex].allowed_courses || updated[featureIndex].allowed_courses.length === 0;
     
-    if (allowed.includes(courseName)) {
-      updated[featureIndex].allowed_courses = allowed.filter(c => c !== courseName);
+    // Whitelist: if it is empty, all courses are allowed. Otherwise, only selected ones are allowed.
+    let currentAllowed = isAll ? [...courses] : updated[featureIndex].allowed_courses;
+    
+    if (currentAllowed.includes(courseName)) {
+      // Untick -> disable this course by removing it
+      currentAllowed = currentAllowed.filter(c => c !== courseName);
     } else {
-      updated[featureIndex].allowed_courses = [...allowed, courseName];
+      // Tick -> enable this course by adding it back
+      currentAllowed = [...currentAllowed, courseName];
+    }
+    
+    // If all courses are checked again, reset to empty [] to clean database config
+    if (currentAllowed.length === courses.length) {
+      updated[featureIndex].allowed_courses = [];
+    } else {
+      updated[featureIndex].allowed_courses = currentAllowed;
     }
     setConfigs(updated);
   };
 
-  const handleSelectAllCourses = (featureIndex, isAllSelected) => {
+  const handleClearCourses = (featureIndex) => {
     const updated = [...configs];
-    if (isAllSelected) {
-      // Currently enabled for all (empty allowed_courses). Switch to restricted mode by checking all.
-      updated[featureIndex].allowed_courses = [...courses];
-    } else {
-      // Currently restricted (not empty). Switch back to enabled for all by clearing it.
-      updated[featureIndex].allowed_courses = [];
-    }
+    updated[featureIndex].allowed_courses = [];
     setConfigs(updated);
   };
 
   const handleYearToggle = (featureIndex, yearKey) => {
     const updated = [...configs];
-    const allowed = updated[featureIndex].allowed_years || [];
+    const isAll = !updated[featureIndex].allowed_years || updated[featureIndex].allowed_years.length === 0;
     
-    if (allowed.includes(yearKey)) {
-      updated[featureIndex].allowed_years = allowed.filter(y => y !== yearKey);
+    let currentAllowed = isAll ? yearsList.map(y => y.key) : updated[featureIndex].allowed_years;
+    
+    if (currentAllowed.includes(yearKey)) {
+      // Untick -> disable this year
+      currentAllowed = currentAllowed.filter(y => y !== yearKey);
     } else {
-      updated[featureIndex].allowed_years = [...allowed, yearKey];
+      // Tick -> enable this year
+      currentAllowed = [...currentAllowed, yearKey];
+    }
+    
+    if (currentAllowed.length === yearsList.length) {
+      updated[featureIndex].allowed_years = [];
+    } else {
+      updated[featureIndex].allowed_years = currentAllowed;
     }
     setConfigs(updated);
   };
 
-  const handleSelectAllYears = (featureIndex, isAllSelected) => {
+  const handleClearYears = (featureIndex) => {
     const updated = [...configs];
-    if (isAllSelected) {
-      // Currently enabled for all (empty allowed_years). Switch to restricted mode by checking all.
-      updated[featureIndex].allowed_years = yearsList.map(y => y.key);
-    } else {
-      // Currently restricted (not empty). Switch back to enabled for all by clearing it.
-      updated[featureIndex].allowed_years = [];
-    }
+    updated[featureIndex].allowed_years = [];
     setConfigs(updated);
   };
 
@@ -202,7 +212,7 @@ export default function FeatureSettings() {
             Student Feature Control
           </h1>
           <p className="text-secondary text-sm mt-1">
-            Configure access to specific student portal features globally, by course, or selectively by academic year.
+            Configure access to specific student portal features. Tick means enabled, untick to disable for that course/year.
           </p>
         </div>
         <div className="flex gap-3 self-start md:self-auto">
@@ -236,7 +246,7 @@ export default function FeatureSettings() {
         </div>
         <div className="flex items-center gap-2 text-secondary text-xs bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg self-start sm:self-auto border border-border-color">
           <Shield size={14} className="text-blue-500" />
-          <span>Restricting by both course and year allows granular cohort targeting.</span>
+          <span>Checked items are enabled. Simply uncheck any course or year to disable access for that cohort.</span>
         </div>
       </div>
 
@@ -311,15 +321,22 @@ export default function FeatureSettings() {
                       <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
                         <GraduationCap size={14} className="text-primary" /> Target Courses
                       </span>
-                      <button
-                        onClick={() => handleSelectAllCourses(originalIndex, isAllowedAllCourses)}
-                        disabled={!config.is_enabled}
-                        className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isAllowedAllCourses ? <CheckSquare size={13} /> : <Square size={13} />}
-                        <span>{isAllowedAllCourses ? 'All Courses' : 'Restrict'}</span>
-                      </button>
+                      {!isAllowedAllCourses && (
+                        <button
+                          onClick={() => handleClearCourses(originalIndex)}
+                          className="text-[10px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer font-bold"
+                          disabled={!config.is_enabled}
+                        >
+                          Allow All (Check All)
+                        </button>
+                      )}
                     </div>
+
+                    {isAllowedAllCourses && (
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 py-1 px-2 rounded.5 mb-2 border border-emerald-500/10 font-bold inline-block">
+                        ✓ All courses are currently allowed
+                      </div>
+                    )}
 
                     <div className="max-h-[140px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-border-color">
                       {courses.map(courseName => {
@@ -337,7 +354,7 @@ export default function FeatureSettings() {
                           >
                             <input 
                               type="checkbox"
-                              disabled={!config.is_enabled || isAllowedAllCourses}
+                              disabled={!config.is_enabled}
                               checked={isSelected}
                               onChange={() => handleCourseToggle(originalIndex, courseName)}
                               className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
@@ -355,15 +372,22 @@ export default function FeatureSettings() {
                       <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
                         <Calendar size={14} className="text-primary" /> Target Years
                       </span>
-                      <button
-                        onClick={() => handleSelectAllYears(originalIndex, isAllowedAllYears)}
-                        disabled={!config.is_enabled}
-                        className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isAllowedAllYears ? <CheckSquare size={13} /> : <Square size={13} />}
-                        <span>{isAllowedAllYears ? 'All Years' : 'Restrict'}</span>
-                      </button>
+                      {!isAllowedAllYears && (
+                        <button
+                          onClick={() => handleClearYears(originalIndex)}
+                          className="text-[10px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer font-bold"
+                          disabled={!config.is_enabled}
+                        >
+                          Allow All (Check All)
+                        </button>
+                      )}
                     </div>
+
+                    {isAllowedAllYears && (
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 py-1 px-2 rounded.5 mb-2 border border-emerald-500/10 font-bold inline-block">
+                        ✓ All years are currently allowed
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-border-color min-h-[140px]">
                       {yearsList.map(y => {
@@ -381,7 +405,7 @@ export default function FeatureSettings() {
                           >
                             <input 
                               type="checkbox"
-                              disabled={!config.is_enabled || isAllowedAllYears}
+                              disabled={!config.is_enabled}
                               checked={isSelected}
                               onChange={() => handleYearToggle(originalIndex, y.key)}
                               className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
