@@ -402,106 +402,140 @@ def seed_ilead_kolkata_template():
         </table>
     </section>
 
-    <div class="two-column-body">
-        <div class="left-column">
-            <div class="sidebar-section">
-                <h3 class="section-title">TECHNICAL SKILLS</h3>
-                <ul class="bullet-list">
-                    {% if skills %}
-                        {% for skill_group in skills %}
-                            {% for item in skill_group.items %}
-                                <li>{{ item }}</li>
+    <table class="two-col-table">
+        <tr>
+            <td class="left-col">
+                <div class="sidebar-section">
+                    <h3 class="section-title">TECHNICAL SKILLS</h3>
+                    <ul class="bullet-list">
+                        {% if skills %}
+                            {% for skill_group in skills %}
+                                {% for item in skill_group.items %}
+                                    <li>{{ item }}</li>
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
-                    {% else %}
-                        <li>MS Office Suite (Excel, Word, PowerPoint)</li>
-                        <li>Industry-Specific Software (if applicable)</li>
-                        <li>AI Tools (ChatGPT, Gemini, Canva AI, etc.)</li>
-                        <li>Data Analysis / Design / Programming Tools (as applicable)</li>
-                    {% endif %}
-                </ul>
-            </div>
-
-            <div class="sidebar-section">
-                <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
-                <ul class="bullet-list">
-                    {% if certifications %}
-                        {% for cert in certifications %}
-                            <li>{{ cert.name }}{% if cert.issuer %} – {{ cert.issuer }}{% endif %}</li>
-                        {% endfor %}
-                    {% else %}
-                        <li>Certification Name – Issuing Organization</li>
-                        <li>Certification Name – Issuing Organization</li>
-                        <li>Certification Name – Issuing Organization</li>
-                    {% endif %}
-                </ul>
-            </div>
-
-            <div class="sidebar-section">
-                <h3 class="section-title">ACHIEVEMENTS & POSITIONS OF RESPONSIBILITY</h3>
-                <ul class="bullet-list">
-                    {% if achievements %}
-                        {% for ach in achievements %}
-                            <li>
-                                <strong>{{ ach.title }}</strong>
-                                {% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                                {% if ach.description %}<div class="ach-desc">{{ ach.description }}</div>{% endif %}
-                            </li>
-                        {% endfor %}
-                    {% else %}
-                        <li>Achievement/Award</li>
-                        <li>Club Coordinator / Event Volunteer / Team Lead</li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
-
-        <div class="right-column">
-            <div class="main-section">
-                <h3 class="section-title">EXPERIENCE</h3>
-                {% if experience %}
-                    {% for exp in experience %}
-                    <div class="experience-item">
-                        <div class="exp-header">
-                            <span class="company-name">{{ exp.company }}</span> | 
-                            <span class="designation">{{ exp.position }}</span> | 
-                            <span class="duration">
-                                {% if exp.job_type %}{{ exp.job_type }} {% endif %}
-                                ({% if exp.duration.start %}{{ exp.duration.start|slice:":7" }}{% else %}{{ exp.start_date|default:"" }}{% endif %}
-                                –
-                                {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end|slice:":7" }}{% endif %})
-                            </span>
-                        </div>
-                        {% if exp.achievements %}
-                        <ul class="bullet-list">
-                            {% for achievement in exp.achievements %}
-                            <li>{{ achievement }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% elif exp.description %}
-                        <p class="exp-desc">{{ exp.description }}</p>
+                        {% else %}
+                            <li>MS Office Suite (Excel, Word, PowerPoint)</li>
+                            <li>Industry-Specific Software (if applicable)</li>
+                            <li>AI Tools (ChatGPT, Gemini, Canva AI, etc.)</li>
+                            <li>Data Analysis / Design / Programming Tools (as applicable)</li>
                         {% endif %}
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    {% for i in "123" %}
-                    <div class="experience-item">
-                        <div class="exp-header">
-                            <span class="company-name">Company Name</span> | 
-                            <span class="designation">Designation</span> | 
-                            <span class="duration">Internship (Month Year – Month Year)</span>
-                        </div>
-                        <ul class="bullet-list">
-                            <li>Responsibility/Achievement 1</li>
-                            <li>Responsibility/Achievement 2</li>
-                            <li>Responsibility/Achievement 3</li>
-                        </ul>
-                    </div>
-                    {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
+                    <ul class="bullet-list">
+                        {% if certifications %}
+                            {% for cert in certifications %}
+                                <li>{{ cert.name }}{% if cert.issuer %} – {{ cert.issuer }}{% endif %}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>Certification Name – Issuing Organization</li>
+                            <li>Certification Name – Issuing Organization</li>
+                            <li>Certification Name – Issuing Organization</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
+                    <ul class="bullet-list">
+                        {% if achievements %}
+                            {% for ach in achievements %}
+                                <li>
+                                    <strong>{{ ach.title }}</strong>
+                                    {% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                    {% if ach.description %}<div class="ach-desc">{{ ach.description }}</div>{% endif %}
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li>Achievement/Award</li>
+                            <li>Club Coordinator / Event Volunteer / Team Lead</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                {% if extra_curricular %}
+                <div class="sidebar-section">
+                    <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
+                    <ul class="bullet-list">
+                        {% for activity in extra_curricular %}
+                            <li>{{ activity }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
+
+                {% if strengths %}
+                <div class="sidebar-section">
+                    <h3 class="section-title">STRENGTHS</h3>
+                    <ul class="bullet-list">
+                        {% for s in strengths %}
+                            <li>{{ s }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if languages %}
+                <div class="sidebar-section">
+                    <h3 class="section-title">LANGUAGES KNOWN</h3>
+                    <ul class="bullet-list">
+                        {% for lang in languages %}
+                            <li>{{ lang }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </td>
+            <td class="right-col">
+                <div class="main-section">
+                    <h3 class="section-title">EXPERIENCE</h3>
+                    {% if experience %}
+                        {% for exp in experience %}
+                        <div class="experience-item">
+                            <div class="exp-header">
+                                <span class="company-name">{{ exp.company }}</span> |
+                                <span class="designation"> {{ exp.position }}</span> |
+                                <span class="duration">
+                                    ({% if exp.duration.start %}{{ exp.duration.start|slice:":7" }}{% else %}{{ exp.start_date|default:"" }}{% endif %}
+                                    –
+                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end|slice:":7" }}{% endif %})
+                                </span>
+                            </div>
+                            {% if exp.achievements %}
+                            <ul class="bullet-list">
+                                {% for achievement in exp.achievements %}
+                                <li>{{ achievement }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% elif exp.description %}
+                            <p class="exp-desc">{{ exp.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        {% for i in "123" %}
+                        <div class="experience-item">
+                            <div class="exp-header">
+                                <span class="company-name">Company Name</span> |
+                                <span class="designation"> Designation</span> |
+                                <span class="duration"> Internship (Month Year – Month Year)</span>
+                            </div>
+                            <ul class="bullet-list">
+                                <li>Responsibility/Achievement 1</li>
+                                <li>Responsibility/Achievement 2</li>
+                                <li>Responsibility/Achievement 3</li>
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+    </table>
+
 
     <footer class="resume-footer">
         Campus: 113, Matheswartola Road, Kolkata 700 046, West Bengal, India, Ph: +91.33.4018 2000/02 Fax: +91.33.4018 2016
@@ -706,30 +740,23 @@ body {
     font-weight: bold;
 }
 
-.two-column-body {
-    display: block;
+.two-col-table {
+    width: 100%;
+    border-collapse: collapse;
     margin-top: 7px;
 }
 
-.two-column-body::after {
-    content: "";
-    display: table;
-    clear: both;
-}
-
-.left-column {
-    float: left;
+.left-col {
     width: 37%;
+    vertical-align: top;
     padding-right: 10px;
-    box-sizing: border-box;
 }
 
-.right-column {
-    float: right;
+.right-col {
     width: 63%;
+    vertical-align: top;
     padding-left: 10px;
     border-left: 1.5px solid var(--primary-color);
-    box-sizing: border-box;
 }
 
 .sidebar-section, .main-section {
