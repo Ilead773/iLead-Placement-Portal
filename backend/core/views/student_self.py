@@ -9,6 +9,8 @@ from ..models import Student, PlacementAssignment, ExternalClickLog
 from apps.jobs.models import Job
 from apps.applications.models import Application
 from ..serializers import UserSerializer, StudentSerializer, PlacementAssignmentSerializer
+from apps.applications.eligibility_engine import check_eligibility
+
 
 
 class StudentSelfViewSet(viewsets.ViewSet):
@@ -58,7 +60,7 @@ class StudentSelfViewSet(viewsets.ViewSet):
             deleted_job_ids = Application.objects.filter(student=student, is_deleted=True).values_list('job_id', flat=True)
             upcoming_qs = upcoming_qs.exclude(id__in=deleted_job_ids)
             
-        upcoming = upcoming_qs.order_by('application_deadline')[:5]  # nearest deadline first
+        upcoming = upcoming_qs.order_by('application_deadline')[:50]  # query nearest deadline jobs first
         
         applied_job_ids = set()
         if student:
@@ -66,14 +68,25 @@ class StudentSelfViewSet(viewsets.ViewSet):
                 Application.objects.filter(student=student, is_deleted=False).values_list('job_id', flat=True)
             )
 
-        user_data['upcoming_jobs'] = [{
-            'id': job.id,
-            'company_name': job.company_name,
-            'role': job.role,
-            'deadline': job.application_deadline,
-            'package': job.package,
-            'has_applied': job.id in applied_job_ids if student else False
-        } for job in upcoming]
+        upcoming_jobs_data = []
+        for job in upcoming:
+            if student:
+                eligibility = check_eligibility(student, job, ignore_profile_resume=True)
+                if not (eligibility.get('eligible', False) or job.id in applied_job_ids):
+                    continue
+            
+            upcoming_jobs_data.append({
+                'id': job.id,
+                'company_name': job.company_name,
+                'role': job.role,
+                'deadline': job.application_deadline,
+                'package': job.package,
+                'has_applied': job.id in applied_job_ids if student else False
+            })
+            if len(upcoming_jobs_data) >= 5:
+                break
+
+        user_data['upcoming_jobs'] = upcoming_jobs_data
 
         # Add job applications (new system)
         try:
@@ -122,20 +135,30 @@ class StudentSelfViewSet(viewsets.ViewSet):
         )
         deleted_job_ids = Application.objects.filter(student=student, is_deleted=True).values_list('job_id', flat=True)
         upcoming_qs = upcoming_qs.exclude(id__in=deleted_job_ids)
-        upcoming = upcoming_qs.order_by('application_deadline')[:5]  # nearest deadline first
+        upcoming = upcoming_qs.order_by('application_deadline')[:50]  # query nearest deadline jobs first
         
         applied_job_ids = set(
             Application.objects.filter(student=student, is_deleted=False).values_list('job_id', flat=True)
         )
 
-        data['upcoming_jobs'] = [{
-            'id': job.id,
-            'company_name': job.company_name,
-            'role': job.role,
-            'deadline': job.application_deadline,
-            'package': job.package,
-            'has_applied': job.id in applied_job_ids
-        } for job in upcoming]
+        upcoming_jobs_data = []
+        for job in upcoming:
+            eligibility = check_eligibility(student, job, ignore_profile_resume=True)
+            if not (eligibility.get('eligible', False) or job.id in applied_job_ids):
+                continue
+            
+            upcoming_jobs_data.append({
+                'id': job.id,
+                'company_name': job.company_name,
+                'role': job.role,
+                'deadline': job.application_deadline,
+                'package': job.package,
+                'has_applied': job.id in applied_job_ids
+            })
+            if len(upcoming_jobs_data) >= 5:
+                break
+
+        data['upcoming_jobs'] = upcoming_jobs_data
         
         response = Response(data)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate'

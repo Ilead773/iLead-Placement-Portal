@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import useNotificationStore from '../../store/notificationStore';
 import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -871,7 +872,7 @@ export default function StudentDashboard() {
                       <div className="flex justify-between items-center pt-3 mt-1 border-t border-border-color/40 text-[10px] font-medium text-muted">
                         <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
                           <Calendar size={11} />
-                          {new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {job.deadline ? format(new Date(job.deadline), 'dd MMM, h:mm a') : 'No Deadline'}
                         </span>
                         {isUrgent ? (
                           <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-1 text-[10px]">

@@ -67,6 +67,18 @@ class StudentProfile(SoftDeleteModel):
         help_text='Receive transactional email alerts for eligible jobs.',
     )
 
+    # ─── Additional Info ─────────────────────────────────────────
+    strengths = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of student strengths.',
+    )
+    languages_known = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of languages known.',
+    )
+
     # ─── Completion Tracking ─────────────────────────────────────
     completion_score = models.FloatField(
         default=0.0,
@@ -288,3 +300,25 @@ class Achievement(SoftDeleteModel):
 
     def __str__(self):
         return self.title
+
+
+class ExtracurricularActivity(SoftDeleteModel):
+    """Student extracurricular activity entry."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    profile = models.ForeignKey(
+        StudentProfile,
+        on_delete=models.CASCADE,
+        related_name='extracurricular_activities',
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default='')
+    date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'student_extracurricular_activities'
+        ordering = ['-date']
+
+    def __str__(self):
+        return self.title
+

@@ -289,5 +289,13 @@ class ProfileCompletionValidator:
             suggestions.append(
                 "Add internship or work experience if applicable."
             )
+        if get_relation_count(profile, 'extracurricular_activities') == 0:
+            suggestions.append(
+                "Add extracurricular activities to showcase your leadership or hobbies."
+            )
+        if not profile.strengths:
+            suggestions.append("Add your key strengths.")
+        if not profile.languages_known:
+            suggestions.append("Add the languages you know.")
 
         return suggestions

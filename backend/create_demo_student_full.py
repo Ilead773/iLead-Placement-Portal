@@ -27,7 +27,7 @@ def create_demo_student():
     try:
         existing = User.objects.get(email='demo.student@ilead.com')
         print(f"Demo student already exists: {existing.email}")
-        return existing.student_profile
+        return existing.student_profile, existing
     except User.DoesNotExist:
         pass
     
@@ -93,11 +93,13 @@ def create_demo_student():
         linkedin='https://linkedin.com/in/demostudent',
         github='https://github.com/demostudent',
         portfolio='https://demostudent.com',
-        completion_score=0.85
+        completion_score=0.85,
+        strengths=['Leadership', 'Problem Solving', 'Public Speaking', 'Team Collaboration'],
+        languages_known=['English (Fluent)', 'Hindi (Native)', 'Bengali (Conversational)']
     )
     print(f"[+] Resume profile created")
     
-    from apps.profiles.models import Skill, Experience, Project, Education, Certification, Achievement
+    from apps.profiles.models import Skill, Experience, Project, Education, Certification, Achievement, ExtracurricularActivity
     from datetime import date
 
     # Education
@@ -208,6 +210,26 @@ def create_demo_student():
         issuer='iLEAD',
         date=date(2023, 12, 10),
         description='Recognized for exceptional academic and extracurricular performance.'
+    )
+
+    # Extracurricular Activities
+    ExtracurricularActivity.objects.create(
+        profile=profile,
+        title='Football Team Captain',
+        description='Led the university football team, organizing practice sessions and inter-college tournaments.',
+        date=date(2023, 8, 1)
+    )
+    ExtracurricularActivity.objects.create(
+        profile=profile,
+        title='Member – Entrepreneurship Club',
+        description='Active member of the iLEAD Entrepreneurship Club. Participated in pitch competitions and startup workshops.',
+        date=date(2023, 1, 15)
+    )
+    ExtracurricularActivity.objects.create(
+        profile=profile,
+        title='NSS Volunteer',
+        description='Participated in community service camps and tree plantation drives under the National Service Scheme.',
+        date=date(2022, 10, 5)
     )
 
     profile.recalculate_completion()

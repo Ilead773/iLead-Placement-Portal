@@ -117,9 +117,9 @@ class ResumeNormalizer:
             skills_by_category[cat].append(clean_name)
 
         canonical['skills'] = [{'category': cat, 'items': items} for cat, items in skills_by_category.items()]
-        canonical['languages'] = skills_by_category.get('Language', [])
-        canonical['strengths'] = skills_by_category.get('Soft Skill', [])
-        canonical['extra_curricular'] = [] # Staged for UI input override
+        canonical['languages'] = profile.languages_known if profile.languages_known else skills_by_category.get('Language', [])
+        canonical['strengths'] = profile.strengths if profile.strengths else skills_by_category.get('Soft Skill', [])
+        canonical['extra_curricular'] = [act.title for act in profile.extracurricular_activities.all()]
         
         canonical['experience'] = [
             {

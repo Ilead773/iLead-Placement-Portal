@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import axios from '../../api/axios';
 import { Briefcase, Users, Calendar, MapPin, Plus, Edit, Activity, ExternalLink, ArrowRight, IndianRupee, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import JobDetailsModal from '../../components/JobDetailsModal';
 
 
 const ManageJobs = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingOffCampusJob, setEditingOffCampusJob] = useState(null);
+  const [selectedJobDetails, setSelectedJobDetails] = useState(null);
 
   useEffect(() => {
     fetchJobs();
@@ -132,61 +135,63 @@ const ManageJobs = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {jobs.map((job) => (
           <div key={job.id} className={`job-card ${job.job_type === 'external' ? 'external-card' : ''}`}>
-            <div className="flex justify-between items-start mb-4">
-              <div className="job-card-icon-container">
-                <Briefcase size={22} />
-              </div>
-              {job.job_type !== 'external' && (
-                <span className={`job-status-badge ${job.status}`}>
-                  <span className="pulse-dot"></span>
-                  {job.status}
-                </span>
-              )}
-            </div>
-
-            <h3 className="job-card-title">{job.role}</h3>
-            <p className="job-card-company">{job.company_name}</p>
-
-            <div className="job-meta-grid">
-              <div className="job-meta-item">
-                <MapPin size={15} className="meta-icon location" />
-                <span className="meta-text">{job.location}</span>
-                {job.job_type === 'external' && (
-                  <span className="job-type-pill external">
-                    <ExternalLink size={10} /> Off-Campus
+            <div 
+              onClick={() => setSelectedJobDetails(job)} 
+              className="cursor-pointer flex flex-col flex-1"
+              title="Click to view details"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="job-card-icon-container">
+                  <Briefcase size={22} />
+                </div>
+                {job.job_type !== 'external' && (
+                  <span className={`job-status-badge ${job.status}`}>
+                    <span className="pulse-dot"></span>
+                    {job.status}
                   </span>
                 )}
               </div>
-              
-              <div className="job-meta-item">
-                <Calendar size={15} className="meta-icon deadline" />
-                <span className="meta-text">
-                  Deadline: <span className="deadline-date">{new Date(job.application_deadline).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}</span>
-                </span>
-              </div>
-              
-              <div className="job-meta-item">
-                <Users size={15} className="meta-icon applicants" />
-                <span className="meta-text font-semibold">{job.applications_count} Applicants</span>
-              </div>
-              
-              <div className="job-meta-item">
-                <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
-                <span className="meta-text font-bold">
-                  {job.listing_type === 'internship'
-                    ? (job.package ? `Stipend: ₹${Number(job.package).toLocaleString()}/month` : 'Stipend: Undisclosed')
-                    : (job.package ? `Salary: ${job.package} LPA` : 'Salary: Not Specified')
-                  }
-                </span>
-              </div>
-              
-              <div className="job-meta-item-pills">
-                <span className="category-badge">Category {job.category || 'C'}</span>
-                <span className="openings-badge">{job.openings_count || 1} Openings</span>
+
+              <h3 className="job-card-title">{job.role}</h3>
+              <p className="job-card-company">{job.company_name}</p>
+
+              <div className="job-meta-grid">
+                <div className="job-meta-item">
+                  <MapPin size={15} className="meta-icon location" />
+                  <span className="meta-text">{job.location}</span>
+                  {job.job_type === 'external' && (
+                    <span className="job-type-pill external">
+                      <ExternalLink size={10} /> Off-Campus
+                    </span>
+                  )}
+                </div>
+                
+                <div className="job-meta-item">
+                  <Calendar size={15} className="meta-icon deadline" />
+                  <span className="meta-text">
+                    Deadline: <span className="deadline-date">{job.application_deadline ? format(new Date(job.application_deadline), 'MMM dd, yyyy, h:mm a') : 'No Deadline'}</span>
+                  </span>
+                </div>
+                
+                <div className="job-meta-item">
+                  <Users size={15} className="meta-icon applicants" />
+                  <span className="meta-text font-semibold">{job.applications_count} Applicants</span>
+                </div>
+                
+                <div className="job-meta-item">
+                  <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
+                  <span className="meta-text font-bold">
+                    {job.listing_type === 'internship'
+                      ? (job.package ? `Stipend: ₹${Number(job.package).toLocaleString()}/month` : 'Stipend: Undisclosed')
+                      : (job.package ? `Salary: ${job.package} LPA` : 'Salary: Not Specified')
+                    }
+                  </span>
+                </div>
+                
+                <div className="job-meta-item-pills">
+                  <span className="category-badge">Category {job.category || 'C'}</span>
+                  <span className="openings-badge">{job.openings_count || 1} Openings</span>
+                </div>
               </div>
             </div>
 
@@ -243,6 +248,14 @@ const ManageJobs = () => {
           <p className="text-secondary">No jobs posted yet.</p>
         </div>
       )}
+
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        showModal={!!selectedJobDetails}
+        onClose={() => setSelectedJobDetails(null)}
+        job={selectedJobDetails}
+        isAdmin={true}
+      />
 
       {/* Off-Campus Job Edit Modal */}
       {editingOffCampusJob && (

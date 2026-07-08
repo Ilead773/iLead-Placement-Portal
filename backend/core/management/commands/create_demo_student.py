@@ -1,7 +1,8 @@
 import uuid
 from django.core.management.base import BaseCommand
 from core.models import User, Student
-from apps.profiles.models import StudentProfile
+from apps.profiles.models import StudentProfile, Skill, Experience, Project, Education, Certification, Achievement, ExtracurricularActivity
+from datetime import date
 
 
 class Command(BaseCommand):
@@ -79,9 +80,36 @@ class Command(BaseCommand):
             linkedin='https://linkedin.com/in/demostudent',
             github='https://github.com/demostudent',
             portfolio='https://demostudent.com',
-            completion_score=0.85
+            completion_score=0.85,
+            strengths=['Leadership', 'Problem Solving', 'Public Speaking', 'Team Collaboration'],
+            languages_known=['English (Fluent)', 'Hindi (Native)', 'Bengali (Conversational)']
         )
         self.stdout.write(self.style.SUCCESS(f"[+] Resume profile created"))
+
+        # Seed Skills
+        skills_data = [
+            ('Technical', 'Data Analysis', 'Advanced'),
+            ('Technical', 'Financial Modeling', 'Intermediate'),
+            ('Technical', 'Python', 'Beginner'),
+        ]
+        for category, name, proficiency in skills_data:
+            Skill.objects.create(profile=profile, category=category, name=name, proficiency=proficiency)
+
+        # Seed Extracurricular Activities
+        ExtracurricularActivity.objects.create(
+            profile=profile,
+            title='Football Team Captain',
+            description='Led the university football team, organizing practice sessions and inter-college tournaments.',
+            date=date(2023, 8, 1)
+        )
+        ExtracurricularActivity.objects.create(
+            profile=profile,
+            title='Member – Entrepreneurship Club',
+            description='Active member of the iLEAD Entrepreneurship Club. Participated in pitch competitions and startup workshops.',
+            date=date(2023, 1, 15)
+        )
+
+        profile.recalculate_completion()
         self.stdout.write(f"    - Completion Score: {profile.completion_score:.0%}")
         
         # Print login credentials

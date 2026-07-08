@@ -2,7 +2,7 @@
 """Admin registration for profile models."""
 
 from django.contrib import admin
-from .models import StudentProfile, Skill, Experience, Project, Education, Certification
+from .models import StudentProfile, Skill, Experience, Project, Education, Certification, Achievement, ExtracurricularActivity
 
 
 class SkillInline(admin.TabularInline):
@@ -31,6 +31,17 @@ class CertificationInline(admin.TabularInline):
     extra = 0
 
 
+class AchievementInline(admin.StackedInline):
+    model = Achievement
+    extra = 0
+
+
+class ExtracurricularActivityInline(admin.StackedInline):
+    model = ExtracurricularActivity
+    extra = 0
+
+
+
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
     list_display = [
@@ -40,7 +51,11 @@ class StudentProfileAdmin(admin.ModelAdmin):
     list_filter = ['completion_score', 'is_deleted']
     search_fields = ['student__name', 'student__email']
     readonly_fields = ['completion_score', 'created_at', 'updated_at']
-    inlines = [SkillInline, ExperienceInline, ProjectInline, EducationInline, CertificationInline]
+    inlines = [
+        SkillInline, ExperienceInline, ProjectInline, 
+        EducationInline, CertificationInline, AchievementInline, 
+        ExtracurricularActivityInline
+    ]
 
 
 @admin.register(Skill)
@@ -70,3 +85,14 @@ class EducationAdmin(admin.ModelAdmin):
 @admin.register(Certification)
 class CertificationAdmin(admin.ModelAdmin):
     list_display = ['name', 'issuer', 'date']
+
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = ['title', 'issuer', 'date']
+
+
+@admin.register(ExtracurricularActivity)
+class ExtracurricularActivityAdmin(admin.ModelAdmin):
+    list_display = ['title', 'profile', 'date']
+

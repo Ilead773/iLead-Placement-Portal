@@ -4,7 +4,8 @@
 from rest_framework import serializers
 from .models import (
     StudentProfile, Skill, Experience, 
-    Project, Education, Certification, Achievement
+    Project, Education, Certification, Achievement,
+    ExtracurricularActivity
 )
 
 
@@ -59,6 +60,19 @@ class AchievementCreateSerializer(serializers.ModelSerializer):
         fields = ['title', 'issuer', 'date', 'description']
 
 
+class ExtracurricularActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExtracurricularActivity
+        fields = ['id', 'title', 'description', 'date']
+
+
+class ExtracurricularActivityCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExtracurricularActivity
+        fields = ['title', 'description', 'date']
+
+
+
 class StudentProfileSerializer(serializers.ModelSerializer):
     skills = SkillSerializer(many=True, read_only=True)
     experiences = ExperienceSerializer(many=True, read_only=True)
@@ -66,11 +80,14 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     education_entries = EducationSerializer(many=True, read_only=True)
     certifications = CertificationSerializer(many=True, read_only=True)
     achievements = AchievementSerializer(many=True, read_only=True)
+    extracurricular_activities = ExtracurricularActivitySerializer(many=True, read_only=True)
     
     # Completion metrics
     completion_score = serializers.FloatField(read_only=True)
     completion_details = serializers.JSONField(read_only=True)
     improvement_suggestions = serializers.ListField(child=serializers.CharField(), read_only=True)
+    strengths = serializers.ListField(child=serializers.CharField(), read_only=True)
+    languages_known = serializers.ListField(child=serializers.CharField(), read_only=True)
 
     class Meta:
         model = StudentProfile
@@ -80,6 +97,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'email_job_alerts',
             'profile_picture',
             'skills', 'experiences', 'projects', 'education_entries', 'certifications', 'achievements',
+            'extracurricular_activities', 'strengths', 'languages_known',
             'completion_score', 'completion_details', 'improvement_suggestions',
             'created_at', 'updated_at',
             # Fields from core.Student
@@ -113,12 +131,15 @@ class ProfileSummarySerializer(serializers.ModelSerializer):
 
 class StudentProfileUpdateSerializer(serializers.ModelSerializer):
     """Serializer for partial profile updates including core student data."""
+    strengths = serializers.ListField(child=serializers.CharField(), required=False)
+    languages_known = serializers.ListField(child=serializers.CharField(), required=False)
 
     class Meta:
         model = StudentProfile
         fields = [
             'phone', 'location', 'professional_summary',
-            'linkedin', 'github', 'portfolio', 'email_job_alerts'
+            'linkedin', 'github', 'portfolio', 'email_job_alerts',
+            'strengths', 'languages_known'
         ]
 
 

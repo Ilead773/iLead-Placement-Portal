@@ -35,4 +35,8 @@ urlpatterns = [
     # Achievements / Awards
     path('me/achievements/', views.AchievementViewSet.as_view({'get': 'list_achievements', 'post': 'add_achievement'})),
     path('me/achievements/<uuid:pk>/', views.AchievementViewSet.as_view({'patch': 'update_achievement', 'delete': 'remove_achievement'})),
+
+    # Extracurricular Activities
+    path('me/extracurricular/', views.ExtracurricularActivityViewSet.as_view({'get': 'list_activities', 'post': 'add_activity'})),
+    path('me/extracurricular/<uuid:pk>/', views.ExtracurricularActivityViewSet.as_view({'patch': 'update_activity', 'delete': 'remove_activity'})),
 ]

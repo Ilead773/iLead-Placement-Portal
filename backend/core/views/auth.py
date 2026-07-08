@@ -43,10 +43,15 @@ def _set_auth_cookies(response, request, access_token, refresh_token):
         max_age=7 * 24 * 3600,
     )
 
-def _delete_auth_cookies(response):
+def _delete_auth_cookies(response, request=None):
     cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
-    response.delete_cookie('access_token', domain=cookie_domain)
-    response.delete_cookie('refresh_token', domain=cookie_domain)
+    secure = not settings.DEBUG
+    if request:
+        secure = not settings.DEBUG or request.is_secure()
+    samesite = 'None' if secure else 'Lax'
+    
+    response.set_cookie('access_token', '', max_age=0, expires='Thu, 01 Jan 1970 00:00:00 GMT', domain=cookie_domain, secure=secure, samesite=samesite)
+    response.set_cookie('refresh_token', '', max_age=0, expires='Thu, 01 Jan 1970 00:00:00 GMT', domain=cookie_domain, secure=secure, samesite=samesite)
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -157,7 +162,7 @@ class AuthViewSet(viewsets.ViewSet):
             pass
         log_audit(request.user, 'logout', '', request)
         response = Response({'message': 'Logged out.'})
-        _delete_auth_cookies(response)
+        _delete_auth_cookies(response, request)
         return response
 
     @action(detail=False, methods=['post'], url_path='change-password',
@@ -214,7 +219,7 @@ class AuthViewSet(viewsets.ViewSet):
             return response
         except Exception:
             response = Response({'error': 'Invalid refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
-            _delete_auth_cookies(response)
+            _delete_auth_cookies(response, request)
             return response
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='forgot-password')

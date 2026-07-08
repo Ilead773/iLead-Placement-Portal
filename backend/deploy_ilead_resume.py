@@ -14,7 +14,7 @@ django.setup()
 
 from django.db import transaction
 from core.models import User, Student
-from apps.profiles.models import StudentProfile, Skill, Education, Project, Experience, Certification, Achievement
+from apps.profiles.models import StudentProfile, Skill, Education, Project, Experience, Certification, Achievement, ExtracurricularActivity
 from apps.templates_engine.models import ResumeTemplate
 
 HTML_TEMPLATE = """<div class="resume-container">
@@ -208,6 +208,35 @@ HTML_TEMPLATE = """<div class="resume-container">
                     {% endif %}
                 </ul>
             </div>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">STRENGTHS</h3>
+                <ul class="bullet-list">
+                    {% if strengths %}
+                        {% for strength in strengths %}
+                            <li>{{ strength }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li>Leadership</li>
+                        <li>Problem Solving</li>
+                        <li>Effective Communication</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">LANGUAGES KNOWN</h3>
+                <ul class="bullet-list">
+                    {% if languages %}
+                        {% for lang in languages %}
+                            <li>{{ lang }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li>English</li>
+                        <li>Hindi</li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
 
         <div class="right-column">
@@ -252,6 +281,22 @@ HTML_TEMPLATE = """<div class="resume-container">
                         </ul>
                     </div>
                     {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="main-section">
+                <h3 class="section-title">EXTRACURRICULAR ACTIVITIES</h3>
+                {% if extra_curricular %}
+                    <ul class="bullet-list">
+                        {% for activity in extra_curricular %}
+                            <li>{{ activity }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <ul class="bullet-list">
+                        <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
+                        <li>NSS / NCC / Community Service</li>
+                    </ul>
                 {% endif %}
             </div>
         </div>
@@ -604,18 +649,21 @@ def deploy():
                     "professional_summary": "A highly motivated and detail-oriented undergraduate student in Computer Applications. Strong foundation in software development, modern web technologies, and database management. Eager to contribute effectively to team success while gaining valuable industry exposure.",
                     "linkedin": "https://linkedin.com/in/arjun-mehta",
                     "github": "https://github.com/arjunmehta",
-                    "portfolio": "https://arjunmehta.dev"
+                    "portfolio": "https://arjunmehta.dev",
+                    "strengths": ["Problem Solving", "Teamwork", "Effective Communication", "Adaptability"],
+                    "languages_known": ["English (Fluent)", "Bengali (Native)", "Hindi (Proficient)"]
                 }
             )
             
             # Clear previous entries to avoid duplicates
-            from apps.profiles.models import Skill, Education, Project, Experience, Certification, Achievement
+            from apps.profiles.models import Skill, Education, Project, Experience, Certification, Achievement, ExtracurricularActivity
             Skill.objects.filter(profile=profile).delete()
             Education.objects.filter(profile=profile).delete()
             Project.objects.filter(profile=profile).delete()
             Experience.objects.filter(profile=profile).delete()
             Certification.objects.filter(profile=profile).delete()
             Achievement.objects.filter(profile=profile).delete()
+            ExtracurricularActivity.objects.filter(profile=profile).delete()
             
             # Seed Education
             from datetime import date
@@ -721,6 +769,26 @@ def deploy():
                 issuer="iLEAD Student Council",
                 date=date(2024, 7, 1),
                 description="Coordinated with faculty members and students to organize academic events and placement drives."
+            )
+
+            # Seed Extracurricular Activities
+            ExtracurricularActivity.objects.create(
+                profile=profile,
+                title="Technical Head – iLEAD Tech Fest 2025",
+                description="Led the technical committee for the annual college tech festival, managing event logistics, participant registrations, and hardware setup for 15+ events.",
+                date=date(2025, 2, 10)
+            )
+            ExtracurricularActivity.objects.create(
+                profile=profile,
+                title="Member – Coding Club, iLEAD",
+                description="Active participant in weekly competitive programming sessions and inter-college hackathons. Mentored junior students in Python fundamentals.",
+                date=date(2024, 6, 1)
+            )
+            ExtracurricularActivity.objects.create(
+                profile=profile,
+                title="NSS Volunteer",
+                description="Participated in community outreach programs including digital literacy drives and tree plantation camps organized by the National Service Scheme.",
+                date=date(2023, 11, 15)
             )
             print("Successfully seeded full profile data for student Arjun Mehta.")
         else:

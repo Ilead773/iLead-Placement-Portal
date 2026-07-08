@@ -9,11 +9,12 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 
 from core.permissions import IsStudentUser
-from .models import StudentProfile, Skill, Experience, Project, Education, Certification, Achievement
+from .models import StudentProfile, Skill, Experience, Project, Education, Certification, Achievement, ExtracurricularActivity
 from .serializers import (
     StudentProfileSerializer, StudentProfileUpdateSerializer,
     SkillSerializer, ExperienceSerializer, ProjectSerializer,
     EducationSerializer, CertificationSerializer, AchievementSerializer,
+    ExtracurricularActivitySerializer,
 )
 from .rules import ProfileCompletionValidator
 
@@ -325,4 +326,42 @@ class AchievementViewSet(viewsets.ViewSet):
         ach.soft_delete(user=request.user)
         profile.recalculate_completion()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ExtracurricularActivityViewSet(viewsets.ViewSet):
+    """CRUD for student extracurricular activities."""
+    permission_classes = [IsAuthenticated, IsStudentUser]
+
+    def list_activities(self, request):
+        student = request.user.student_profile
+        profile = get_object_or_404(StudentProfile, student=student)
+        return Response(ExtracurricularActivitySerializer(profile.extracurricular_activities.all(), many=True).data)
+
+    def add_activity(self, request):
+        student = request.user.student_profile
+        profile = get_object_or_404(StudentProfile, student=student)
+        serializer = ExtracurricularActivitySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(profile=profile)
+        profile.recalculate_completion()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update_activity(self, request, pk=None):
+        student = request.user.student_profile
+        profile = get_object_or_404(StudentProfile, student=student)
+        act = get_object_or_404(ExtracurricularActivity, id=pk, profile=profile)
+        serializer = ExtracurricularActivitySerializer(act, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        profile.recalculate_completion()
+        return Response(serializer.data)
+
+    def remove_activity(self, request, pk=None):
+        student = request.user.student_profile
+        profile = get_object_or_404(StudentProfile, student=student)
+        act = get_object_or_404(ExtracurricularActivity, id=pk, profile=profile)
+        act.soft_delete(user=request.user)
+        profile.recalculate_completion()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 

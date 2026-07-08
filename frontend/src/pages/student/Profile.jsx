@@ -38,6 +38,7 @@ export default function StudentProfile() {
   const [showEduModal, setShowEduModal] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [showAwardModal, setShowAwardModal] = useState(false);
+  const [showExtraModal, setShowExtraModal] = useState(false);
 
   // Editing States
   const [editingExpId, setEditingExpId] = useState(null);
@@ -46,6 +47,7 @@ export default function StudentProfile() {
   const [editingEduId, setEditingEduId] = useState(null);
   const [editingCertId, setEditingCertId] = useState(null);
   const [editingAwardId, setEditingAwardId] = useState(null);
+  const [editingExtraId, setEditingExtraId] = useState(null);
 
   // Form States
   const [newSkill, setNewSkill] = useState({ name: '', category: 'Technical', proficiency: 'Beginner' });
@@ -66,6 +68,7 @@ export default function StudentProfile() {
   const [newEdu, setNewEdu] = useState({ institution: '', degree: '', field: '', graduation_date: '', gpa: '', honors: '' });
   const [newCert, setNewCert] = useState({ name: '', issuer: '', date: '', credential_url: '' });
   const [newAward, setNewAward] = useState({ title: '', issuer: '', date: '', description: '' });
+  const [newExtra, setNewExtra] = useState({ title: '', description: '', date: '' });
 
   const handlePhotoClick = () => {
     if (fileInputRef.current) {
@@ -213,6 +216,8 @@ export default function StudentProfile() {
         year: profileRes.data.student_year || '',
         category: profileRes.data.student_category || '',
         backlogs: profileRes.data.student_backlogs || false,
+        strengths: Array.isArray(profileRes.data.strengths) ? profileRes.data.strengths.join(', ') : '',
+        languages_known: Array.isArray(profileRes.data.languages_known) ? profileRes.data.languages_known.join(', ') : '',
       });
     } catch (err) {
       toast.error('Failed to load profile');
@@ -233,7 +238,9 @@ export default function StudentProfile() {
         ...basicInfo,
         linkedin: fixUrl(basicInfo.linkedin),
         github: fixUrl(basicInfo.github),
-        portfolio: fixUrl(basicInfo.portfolio)
+        portfolio: fixUrl(basicInfo.portfolio),
+        strengths: basicInfo.strengths ? basicInfo.strengths.split(',').map(s => s.trim()).filter(s => s !== '') : [],
+        languages_known: basicInfo.languages_known ? basicInfo.languages_known.split(',').map(l => l.trim()).filter(l => l !== '') : [],
       };
 
       await api.patch('profiles/me/', sanitizedInfo);
@@ -503,6 +510,46 @@ export default function StudentProfile() {
     }
   };
 
+  const handleAddExtra = async (e) => {
+    e.preventDefault();
+    try {
+      const extraData = { ...newExtra };
+      if (!extraData.date) delete extraData.date;
+
+      if (editingExtraId) {
+        await api.patch(`profiles/me/extracurricular/${editingExtraId}/`, extraData);
+        toast.success('Extracurricular activity updated!');
+      } else {
+        await api.post('profiles/me/extracurricular/', extraData);
+        toast.success('Extracurricular activity added!');
+      }
+      setShowExtraModal(false);
+      setEditingExtraId(null);
+      setNewExtra({ title: '', description: '', date: '' });
+      fetchProfile();
+    } catch (err) {
+      const errorMsg = err.response?.data ? Object.values(err.response.data)[0] : 'Failed to save activity';
+      toast.error(`Failed: ${errorMsg}`);
+    }
+  };
+
+  const startEditExtra = (act) => {
+    setNewExtra(act);
+    setEditingExtraId(act.id);
+    setShowExtraModal(true);
+  };
+
+  const handleDeleteExtra = async (id) => {
+    if (!window.confirm('Delete this extracurricular activity?')) return;
+    try {
+      await api.delete(`profiles/me/extracurricular/${id}/`);
+      toast.success('Extracurricular activity removed');
+      fetchProfile();
+    } catch (err) {
+      toast.error('Failed to remove extracurricular activity');
+    }
+  };
+
   if (loading) return <div className="loading-state">Loading Profile...</div>;
 
   return (
@@ -647,6 +694,38 @@ export default function StudentProfile() {
                   <span>Professional Summary</span>
                 </div>
                 <p className="profile-summary-text">{profile?.professional_summary || 'No summary added yet. Introduce yourself to prospective employers...'}</p>
+              </div>
+
+              {/* Strengths */}
+              <div className="profile-info-item strengths mt-4">
+                <div className="profile-info-content w-full">
+                  <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-2">Strengths</span>
+                  <div className="flex flex-wrap gap-1">
+                    {profile?.strengths?.length > 0 ? (
+                      profile.strengths.map((str, idx) => (
+                        <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted italic">Not set</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Languages Known */}
+              <div className="profile-info-item languages mt-4">
+                <div className="profile-info-content w-full">
+                  <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-2">Languages Known</span>
+                  <div className="flex flex-wrap gap-1">
+                    {profile?.languages_known?.length > 0 ? (
+                      profile.languages_known.map((lang, idx) => (
+                        <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2 py-0.5 rounded font-semibold border border-secondary/15">{lang}</span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted italic">Not set</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Social Buttons */}
@@ -863,6 +942,33 @@ export default function StudentProfile() {
               )) : <div className="text-muted text-sm italic">No awards or achievements added.</div>}
             </div>
           </section>
+
+          {/* Extracurricular Activities */}
+          <section className="glass-panel p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold flex items-center gap-2"><span>🏃</span> Extracurricular Activities</h3>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowExtraModal(true)}>+ Add</button>
+            </div>
+            <div className="space-y-6">
+              {profile?.extracurricular_activities?.length > 0 ? profile.extracurricular_activities.map(act => (
+                <div key={act.id} className="experience-card group">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold">{act.title}</h4>
+                      {act.description && <p className="text-xs text-muted mt-1">{act.description}</p>}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      {act.date && <span className="text-xs text-muted font-bold">{act.date}</span>}
+                      <div className="item-actions">
+                        <span onClick={() => startEditExtra(act)} className="action-link edit">Edit</span>
+                        <span onClick={() => handleDeleteExtra(act.id)} className="action-link delete">Delete</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )) : <div className="text-muted text-sm italic">No extracurricular activities added.</div>}
+            </div>
+          </section>
         </div>
       </div>
 
@@ -921,6 +1027,26 @@ export default function StudentProfile() {
                     />
                     <label htmlFor="email-alerts-checkbox" className="text-sm font-semibold select-none cursor-pointer">Receive Email Job Alerts</label>
                   </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <div className="input-group">
+                  <label>Strengths (comma separated)</label>
+                  <input 
+                    placeholder="e.g. Leadership, Problem Solving, Public Speaking" 
+                    className="input-field" 
+                    value={basicInfo.strengths} 
+                    onChange={e => setBasicInfo({...basicInfo, strengths: e.target.value})} 
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Languages Known (comma separated)</label>
+                  <input 
+                    placeholder="e.g. English (Fluent), Hindi (Native)" 
+                    className="input-field" 
+                    value={basicInfo.languages_known} 
+                    onChange={e => setBasicInfo({...basicInfo, languages_known: e.target.value})} 
+                  />
                 </div>
               </div>
               <button type="submit" className="btn btn-primary btn-full mt-4">Save Changes</button>
@@ -1098,6 +1224,39 @@ export default function StudentProfile() {
               </div>
               <button type="submit" className="btn btn-primary btn-full mt-4">
                 {editingAwardId ? 'Save Changes' : 'Add Award'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Extracurricular Activities Modal */}
+      {showExtraModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>{editingExtraId ? 'Edit Extracurricular Activity' : 'Add Extracurricular Activity'}</h2>
+              <button className="modal-close" onClick={() => {
+                setShowExtraModal(false);
+                setEditingExtraId(null);
+                setNewExtra({ title: '', description: '', date: '' });
+              }}>&times;</button>
+            </div>
+            <form onSubmit={handleAddExtra}>
+              <div className="input-group">
+                <label>Activity Title / Role</label>
+                <input className="input-field" required placeholder="e.g. Football Team Captain, Coding Club Member" value={newExtra.title} onChange={e => setNewExtra({...newExtra, title: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label>Date (Optional)</label>
+                <input type="date" className="input-field" value={newExtra.date} onChange={e => setNewExtra({...newExtra, date: e.target.value})} />
+              </div>
+              <div className="input-group">
+                <label>Description (Optional)</label>
+                <textarea className="input-field" rows="3" placeholder="Describe your achievements or role..." value={newExtra.description} onChange={e => setNewExtra({...newExtra, description: e.target.value})} />
+              </div>
+              <button type="submit" className="btn btn-primary btn-full mt-4">
+                {editingExtraId ? 'Save Changes' : 'Add Activity'}
               </button>
             </form>
           </div>
