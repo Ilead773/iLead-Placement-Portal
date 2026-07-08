@@ -485,6 +485,7 @@ export default function CSVUploadPage() {
                   <th>Status</th>
                   <th>Success</th>
                   <th>Failed</th>
+                  <th>Welcome Emails</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -512,6 +513,51 @@ export default function CSVUploadPage() {
                     <td style={{ color: '#10b981', fontWeight: 600 }}>{log.successful_records}</td>
                     <td style={{ color: '#ef4444', fontWeight: 600 }}>{log.failed_records}</td>
                     <td>
+                      {log.status !== 'reverted' && log.status !== 'failed' && log.created_count > 0 ? (
+                        log.emails_sent ? (
+                          <span style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: 4, 
+                            color: '#10b981', 
+                            fontWeight: 600, 
+                            fontSize: '0.82rem', 
+                            background: 'rgba(16, 185, 129, 0.08)', 
+                            padding: '4px 10px', 
+                            borderRadius: '20px', 
+                            border: '1px solid rgba(16, 185, 129, 0.2)' 
+                          }} title={`Sent on ${new Date(log.emails_sent_at).toLocaleString()}`}>
+                            ✓ Emails Sent
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => handleSendEmails(log.id)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: 6, 
+                              padding: '5px 10px', 
+                              fontSize: '0.78rem', 
+                              cursor: 'pointer', 
+                              border: '1px solid var(--accent-primary)', 
+                              color: 'var(--accent-primary)', 
+                              background: 'transparent',
+                              borderRadius: '6px',
+                              fontWeight: 600
+                            }}
+                            disabled={sendingEmails[log.id]}
+                          >
+                            {sendingEmails[log.id] ? 'Sending...' : '✉ Send Emails'}
+                          </button>
+                        )
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                          {log.status === 'reverted' ? 'Reverted' : log.status === 'failed' ? 'Failed' : 'No new accounts'}
+                        </span>
+                      )}
+                    </td>
+                    <td>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <button 
                           onClick={() => setSelectedLogSummary(log)}
@@ -520,23 +566,6 @@ export default function CSVUploadPage() {
                         >
                           👁️ View Summary
                         </button>
-
-                        {log.status !== 'reverted' && log.status !== 'failed' && log.created_count > 0 && (
-                          log.emails_sent ? (
-                            <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }} title={`Sent on ${new Date(log.emails_sent_at).toLocaleString()}`}>
-                              ✓ Emails Sent
-                            </span>
-                          ) : (
-                            <button 
-                              onClick={() => handleSendEmails(log.id)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', background: 'transparent' }}
-                              disabled={sendingEmails[log.id]}
-                            >
-                              {sendingEmails[log.id] ? 'Sending...' : '✉ Send Emails'}
-                            </button>
-                          )
-                        )}
 
                         {log.status !== 'reverted' && log.status !== 'failed' && (
                           <button 
@@ -547,9 +576,6 @@ export default function CSVUploadPage() {
                           >
                             <Trash2 size={14} /> Revert
                           </button>
-                        )}
-                        {log.status === 'reverted' && (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Reverted</span>
                         )}
                       </div>
                     </td>
