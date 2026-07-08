@@ -22,20 +22,20 @@ class UserSerializer(serializers.ModelSerializer):
         features_dict = {}
         from .models import StudentFeatureConfig
         student = getattr(obj, 'student_profile', None)
-        stream = student.stream if student else None
+        course = student.course if student else None
+        year_value = getattr(student, 'year', None)
         
         configs = StudentFeatureConfig.objects.all()
         for config in configs:
             if not config.is_enabled:
                 features_dict[config.feature_key] = False
             else:
-                if not config.allowed_departments:
-                    features_dict[config.feature_key] = True
-                else:
-                    if stream and stream in config.allowed_departments:
-                        features_dict[config.feature_key] = True
-                    else:
-                        features_dict[config.feature_key] = False
+                # Course check (empty allowed_courses means all)
+                course_ok = not getattr(config, 'allowed_courses', None) or (course and course in config.allowed_courses)
+                # Year check (empty allowed_years means all)
+                year_ok = not getattr(config, 'allowed_years', None) or (year_value and year_value in config.allowed_years)
+                
+                features_dict[config.feature_key] = (course_ok and year_ok)
         return features_dict
 
 
@@ -327,5 +327,5 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class StudentFeatureConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentFeatureConfig
-        fields = ['id', 'feature_key', 'display_name', 'description', 'is_enabled', 'allowed_departments']
+        fields = ['id', 'feature_key', 'display_name', 'description', 'is_enabled', 'allowed_departments', 'allowed_years', 'allowed_courses']
 

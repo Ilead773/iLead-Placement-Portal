@@ -3,7 +3,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ..models import Student, StudentFeatureConfig
+from ..models import Student, StudentFeatureConfig, Course
 from ..serializers import StudentFeatureConfigSerializer
 from ..permissions import IsAdminOnly
 
@@ -15,12 +15,13 @@ class FeatureConfigViewSet(viewsets.ViewSet):
         configs = StudentFeatureConfig.objects.all().order_by('display_name')
         configs_serializer = StudentFeatureConfigSerializer(configs, many=True)
 
-        # Get unique student streams from database
+        # Get unique student streams from database (deduplicated)
         streams = list(
-            Student.objects.exclude(stream__isnull=True)
-            .exclude(stream='')
-            .values_list('stream', flat=True)
-            .distinct()
+            set(
+                Student.objects.exclude(stream__isnull=True)
+                .exclude(stream='')
+                .values_list('stream', flat=True)
+            )
         )
 
         # Prepopulate default departments/streams if not already in student profiles
@@ -29,9 +30,19 @@ class FeatureConfigViewSet(viewsets.ViewSet):
             if ds not in streams:
                 streams.append(ds)
 
+        # Get unique course names from Course table
+        courses = list(
+            set(
+                Course.objects.exclude(name__isnull=True)
+                .exclude(name='')
+                .values_list('name', flat=True)
+            )
+        )
+
         return Response({
             'configs': configs_serializer.data,
-            'departments': sorted(streams)
+            'departments': sorted(streams),
+            'courses': sorted(courses)
         })
 
     def create(self, request):
@@ -50,7 +61,9 @@ class FeatureConfigViewSet(viewsets.ViewSet):
             display_name=display_name,
             description=description,
             is_enabled=True,
-            allowed_departments=[]
+            allowed_departments=[],
+            allowed_years=[],
+            allowed_courses=[]
         )
         return Response(StudentFeatureConfigSerializer(config).data, status=status.HTTP_201_CREATED)
 
@@ -70,6 +83,8 @@ class FeatureConfigViewSet(viewsets.ViewSet):
                 config = StudentFeatureConfig.objects.get(feature_key=feature_key)
                 config.is_enabled = is_enabled
                 config.allowed_departments = allowed_departments
+                config.allowed_years = config_item.get('allowed_years', [])
+                config.allowed_courses = config_item.get('allowed_courses', [])
                 config.save()
                 updated_configs.append(config)
             except StudentFeatureConfig.DoesNotExist:

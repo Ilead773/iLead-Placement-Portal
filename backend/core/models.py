@@ -445,6 +445,8 @@ class StudentFeatureConfig(models.Model):
     description = models.TextField(blank=True, default='')
     is_enabled = models.BooleanField(default=True)
     allowed_departments = models.JSONField(default=list, blank=True)
+    allowed_years = models.JSONField(default=list, blank=True)
+    allowed_courses = models.JSONField(default=list, blank=True)
 
     class Meta:
         db_table = 'student_feature_configs'

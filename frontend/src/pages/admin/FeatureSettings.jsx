@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../../api/axios';
-import { Settings, Plus, Search, Shield, Save, CheckSquare, Square, ToggleLeft, ToggleRight, Trash2, X, AlertTriangle } from 'lucide-react';
+import { Settings, Plus, Search, Shield, Save, CheckSquare, Square, ToggleLeft, ToggleRight, Trash2, X, AlertTriangle, Calendar, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function FeatureSettings() {
   const [configs, setConfigs] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,6 +17,13 @@ export default function FeatureSettings() {
   const [newDesc, setNewDesc] = useState('');
 
   const coreFeatures = ['mock-interview', 'resumes', 'jobs', 'internships', 'job-feed', 'saved-jobs', 'assignments', 'sessions', 'north-star'];
+  
+  const yearsList = [
+    { key: '1st', label: '1st Year' },
+    { key: '2nd', label: '2nd Year' },
+    { key: '3rd', label: '3rd Year' },
+    { key: '4th', label: '4th Year' }
+  ];
 
   useEffect(() => {
     fetchFeatureData();
@@ -27,7 +34,7 @@ export default function FeatureSettings() {
     try {
       const response = await axios.get('/admin-ops/features/');
       setConfigs(response.data.configs || []);
-      setDepartments(response.data.departments || []);
+      setCourses(response.data.courses || []);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load student feature settings.');
@@ -42,26 +49,50 @@ export default function FeatureSettings() {
     setConfigs(updated);
   };
 
-  const handleDeptToggle = (featureIndex, deptName) => {
+  const handleCourseToggle = (featureIndex, courseName) => {
     const updated = [...configs];
-    const allowed = updated[featureIndex].allowed_departments || [];
+    const allowed = updated[featureIndex].allowed_courses || [];
     
-    if (allowed.includes(deptName)) {
-      updated[featureIndex].allowed_departments = allowed.filter(d => d !== deptName);
+    if (allowed.includes(courseName)) {
+      updated[featureIndex].allowed_courses = allowed.filter(c => c !== courseName);
     } else {
-      updated[featureIndex].allowed_departments = [...allowed, deptName];
+      updated[featureIndex].allowed_courses = [...allowed, courseName];
     }
     setConfigs(updated);
   };
 
-  const handleSelectAllDepts = (featureIndex, isAllSelected) => {
+  const handleSelectAllCourses = (featureIndex, isAllSelected) => {
     const updated = [...configs];
     if (isAllSelected) {
-      // Clear allowed so that it is enabled for ALL departments
-      updated[featureIndex].allowed_departments = [];
+      // Clear allowed so that it is enabled for ALL courses
+      updated[featureIndex].allowed_courses = [];
     } else {
-      // Set to all departments so everything is explicitly selected (or we can populate all)
-      updated[featureIndex].allowed_departments = [...departments];
+      // Set to all courses explicitly
+      updated[featureIndex].allowed_courses = [...courses];
+    }
+    setConfigs(updated);
+  };
+
+  const handleYearToggle = (featureIndex, yearKey) => {
+    const updated = [...configs];
+    const allowed = updated[featureIndex].allowed_years || [];
+    
+    if (allowed.includes(yearKey)) {
+      updated[featureIndex].allowed_years = allowed.filter(y => y !== yearKey);
+    } else {
+      updated[featureIndex].allowed_years = [...allowed, yearKey];
+    }
+    setConfigs(updated);
+  };
+
+  const handleSelectAllYears = (featureIndex, isAllSelected) => {
+    const updated = [...configs];
+    if (isAllSelected) {
+      // Clear allowed so that it is enabled for ALL years
+      updated[featureIndex].allowed_years = [];
+    } else {
+      // Set to all years explicitly
+      updated[featureIndex].allowed_years = yearsList.map(y => y.key);
     }
     setConfigs(updated);
   };
@@ -88,7 +119,6 @@ export default function FeatureSettings() {
       return;
     }
     
-    // Validate feature key (lowercase, letters/hyphens only)
     if (!/^[a-z0-9-]+$/.test(newKey)) {
       toast.error('Feature Key must be lowercase alphanumeric and hyphens only (e.g. mock-interview).');
       return;
@@ -151,10 +181,10 @@ export default function FeatureSettings() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-card border border-border-color p-6 rounded-2xl h-[280px]">
+            <div key={i} className="bg-card border border-border-color p-6 rounded-2xl h-[320px]">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-6"></div>
-              <div className="h-[120px] bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+              <div className="h-[160px] bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
             </div>
           ))}
         </div>
@@ -172,7 +202,7 @@ export default function FeatureSettings() {
             Student Feature Control
           </h1>
           <p className="text-secondary text-sm mt-1">
-            Enable or disable specific features dynamically for student accounts globally or filtered by department/stream.
+            Configure access to specific student portal features globally, by course, or selectively by academic year.
           </p>
         </div>
         <div className="flex gap-3 self-start md:self-auto">
@@ -192,7 +222,7 @@ export default function FeatureSettings() {
         </div>
       </div>
 
-      {/* Control panel and filters */}
+      {/* Filter and helper */}
       <div className="bg-card border border-border-color p-4 rounded-2xl mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
@@ -206,17 +236,17 @@ export default function FeatureSettings() {
         </div>
         <div className="flex items-center gap-2 text-secondary text-xs bg-slate-100 dark:bg-slate-800 py-2 px-3 rounded-lg self-start sm:self-auto border border-border-color">
           <Shield size={14} className="text-blue-500" />
-          <span>Core features are protected and cannot be deleted.</span>
+          <span>Restricting by both course and year allows granular cohort targeting.</span>
         </div>
       </div>
 
       {/* Feature Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {filteredConfigs.map((config, index) => {
-          // Check index in original configs array to apply state modifications
           const originalIndex = configs.findIndex(c => c.id === config.id);
           const isCore = coreFeatures.includes(config.feature_key);
-          const isAllowedAll = !config.allowed_departments || config.allowed_departments.length === 0;
+          const isAllowedAllCourses = !config.allowed_courses || config.allowed_courses.length === 0;
+          const isAllowedAllYears = !config.allowed_years || config.allowed_years.length === 0;
           
           return (
             <div 
@@ -238,19 +268,19 @@ export default function FeatureSettings() {
                       </span>
                       {isCore && (
                         <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 py-0.5 px-2 rounded-full font-medium">
-                          Core Feature
+                          Core
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-secondary mt-1 min-h-[32px]">{config.description || 'No description provided.'}</p>
                   </div>
                   
-                  {/* Status Toggle Switch */}
+                  {/* Global Toggle & Delete buttons */}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleGlobalToggle(originalIndex)}
                       className="cursor-pointer border-none bg-transparent p-0 flex"
-                      title={config.is_enabled ? "Deactivate Feature Globally" : "Activate Feature Globally"}
+                      title={config.is_enabled ? "Deactivate Globally" : "Activate Globally"}
                     >
                       {config.is_enabled ? (
                         <ToggleRight size={44} className="text-blue-500" />
@@ -272,60 +302,97 @@ export default function FeatureSettings() {
 
                 <div className="h-[1px] bg-slate-100 dark:bg-slate-800 my-4" />
 
-                {/* Target Departments Checkboxes */}
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
-                      Target Departments
-                    </span>
-                    
-                    {/* Select All Toggle */}
-                    <button
-                      onClick={() => handleSelectAllDepts(originalIndex, isAllowedAll)}
-                      disabled={!config.is_enabled}
-                      className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isAllowedAll ? (
-                        <>
-                          <CheckSquare size={14} />
-                          <span>Enabled for all</span>
-                        </>
-                      ) : (
-                        <>
-                          <Square size={14} />
-                          <span>Restrict departments</span>
-                        </>
-                      )}
-                    </button>
+                {/* Grid for Courses and Years check lists */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  
+                  {/* Target Courses Selector */}
+                  <div className="lg:col-span-8">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                        <GraduationCap size={14} className="text-primary" /> Target Courses
+                      </span>
+                      <button
+                        onClick={() => handleSelectAllCourses(originalIndex, isAllowedAllCourses)}
+                        disabled={!config.is_enabled}
+                        className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isAllowedAllCourses ? <CheckSquare size={13} /> : <Square size={13} />}
+                        <span>{isAllowedAllCourses ? 'All Courses' : 'Restrict'}</span>
+                      </button>
+                    </div>
+
+                    <div className="max-h-[140px] overflow-y-auto flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-border-color">
+                      {courses.map(courseName => {
+                        const isSelected = isAllowedAllCourses || (config.allowed_courses || []).includes(courseName);
+                        return (
+                          <label 
+                            key={courseName} 
+                            className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer select-none transition-colors border ${
+                              !config.is_enabled 
+                                ? 'opacity-40 cursor-not-allowed border-transparent' 
+                                : isSelected
+                                  ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
+                            }`}
+                          >
+                            <input 
+                              type="checkbox"
+                              disabled={!config.is_enabled || isAllowedAllCourses}
+                              checked={isSelected}
+                              onChange={() => handleCourseToggle(originalIndex, courseName)}
+                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <span className="truncate" title={courseName}>{courseName}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Individual Department Toggles */}
-                  <div className="grid grid-cols-2 gap-2 bg-slate-50/50 dark:bg-slate-800/20 p-3 rounded-xl border border-border-color min-h-[100px] align-content-start">
-                    {departments.map(dept => {
-                      const isSelected = isAllowedAll || config.allowed_departments.includes(dept);
-                      return (
-                        <label 
-                          key={dept} 
-                          className={`flex items-center gap-2 p-2 rounded-lg text-xs cursor-pointer select-none transition-colors border ${
-                            !config.is_enabled 
-                              ? 'opacity-40 cursor-not-allowed border-transparent' 
-                              : isSelected
-                                ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
-                                : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
-                          }`}
-                        >
-                          <input 
-                            type="checkbox"
-                            disabled={!config.is_enabled || isAllowedAll}
-                            checked={isSelected}
-                            onChange={() => handleDeptToggle(originalIndex, dept)}
-                            className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
-                          />
-                          <span className="truncate" title={dept}>{dept}</span>
-                        </label>
-                      );
-                    })}
+                  {/* Target Years Selector */}
+                  <div className="lg:col-span-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                        <Calendar size={14} className="text-primary" /> Target Years
+                      </span>
+                      <button
+                        onClick={() => handleSelectAllYears(originalIndex, isAllowedAllYears)}
+                        disabled={!config.is_enabled}
+                        className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-600 border-none bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isAllowedAllYears ? <CheckSquare size={13} /> : <Square size={13} />}
+                        <span>{isAllowedAllYears ? 'All Years' : 'Restrict'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-800/20 p-2.5 rounded-xl border border-border-color min-h-[140px]">
+                      {yearsList.map(y => {
+                        const isSelected = isAllowedAllYears || (config.allowed_years || []).includes(y.key);
+                        return (
+                          <label 
+                            key={y.key} 
+                            className={`flex items-center gap-2 p-1.5 rounded-lg text-xs cursor-pointer select-none transition-colors border ${
+                              !config.is_enabled 
+                                ? 'opacity-40 cursor-not-allowed border-transparent' 
+                                : isSelected
+                                  ? 'bg-blue-500/5 border-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold' 
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent text-secondary'
+                            }`}
+                          >
+                            <input 
+                              type="checkbox"
+                              disabled={!config.is_enabled || isAllowedAllYears}
+                              checked={isSelected}
+                              onChange={() => handleYearToggle(originalIndex, y.key)}
+                              className="w-3.5 h-3.5 accent-blue-500 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <span>{y.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
+
                 </div>
               </div>
 
@@ -333,13 +400,13 @@ export default function FeatureSettings() {
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px] text-secondary">
                 <span>
                   {config.is_enabled 
-                    ? `Status: Active for ${isAllowedAll ? 'All Departments' : `${config.allowed_departments.length} department(s)`}` 
+                    ? `Active for: ${isAllowedAllCourses ? 'All Courses' : `${config.allowed_courses.length} course(s)`} • ${isAllowedAllYears ? 'All Years' : `${config.allowed_years.length} year(s)`}` 
                     : 'Status: Deactivated Globally'
                   }
                 </span>
-                {!isAllowedAll && config.is_enabled && (
+                {(!isAllowedAllCourses || !isAllowedAllYears) && config.is_enabled && (
                   <span className="text-amber-500 flex items-center gap-1 font-semibold">
-                    <AlertTriangle size={10} /> Limited Access
+                    <AlertTriangle size={10} /> Cohort Targeted
                   </span>
                 )}
               </div>
@@ -357,18 +424,15 @@ export default function FeatureSettings() {
       {/* Add Custom Feature Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div 
             onClick={() => setShowAddModal(false)}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
           />
           
-          {/* Modal Container */}
           <form 
             onSubmit={handleAddFeature}
             className="relative bg-card border border-border-color rounded-2xl w-full max-w-md shadow-2xl p-6 overflow-hidden flex flex-col gap-4"
           >
-            {/* Gradient accent */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
             
             <div className="flex justify-between items-start">
