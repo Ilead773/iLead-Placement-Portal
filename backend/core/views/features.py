@@ -92,6 +92,18 @@ class FeatureConfigViewSet(viewsets.ViewSet):
 
         return Response(StudentFeatureConfigSerializer(updated_configs, many=True).data)
 
+    def update(self, request, pk=None):
+        try:
+            config = StudentFeatureConfig.objects.get(pk=pk)
+            config.is_enabled = request.data.get('is_enabled', config.is_enabled)
+            config.allowed_departments = request.data.get('allowed_departments', config.allowed_departments)
+            config.allowed_years = request.data.get('allowed_years', config.allowed_years)
+            config.allowed_courses = request.data.get('allowed_courses', config.allowed_courses)
+            config.save()
+            return Response(StudentFeatureConfigSerializer(config).data)
+        except StudentFeatureConfig.DoesNotExist:
+            return Response({'error': 'Feature configuration not found.'}, status=status.HTTP_404_NOT_FOUND)
+
     def destroy(self, request, pk=None):
         try:
             config = StudentFeatureConfig.objects.get(pk=pk)

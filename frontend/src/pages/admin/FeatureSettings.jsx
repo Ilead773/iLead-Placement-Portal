@@ -107,6 +107,19 @@ export default function FeatureSettings() {
     setConfigs(updated);
   };
 
+  const handleSaveSingleFeature = async (featureIndex) => {
+    const config = configs[featureIndex];
+    const toastId = toast.loading(`Saving ${config.display_name} settings...`);
+    try {
+      await axios.put(`/admin-ops/features/${config.id}/`, config);
+      toast.success(`${config.display_name} settings saved successfully! 🎉`, { id: toastId });
+      fetchFeatureData();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Failed to save ${config.display_name} settings.`, { id: toastId });
+    }
+  };
+
   const handleSaveChanges = async () => {
     setSaving(true);
     const toastId = toast.loading('Saving features configuration...');
@@ -420,19 +433,28 @@ export default function FeatureSettings() {
                 </div>
               </div>
 
-              {/* Status footer bar */}
-              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-[10px] text-secondary">
-                <span>
-                  {config.is_enabled 
-                    ? `Active for: ${isAllowedAllCourses ? 'All Courses' : `${config.allowed_courses.length} course(s)`} • ${isAllowedAllYears ? 'All Years' : `${config.allowed_years.length} year(s)`}` 
-                    : 'Status: Deactivated Globally'
-                  }
-                </span>
-                {(!isAllowedAllCourses || !isAllowedAllYears) && config.is_enabled && (
-                  <span className="text-amber-500 flex items-center gap-1 font-semibold">
-                    <AlertTriangle size={10} /> Cohort Targeted
-                  </span>
-                )}
+              {/* Status footer bar with local Save button */}
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
+                <div className="text-[10px] text-secondary flex-1">
+                  <div>
+                    {config.is_enabled 
+                      ? `Active for: ${isAllowedAllCourses ? 'All Courses' : `${config.allowed_courses.length} course(s)`} • ${isAllowedAllYears ? 'All Years' : `${config.allowed_years.length} year(s)`}` 
+                      : 'Status: Deactivated Globally'
+                    }
+                  </div>
+                  {(!isAllowedAllCourses || !isAllowedAllYears) && config.is_enabled && (
+                    <span className="text-amber-500 flex items-center gap-1 font-semibold mt-1">
+                      <AlertTriangle size={10} /> Cohort Targeted
+                    </span>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => handleSaveSingleFeature(originalIndex)}
+                  className="btn btn-primary text-xs py-1.5 px-3 flex items-center gap-1 hover:scale-[1.02] transition-transform shadow-md"
+                >
+                  <Save size={12} /> Save
+                </button>
               </div>
             </div>
           );
