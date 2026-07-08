@@ -10,6 +10,7 @@ from .assignments import AssignmentViewSet, LearningAssignmentAdminViewSet, Stud
 from .student_self import StudentSelfViewSet
 from .dashboard import DashboardViewSet, AuditLogViewSet
 from .admin_ops import AdminOpsViewSet, HealthCheckView
+from .features import FeatureConfigViewSet
 
 __all__ = [
     'AuthViewSet',
@@ -23,4 +24,6 @@ __all__ = [
     'AuditLogViewSet',
     'AdminOpsViewSet',
     'HealthCheckView',
+    'FeatureConfigViewSet',
 ]
+

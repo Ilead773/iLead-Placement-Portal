@@ -55,6 +55,7 @@ const ADMIN_NAV = [
     { to: '/jobs/create', icon: <PlusSquare size={18} strokeWidth={2} />, label: 'Create Job' },
     { to: '/internships/create', icon: <PlusSquare size={18} strokeWidth={2} />, label: 'Create Internship' },
     { to: '/admin/notifications', icon: <Bell size={18} strokeWidth={2} />, label: 'Send Notifications' },
+    { to: '/admin/features', icon: <Settings size={18} strokeWidth={2} />, label: 'Student Features' },
   ]},
   { section: 'Support', items: [
     { to: '/coordinators', icon: <UserCircle size={18} strokeWidth={2} />, label: 'Coordinators' },
@@ -71,20 +72,20 @@ const STUDENT_NAV = [
     { to: '/student', icon: <Home size={18} strokeWidth={2} />, label: 'Dashboard' },
     { to: '/student/profile', icon: <User size={18} strokeWidth={2} />, label: 'My Profile' },
     { to: '/student/notifications', icon: <Bell size={18} strokeWidth={2} />, label: 'Notifications' },
-    { to: '/student/sessions', icon: <Video size={18} strokeWidth={2} />, label: 'My Sessions', badge: 'ZOOM' },
-    { to: '/north-star', icon: <Star size={18} strokeWidth={2} />, label: 'Project North Star' },
+    { to: '/student/sessions', icon: <Video size={18} strokeWidth={2} />, label: 'My Sessions', badge: 'ZOOM', featureKey: 'sessions' },
+    { to: '/north-star', icon: <Star size={18} strokeWidth={2} />, label: 'Project North Star', featureKey: 'north-star' },
   ]},
   { section: 'Career', items: [
-    { to: '/student/resumes', icon: <FileText size={18} strokeWidth={2} />, label: 'My Resumes' },
+    { to: '/student/resumes', icon: <FileText size={18} strokeWidth={2} />, label: 'My Resumes', featureKey: 'resumes' },
     { to: '/student/applications', icon: <ClipboardList size={18} strokeWidth={2} />, label: 'My Applications' },
-    { to: '/student/jobs', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Jobs' },
-    { to: '/student/internships', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Internships' },
-    { to: '/student/job-feed', icon: <Rss size={18} strokeWidth={2} />, label: 'Job Feed', badge: 'NEW' },
-    { to: '/student/saved-jobs', icon: <Bookmark size={18} strokeWidth={2} />, label: 'Saved Jobs' },
+    { to: '/student/jobs', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Jobs', featureKey: 'jobs' },
+    { to: '/student/internships', icon: <Briefcase size={18} strokeWidth={2} />, label: 'Internships', featureKey: 'internships' },
+    { to: '/student/job-feed', icon: <Rss size={18} strokeWidth={2} />, label: 'Job Feed', badge: 'NEW', featureKey: 'job-feed' },
+    { to: '/student/saved-jobs', icon: <Bookmark size={18} strokeWidth={2} />, label: 'Saved Jobs', featureKey: 'saved-jobs' },
   ]},
   { section: 'Preparation', items: [
-    { to: '/student/assignments', icon: <GraduationCap size={18} strokeWidth={2} />, label: 'Assignments' },
-    { to: '/student/mock-interview', icon: <Mic size={18} strokeWidth={2} />, label: 'Mock Interview', badge: 'NEW' },
+    { to: '/student/assignments', icon: <GraduationCap size={18} strokeWidth={2} />, label: 'Assignments', featureKey: 'assignments' },
+    { to: '/student/mock-interview', icon: <Mic size={18} strokeWidth={2} />, label: 'Mock Interview', badge: 'NEW', featureKey: 'mock-interview' },
   ]},
   { section: 'Support', items: [
     { to: '/student/faq', icon: <HelpCircle size={18} strokeWidth={2} />, label: 'FAQ & Policy' },
@@ -188,14 +189,24 @@ export default function Layout() {
   const isStudent = user?.role === 'student';
   const isAdmin = user?.role === 'admin';
   const NAV_ITEMS = (isStudent ? STUDENT_NAV : ADMIN_NAV).map(section => {
-    // If admin, show everything. If student, show everything in STUDENT_NAV.
-    if (isAdmin || isStudent) return section;
+    if (isStudent) {
+      const filteredItems = section.items.filter(item => {
+        if (item.featureKey) {
+          return user?.features?.[item.featureKey] !== false;
+        }
+        return true;
+      });
+      return { ...section, items: filteredItems };
+    }
+
+    if (isAdmin) return section;
 
     // For coordinators, we filter based on their granular permissions
     const filteredItems = section.items.filter(item => {
       // Basic coordinator stuff
       if (item.to === '/dashboard') return true;
       if (item.to === '/coordinators') return false; // Only admin can manage coordinators
+      if (item.to === '/admin/features') return false; // Only admin can manage features
 
       // Granular permission checks
       if (['/students'].includes(item.to)) {

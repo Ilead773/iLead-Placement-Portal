@@ -47,6 +47,7 @@ import NorthStarRouter from './pages/north-star/NorthStarRouter';
 import StudentTakeTest from './pages/north-star/student/TakeTest.jsx';
 import AdminPlacementSessions from './pages/admin/PlacementSessions.jsx';
 import StudentPlacementSessions from './pages/student/PlacementSessions.jsx';
+import FeatureSettings from './pages/admin/FeatureSettings.jsx';
 
 import useThemeStore from './store/themeStore';
 
@@ -73,8 +74,8 @@ export default function App() {
 
         {/* Shared North Star Route */}
         <Route element={<PrivateRoute roles={['admin', 'coordinator', 'student']}><Layout /></PrivateRoute>}>
-          <Route path="/north-star" element={<NorthStarRouter />} />
-          <Route path="/north_star" element={<NorthStarRouter />} />
+          <Route path="/north-star" element={<PrivateRoute feature="north-star"><NorthStarRouter /></PrivateRoute>} />
+          <Route path="/north_star" element={<PrivateRoute feature="north-star"><NorthStarRouter /></PrivateRoute>} />
         </Route>
 
         {/* Admin / Coordinator */}
@@ -103,25 +104,26 @@ export default function App() {
           <Route path="/admin/inbox" element={<Notifications />} />
           <Route path="/admin/faq" element={<FAQ />} />
           <Route path="/admin/sessions" element={<AdminPlacementSessions />} />
+          <Route path="/admin/features" element={<PrivateRoute roles={['admin']}><FeatureSettings /></PrivateRoute>} />
         </Route>
 
         {/* Student */}
         <Route element={<PrivateRoute roles={['student']}><Layout /></PrivateRoute>}>
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/student/profile" element={<StudentProfile />} />
-          <Route path="/student/resumes" element={<StudentResumes />} />
-          <Route path="/student/jobs" element={<Jobs />} />
-          <Route path="/student/internships" element={<Internships />} />
-          <Route path="/student/job-feed" element={<ExternalJobFeed />} />
-          <Route path="/student/saved-jobs" element={<SavedJobs />} />
+          <Route path="/student/resumes" element={<PrivateRoute feature="resumes"><StudentResumes /></PrivateRoute>} />
+          <Route path="/student/jobs" element={<PrivateRoute feature="jobs"><Jobs /></PrivateRoute>} />
+          <Route path="/student/internships" element={<PrivateRoute feature="internships"><Internships /></PrivateRoute>} />
+          <Route path="/student/job-feed" element={<PrivateRoute feature="job-feed"><ExternalJobFeed /></PrivateRoute>} />
+          <Route path="/student/saved-jobs" element={<PrivateRoute feature="saved-jobs"><SavedJobs /></PrivateRoute>} />
           <Route path="/student/applications" element={<Applications />} />
           <Route path="/student/applications/:id" element={<ApplicationDetail />} />
-          <Route path="/student/mock-interview" element={<MockInterview />} />
-          <Route path="/student/assignments" element={<StudentAssignments />} />
+          <Route path="/student/mock-interview" element={<PrivateRoute feature="mock-interview"><MockInterview /></PrivateRoute>} />
+          <Route path="/student/assignments" element={<PrivateRoute feature="assignments"><StudentAssignments /></PrivateRoute>} />
           <Route path="/student/take-test/:assignmentId" element={<StudentTakeTest />} />
           <Route path="/student/notifications" element={<Notifications />} />
           <Route path="/student/faq" element={<FAQ />} />
-          <Route path="/student/sessions" element={<StudentPlacementSessions />} />
+          <Route path="/student/sessions" element={<PrivateRoute feature="sessions"><StudentPlacementSessions /></PrivateRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to={isAuthenticated ? (user?.role === 'student' ? '/student' : '/dashboard') : '/login'} replace />} />

@@ -150,3 +150,30 @@ class CourseProgress(models.Model):
 
     def __str__(self):
         return f"Progress: {self.student.email} in {self.course.name} ({self.completion_percent}%)"
+
+
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+# Recalculate categories when ScheduledClass presence transitions between 0 and 1
+@receiver(post_save, sender=ScheduledClass)
+def handle_scheduled_class_save(sender, instance, created, **kwargs):
+    if created:
+        # Check if this is the first class
+        if sender.objects.count() == 1:
+            recalculate_student_categories()
+
+@receiver(post_delete, sender=ScheduledClass)
+def handle_scheduled_class_delete(sender, instance, **kwargs):
+    # Check if there are no classes left
+    if not sender.objects.exists():
+        recalculate_student_categories()
+
+def recalculate_student_categories():
+    from core.models import Student
+    students = Student.objects.filter(is_category_manual=False)
+    for student in students:
+        new_cat = student.calculate_category()
+        if student.category != new_cat:
+            student.category = new_cat
+            student.save(update_fields=['category'])

@@ -58,6 +58,9 @@ urlpatterns = [
     path('admin-ops/coordinators/<uuid:pk>/update-permissions/', views.AdminOpsViewSet.as_view({'put': 'update_permissions'})),
     path('admin-ops/external-clicks/', views.AdminOpsViewSet.as_view({'get': 'external_clicks'})),
     path('admin-ops/external-clicks/<uuid:pk>/mark-selected/', views.AdminOpsViewSet.as_view({'post': 'mark_selected'})),
+    path('admin-ops/features/', views.FeatureConfigViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('admin-ops/features/bulk-update/', views.FeatureConfigViewSet.as_view({'post': 'bulk_update'})),
+    path('admin-ops/features/<uuid:pk>/', views.FeatureConfigViewSet.as_view({'delete': 'destroy'})),
 
     # Audit
     path('audit-logs/', views.AuditLogViewSet.as_view({'get': 'list_logs'})),

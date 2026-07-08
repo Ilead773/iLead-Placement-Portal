@@ -2,18 +2,42 @@ from rest_framework import serializers
 from .models import (
     User, Student, Placement, PlacementAssignment, CSVUploadLog, AuditLog,
     ExternalClickLog, LearningAssignment, LearningQuestion,
-    StudentLearningAssignment, StudentLearningAnswer,
+    StudentLearningAssignment, StudentLearningAnswer, StudentFeatureConfig,
 )
 import re
 
 class UserSerializer(serializers.ModelSerializer):
+    features = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             'id', 'login_id', 'email', 'name', 'role', 'temp_password_flag', 'password_reset_required',
             'can_manage_students', 'can_manage_placements', 'can_manage_resumes',
-            'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks'
+            'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks',
+            'features'
         ]
+
+    def get_features(self, obj):
+        features_dict = {}
+        from .models import StudentFeatureConfig
+        student = getattr(obj, 'student_profile', None)
+        stream = student.stream if student else None
+        
+        configs = StudentFeatureConfig.objects.all()
+        for config in configs:
+            if not config.is_enabled:
+                features_dict[config.feature_key] = False
+            else:
+                if not config.allowed_departments:
+                    features_dict[config.feature_key] = True
+                else:
+                    if stream and stream in config.allowed_departments:
+                        features_dict[config.feature_key] = True
+                    else:
+                        features_dict[config.feature_key] = False
+        return features_dict
+
 
 class LoginSerializer(serializers.Serializer):
     login_id = serializers.CharField()
@@ -298,3 +322,10 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = '__all__'
+
+
+class StudentFeatureConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentFeatureConfig
+        fields = ['id', 'feature_key', 'display_name', 'description', 'is_enabled', 'allowed_departments']
+
