@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../../api/axios';
-import { Settings, Plus, Search, Shield, Save, ToggleLeft, ToggleRight, Trash2, X, AlertTriangle, Calendar, GraduationCap } from 'lucide-react';
+import { Settings, Search, Shield, Save, ToggleLeft, ToggleRight, AlertTriangle, Calendar, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function FeatureSettings() {
@@ -9,12 +9,6 @@ export default function FeatureSettings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  
-  // Custom feature form fields
-  const [newKey, setNewKey] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newDesc, setNewDesc] = useState('');
 
   const coreFeatures = ['mock-interview', 'resumes', 'jobs', 'internships', 'job-feed', 'saved-jobs', 'assignments', 'sessions', 'north-star'];
   
@@ -109,6 +103,7 @@ export default function FeatureSettings() {
 
   const handleSaveSingleFeature = async (featureIndex) => {
     const config = configs[featureIndex];
+    setSaving(true);
     const toastId = toast.loading(`Saving ${config.display_name} settings...`);
     try {
       await axios.put(`/admin-ops/features/${config.id}/`, config);
@@ -117,6 +112,8 @@ export default function FeatureSettings() {
     } catch (err) {
       console.error(err);
       toast.error(`Failed to save ${config.display_name} settings.`, { id: toastId });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -132,58 +129,6 @@ export default function FeatureSettings() {
       toast.error('Failed to save configuration.', { id: toastId });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleAddFeature = async (e) => {
-    e.preventDefault();
-    if (!newKey || !newName) {
-      toast.error('Feature key and name are required.');
-      return;
-    }
-    
-    if (!/^[a-z0-9-]+$/.test(newKey)) {
-      toast.error('Feature Key must be lowercase alphanumeric and hyphens only (e.g. mock-interview).');
-      return;
-    }
-
-    const toastId = toast.loading('Adding new feature flag...');
-    try {
-      await axios.post('/admin-ops/features/', {
-        feature_key: newKey,
-        display_name: newName,
-        description: newDesc
-      });
-      toast.success('New feature flag added successfully!', { id: toastId });
-      setShowAddModal(false);
-      setNewKey('');
-      setNewName('');
-      setNewDesc('');
-      fetchFeatureData();
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || 'Failed to add feature flag.', { id: toastId });
-    }
-  };
-
-  const handleDeleteFeature = async (id, name, key) => {
-    if (coreFeatures.includes(key)) {
-      toast.error('Core system features cannot be deleted.');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete the custom feature "${name}"? This cannot be undone.`)) {
-      return;
-    }
-
-    const toastId = toast.loading('Deleting feature...');
-    try {
-      await axios.delete(`/admin-ops/features/${id}/`);
-      toast.success('Feature deleted successfully.', { id: toastId });
-      fetchFeatureData();
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || 'Failed to delete feature.', { id: toastId });
     }
   };
 
@@ -230,12 +175,6 @@ export default function FeatureSettings() {
         </div>
         <div className="flex gap-3 self-start md:self-auto">
           <button 
-            onClick={() => setShowAddModal(true)} 
-            className="btn btn-secondary flex items-center gap-2 hover:scale-[1.02] transition-transform"
-          >
-            <Plus size={18} /> Add Custom Feature
-          </button>
-          <button 
             onClick={handleSaveChanges} 
             disabled={saving}
             className="btn btn-primary flex items-center gap-2 hover:scale-[1.02] transition-transform shadow-lg shadow-blue-500/20"
@@ -267,7 +206,6 @@ export default function FeatureSettings() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {filteredConfigs.map((config, index) => {
           const originalIndex = configs.findIndex(c => c.id === config.id);
-          const isCore = coreFeatures.includes(config.feature_key);
           const isAllowedAllCourses = !config.allowed_courses || config.allowed_courses.length === 0;
           const isAllowedAllYears = !config.allowed_years || config.allowed_years.length === 0;
           
@@ -289,16 +227,11 @@ export default function FeatureSettings() {
                       <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-secondary py-0.5 px-2 rounded-full border border-border-color font-mono uppercase">
                         {config.feature_key}
                       </span>
-                      {isCore && (
-                        <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 py-0.5 px-2 rounded-full font-medium">
-                          Core
-                        </span>
-                      )}
                     </div>
                     <p className="text-xs text-secondary mt-1 min-h-[32px]">{config.description || 'No description provided.'}</p>
                   </div>
                   
-                  {/* Global Toggle & Delete buttons */}
+                  {/* Global Toggle button */}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleGlobalToggle(originalIndex)}
@@ -311,15 +244,6 @@ export default function FeatureSettings() {
                         <ToggleLeft size={44} className="text-slate-400" />
                       )}
                     </button>
-                    {!isCore && (
-                      <button
-                        onClick={() => handleDeleteFeature(config.id, config.display_name, config.feature_key)}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                        title="Delete Custom Feature"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -467,94 +391,16 @@ export default function FeatureSettings() {
         </div>
       )}
 
-      {/* Add Custom Feature Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div 
-            onClick={() => setShowAddModal(false)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-          />
-          
-          <form 
-            onSubmit={handleAddFeature}
-            className="relative bg-card border border-border-color rounded-2xl w-full max-w-md shadow-2xl p-6 overflow-hidden flex flex-col gap-4"
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600" />
-            
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-primary">Create Feature Flag</h3>
-                <p className="text-secondary text-xs mt-1">Add a new custom page or section controller.</p>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-secondary"
-              >
-                <X size={18} />
-              </button>
+      {/* Blurred Loading Overlay */}
+      {saving && (
+        <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-900/30 backdrop-blur-[3px] transition-all duration-200">
+          <div className="bg-card border border-border-color rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 max-w-xs text-center">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div>
+              <h4 className="text-sm font-bold text-primary">Saving Changes</h4>
+              <p className="text-secondary text-xs mt-1">Please wait while the new feature configurations are applied...</p>
             </div>
-
-            <div className="h-[1px] bg-slate-100 dark:bg-slate-800" />
-
-            <div className="flex flex-col gap-3">
-              <div className="input-group">
-                <label className="block text-xs font-bold text-primary mb-1.5">Feature Key (URL/Identifier)</label>
-                <input 
-                  required 
-                  type="text" 
-                  placeholder="e.g. resume-grading"
-                  value={newKey}
-                  onChange={(e) => setNewKey(e.target.value)}
-                  className="input-field w-full font-mono text-xs"
-                />
-                <span className="text-[10px] text-secondary mt-1 block">
-                  Only lowercase letters, numbers, and hyphens (no spaces). This is used in routing.
-                </span>
-              </div>
-
-              <div className="input-group">
-                <label className="block text-xs font-bold text-primary mb-1.5">Display Name</label>
-                <input 
-                  required 
-                  type="text" 
-                  placeholder="e.g. Resume Grading"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="input-field w-full"
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="block text-xs font-bold text-primary mb-1.5">Description</label>
-                <textarea 
-                  rows="3" 
-                  placeholder="Describe the feature purpose..."
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="input-field w-full text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="h-[1px] bg-slate-100 dark:bg-slate-800 mt-2" />
-
-            <div className="flex gap-3 justify-end">
-              <button 
-                type="button" 
-                onClick={() => setShowAddModal(false)}
-                className="btn btn-secondary text-sm py-2"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                className="btn btn-primary text-sm py-2 shadow-lg shadow-blue-500/20"
-              >
-                Add Feature
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       )}
     </div>
