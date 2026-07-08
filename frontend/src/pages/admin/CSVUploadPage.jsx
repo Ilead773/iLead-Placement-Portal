@@ -100,8 +100,9 @@ export default function CSVUploadPage() {
   };
 
   const processFile = async (file) => {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      showToast('Please upload a valid .csv file.', 'error');
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      showToast('Please upload a valid .csv or .xlsx file.', 'error');
       return;
     }
 
@@ -117,7 +118,7 @@ export default function CSVUploadPage() {
       });
       
       setUploadResult(data);
-      showToast("CSV upload successful. Processing in background...");
+      showToast("File upload successful. Processing in background...");
       pollUploadStatus(data.upload_log.id);
     } catch (err) {
       showToast(err.response?.data?.error || 'CSV upload failed.', 'error');
