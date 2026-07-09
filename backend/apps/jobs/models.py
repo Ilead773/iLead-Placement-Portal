@@ -1,6 +1,20 @@
 import uuid
 from django.db import models
 from core.models import User
+import re
+
+def parse_numeric_package(val):
+    if not val:
+        return 0.0
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        pass
+    val_str = str(val).replace(',', '').lower().strip()
+    numbers = [float(x) for x in re.findall(r'\d+(?:\.\d+)?', val_str)]
+    if not numbers:
+        return 0.0
+    return max(numbers)
 
 class Job(models.Model):
     STATUS_CHOICES = [
@@ -22,12 +36,16 @@ class Job(models.Model):
     company_website = models.URLField(max_length=500, blank=True, null=True)
     role = models.CharField(max_length=255)
     description = models.TextField()
-    package = models.DecimalField(max_digits=10, decimal_places=2)
+    package = models.CharField(max_length=255)
     location = models.CharField(max_length=255)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, default='internal')
     listing_type = models.CharField(max_length=20, choices=LISTING_TYPE_CHOICES, default='job')
     external_link = models.URLField(blank=True, null=True)
     duration = models.CharField(max_length=100, blank=True, null=True)  # e.g. "3 months", "6 months"
+
+    @property
+    def numeric_package(self):
+        return parse_numeric_package(self.package)
     
     CATEGORY_CHOICES = [
         ('A', 'Category A'),

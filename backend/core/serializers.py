@@ -200,7 +200,7 @@ class ExternalClickLogSerializer(serializers.ModelSerializer):
         job = Job.objects.filter(external_link=obj.external_url).first()
         if not job:
             job = Job.objects.filter(role__iexact=obj.job_title, company_name__iexact=obj.company_name).first()
-        return float(job.package) if job else 0.00
+        return job.numeric_package if job else 0.00
 
     def get_listing_type(self, obj):
         from apps.jobs.models import Job

@@ -83,14 +83,22 @@ const BulkSendResumes = () => {
       
       const isInternship = job.listing_type === 'internship';
       
+      const formatPackage = (pkg, type) => {
+        if (!pkg) return type === 'internship' ? 'Undisclosed' : 'Not Specified';
+        const pkgStr = String(pkg).trim();
+        const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+        if (!isNumeric) return pkgStr;
+        return type === 'internship' ? `₹${Number(pkgStr).toLocaleString()}/month` : `${pkgStr} LPA`;
+      };
+      
       let defaultBody = '';
       if (isInternship) {
-        const stipendLabel = job.package ? `₹${Number(job.package).toLocaleString()}/month` : 'Undisclosed';
+        const stipendLabel = formatPackage(job.package, 'internship');
         const durationLabel = job.duration || 'Not specified';
         
         defaultBody = `Dear Hiring Team,\n\nPlease find attached the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} internship at ${job.company_name}.\n\nInternship Specification Details:\n- Role Profile: ${job.role || job.title}\n- Location: ${job.location || 'N/A'}\n- Internship Duration: ${durationLabel}\n- Monthly Stipend: ${stipendLabel}\n\nStudent Candidates Details:\n${appsWithResume.map((a, i) => `${i+1}. ${a.student_name} — Stream: ${a.student_stream || 'General'}, Year: ${a.student_year || 'Final Year'}, CGPA: ${a.student_cgpa || 'N/A'}`).join('\n')}\n\nPlease find their detailed candidate resumes attached to this email. We look forward to coordinating the next evaluation rounds with you.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
       } else {
-        const packageLabel = job.package ? `${job.package} LPA` : 'Not Specified';
+        const packageLabel = formatPackage(job.package, 'job');
         
         defaultBody = `Dear Hiring Team,\n\nPlease find attached the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} position at ${job.company_name}.\n\nJob Specification Details:\n- Role Profile: ${job.role || job.title}\n- Location: ${job.location || 'N/A'}\n- CTC Compensation Package: ${packageLabel}\n\nStudent Candidates Details:\n${appsWithResume.map((a, i) => `${i+1}. ${a.student_name} — Stream: ${a.student_stream || 'General'}, Year: ${a.student_year || 'Final Year'}, CGPA: ${a.student_cgpa || 'N/A'}`).join('\n')}\n\nPlease find their detailed candidate resumes attached to this email. We look forward to coordinating the next evaluation rounds with you.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
       }
@@ -598,10 +606,15 @@ const BulkSendResumes = () => {
                     {selectedJob.listing_type === 'internship' ? 'Stipend Pay' : 'Annual CTC Compensation'}
                   </span>
                   <span style={{ fontSize: '14.5px', fontWeight: '850', color: 'var(--accent-primary)' }}>
-                    {selectedJob.listing_type === 'internship' 
-                      ? (selectedJob.package ? `₹${Number(selectedJob.package).toLocaleString()}/month` : 'Unpaid / Undisclosed')
-                      : (selectedJob.package ? `${selectedJob.package} LPA` : 'Not Specified')
-                    }
+                    {(() => {
+                      if (!selectedJob.package) return selectedJob.listing_type === 'internship' ? 'Unpaid / Undisclosed' : 'Not Specified';
+                      const pkgStr = String(selectedJob.package).trim();
+                      const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                      if (!isNumeric) return pkgStr;
+                      return selectedJob.listing_type === 'internship' 
+                        ? `₹${Number(pkgStr).toLocaleString()}/month` 
+                        : `${pkgStr} LPA`;
+                    })()}
                   </span>
                 </div>
 

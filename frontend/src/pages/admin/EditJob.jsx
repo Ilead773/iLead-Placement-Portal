@@ -73,6 +73,40 @@ const EditJob = () => {
     rounds: []
   });
 
+  const [salaryAmount, setSalaryAmount] = useState('');
+  const [salaryUnit, setSalaryUnit] = useState('LPA');
+
+  const parsePackageValue = (pkg, listingType) => {
+    if (!pkg) return { amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA' };
+    const pkgStr = String(pkg).trim();
+    if (pkgStr === 'Competitive' || pkgStr === 'Negotiable' || pkgStr === 'Unpaid') {
+      return { amount: '', unit: pkgStr };
+    }
+    if (pkgStr.endsWith('/month') || pkgStr.endsWith('/ month') || pkgStr.endsWith('/mo') || pkgStr.endsWith('/ mo')) {
+      const amount = pkgStr.replace(/\s*\/\s*(month|mo)$/, '').trim();
+      return { amount, unit: '/ month' };
+    }
+    if (pkgStr.endsWith('Total Stipend') || pkgStr.endsWith('total stipend')) {
+      const amount = pkgStr.replace(/\s*total stipend$/i, '').trim();
+      return { amount, unit: 'Total Stipend' };
+    }
+    if (pkgStr.endsWith('LPA') || pkgStr.endsWith(' lpa')) {
+      const amount = pkgStr.replace(/\s*LPA$/i, '').trim();
+      return { amount, unit: 'LPA' };
+    }
+    return { amount: pkgStr, unit: listingType === 'internship' ? '/ month' : 'LPA' };
+  };
+
+  const handleSalaryChange = (amount, unit) => {
+    setSalaryAmount(amount);
+    setSalaryUnit(unit);
+    if (unit === 'Competitive' || unit === 'Negotiable' || unit === 'Unpaid') {
+      setFormData(prev => ({ ...prev, package: unit }));
+    } else {
+      setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
+    }
+  };
+
   useEffect(() => {
     fetchJob();
   }, [id]);
@@ -84,6 +118,10 @@ const EditJob = () => {
       });
       const data = response.data;
       
+      const parsedPkg = parsePackageValue(data.package, data.listing_type || 'job');
+      setSalaryAmount(parsedPkg.amount);
+      setSalaryUnit(parsedPkg.unit);
+
       // format datetime-local
       if (data.application_deadline) {
         const d = new Date(data.application_deadline);
@@ -406,8 +444,41 @@ Return only the JSON object.`;
                 </div>
 
                 <div className="input-group">
-                  <label>{formData.listing_type === 'internship' ? 'Stipend' : 'Package (LPA)'}</label>
-                  <input required type="number" step="0.1" name="package" value={formData.package} onChange={handleInputChange} className="input-field" />
+                  <label>{formData.listing_type === 'internship' ? 'Stipend (Flexible)' : 'Package / Salary (Flexible)'}</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      required={salaryUnit !== 'Competitive' && salaryUnit !== 'Negotiable' && salaryUnit !== 'Unpaid'} 
+                      disabled={salaryUnit === 'Competitive' || salaryUnit === 'Negotiable' || salaryUnit === 'Unpaid'} 
+                      type="text" 
+                      value={salaryAmount} 
+                      onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
+                      className="input-field" 
+                      placeholder="e.g. 6.5 or 5000-10000" 
+                      style={{ flex: 1 }} 
+                    />
+                    <select 
+                      value={salaryUnit} 
+                      onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
+                      className="input-field" 
+                      style={{ width: '130px', minWidth: '130px' }}
+                    >
+                      {formData.listing_type === 'internship' ? (
+                        <>
+                          <option value="/ month">/ month</option>
+                          <option value="Total Stipend">Total Stipend</option>
+                          <option value="Unpaid">Unpaid</option>
+                          <option value="Competitive">Competitive</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="LPA">LPA</option>
+                          <option value="/ month">/ month</option>
+                          <option value="Competitive">Competitive</option>
+                          <option value="Negotiable">Negotiable</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
                 </div>
                 {formData.listing_type === 'internship' && (
                   <div className="input-group">

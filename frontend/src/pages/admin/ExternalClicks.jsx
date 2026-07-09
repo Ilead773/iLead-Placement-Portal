@@ -289,11 +289,15 @@ export default function ExternalClicks() {
                     </td>
                     {activeTab === 'selected' && (
                       <td style={{ fontWeight: 600, color: 'var(--success)' }}>
-                        {click.package ? (
-                          click.listing_type === 'internship' 
-                            ? `₹${Number(click.package).toLocaleString()}/month` 
-                            : `${click.package} LPA`
-                        ) : '—'}
+                        {(() => {
+                          if (!click.package) return 'Undisclosed';
+                          const pkgStr = String(click.package).trim();
+                          const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                          if (!isNumeric) return pkgStr;
+                          return click.listing_type === 'internship'
+                            ? `₹${Number(pkgStr).toLocaleString()}/month` 
+                            : `${pkgStr} LPA`;
+                        })()}
                       </td>
                     )}
                     <td style={{ textAlign: 'center', fontWeight: 'bold', color: 'var(--accent-primary)' }}>
@@ -504,15 +508,13 @@ export default function ExternalClicks() {
 
               <div className="input-group" style={{ marginBottom: '8px' }}>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>
-                  {selectionListingType === 'job' ? 'Annual CTC Package (LPA)' : 'Monthly Stipend Amount (₹)'}
+                  {selectionListingType === 'job' ? 'Annual CTC Package / Salary' : 'Monthly Stipend (Flexible)'}
                 </label>
                 <input
                   required
-                  type="number"
-                  step="any"
-                  min="0"
+                  type="text"
                   className="input-field"
-                  placeholder={selectionListingType === 'job' ? 'E.g. 6.5 (for 6.5 LPA)' : 'E.g. 25000 (for 25k/mo)'}
+                  placeholder={selectionListingType === 'job' ? 'E.g. 6.5 LPA or 5000-10000 /month' : 'E.g. 25000 or 5000-10000 /month'}
                   value={selectionPackage}
                   onChange={(e) => setSelectionPackage(e.target.value)}
                   style={{ width: '100%' }}

@@ -60,6 +60,19 @@ const CreateJob = () => {
     rounds: []
   });
 
+  const [salaryAmount, setSalaryAmount] = useState('');
+  const [salaryUnit, setSalaryUnit] = useState('LPA');
+
+  const handleSalaryChange = (amount, unit) => {
+    setSalaryAmount(amount);
+    setSalaryUnit(unit);
+    if (unit === 'Competitive' || unit === 'Negotiable') {
+      setFormData(prev => ({ ...prev, package: unit }));
+    } else {
+      setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -328,9 +341,31 @@ Return only the JSON object.`;
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
-                  <DollarSign size={14} /> Package (LPA) <span className="text-danger">*</span>
+                  <DollarSign size={14} /> Package / Salary <span className="text-danger">*</span>
                 </label>
-                <input required type="number" step="0.1" name="package" value={formData.package} onChange={handleInputChange} className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" placeholder="e.g. 8.5" />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    required={salaryUnit !== 'Competitive' && salaryUnit !== 'Negotiable'} 
+                    disabled={salaryUnit === 'Competitive' || salaryUnit === 'Negotiable'} 
+                    type="text" 
+                    value={salaryAmount} 
+                    onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
+                    className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
+                    placeholder="e.g. 6.5 or 5000-10000" 
+                    style={{ flex: 1 }} 
+                  />
+                  <select 
+                    value={salaryUnit} 
+                    onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
+                    className="input-field shadow-sm font-semibold text-[var(--text-primary)]" 
+                    style={{ width: '130px', minWidth: '130px' }}
+                  >
+                    <option value="LPA">LPA</option>
+                    <option value="/ month">/ month</option>
+                    <option value="Competitive">Competitive</option>
+                    <option value="Negotiable">Negotiable</option>
+                  </select>
+                </div>
               </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">

@@ -59,6 +59,20 @@ const CreateInternship = () => {
     category: 'C',
     openings_count: 1,
     hr_email: '',
+  });
+
+  const [salaryAmount, setSalaryAmount] = useState('');
+  const [salaryUnit, setSalaryUnit] = useState('/ month');
+
+  const handleSalaryChange = (amount, unit) => {
+    setSalaryAmount(amount);
+    setSalaryUnit(unit);
+    if (unit === 'Unpaid' || unit === 'Competitive') {
+      setFormData(prev => ({ ...prev, package: unit }));
+    } else {
+      setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
+    }
+  };
     eligibility_rules: {
       min_cgpa: '',
       min_attendance: '',
@@ -283,9 +297,31 @@ const CreateInternship = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
-                  <DollarSign size={14} /> Stipend (Monthly/Total) <span className="text-danger">*</span>
+                  <DollarSign size={14} /> Stipend (Flexible) <span className="text-danger">*</span>
                 </label>
-                <input required type="number" step="0.1" name="package" value={formData.package} onChange={handleInputChange} className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" placeholder="e.g. 15000" />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input 
+                    required={salaryUnit !== 'Unpaid' && salaryUnit !== 'Competitive'} 
+                    disabled={salaryUnit === 'Unpaid' || salaryUnit === 'Competitive'} 
+                    type="text" 
+                    value={salaryAmount} 
+                    onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
+                    className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
+                    placeholder="e.g. 15000 or 5000-10000" 
+                    style={{ flex: 1 }} 
+                  />
+                  <select 
+                    value={salaryUnit} 
+                    onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
+                    className="input-field shadow-sm font-semibold text-[var(--text-primary)]" 
+                    style={{ width: '130px', minWidth: '130px' }}
+                  >
+                    <option value="/ month">/ month</option>
+                    <option value="Total Stipend">Total Stipend</option>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Competitive">Competitive</option>
+                  </select>
+                </div>
               </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">

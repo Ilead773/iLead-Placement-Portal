@@ -108,7 +108,13 @@ const JobCard = ({ job, eligibility, onApply }) => {
           <div className="job-meta-item">
             <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
             <span className="meta-text font-bold">
-              {job.listing_type === 'internship' ? `₹${job.package} / mo` : `${job.package} LPA`}
+              {(() => {
+                if (!job.package) return 'Not Specified';
+                const pkgStr = String(job.package).trim();
+                const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                if (!isNumeric) return pkgStr;
+                return job.listing_type === 'internship' ? `₹${Number(pkgStr).toLocaleString()} / mo` : `${pkgStr} LPA`;
+              })()}
             </span>
           </div>
           

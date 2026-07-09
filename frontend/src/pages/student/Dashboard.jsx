@@ -861,7 +861,16 @@ export default function StudentDashboard() {
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
-                            ₹{job.package < 100 ? `${job.package} LPA` : Number(job.package).toLocaleString('en-IN')}
+                            {(() => {
+                              if (!job.package) return 'Not Specified';
+                              const pkgStr = String(job.package).trim();
+                              const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                              if (!isNumeric) return pkgStr;
+                              if (job.listing_type === 'internship') {
+                                return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
+                              }
+                              return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
+                            })()}
                           </span>
                         )}
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">

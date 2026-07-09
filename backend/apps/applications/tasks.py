@@ -358,11 +358,21 @@ def send_job_alert_task(self, job_id):
             if job.listing_type == 'internship':
                 title = f"🎓 New Internship: {job.company_name}!"
 
+            import re
+            pkg_str = str(job.package).strip()
+            if re.match(r'^\d+(?:\.\d+)?$', pkg_str):
+                if job.listing_type == 'internship':
+                    pkg_display = f"₹{pkg_str} / month"
+                else:
+                    pkg_display = f"{pkg_str} LPA"
+            else:
+                pkg_display = pkg_str
+
             message = (
                 f"{job.company_name} is hiring for the role of {job.role} "
                 f"({job.job_type.capitalize()}-Campus)!\n"
                 f"Location: {job.location}\n"
-                f"Package/Stipend: {job.package} LPA\n"
+                f"Package/Stipend: {pkg_display}\n"
                 f"Deadline: {job.application_deadline.strftime('%b %d, %Y')}"
             )
 

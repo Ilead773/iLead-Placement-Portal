@@ -238,9 +238,11 @@ class DashboardViewSet(viewsets.ViewSet):
 
         def _convert(val):
             """Convert package value: stipend (raw ₹/mo) for internships, LPA for jobs."""
+            from apps.jobs.models import parse_numeric_package
+            val_numeric = parse_numeric_package(val)
             if is_internship_view:
-                return self._to_stipend(val)
-            return self._to_lpa(val)
+                return self._to_stipend(val_numeric)
+            return self._to_lpa(val_numeric)
 
         # Process jobs / internships
         for j in job_data:
@@ -254,15 +256,20 @@ class DashboardViewSet(viewsets.ViewSet):
                 }
             company_details[cname]['roles'].add(j['role'])
             
+            from apps.jobs.models import parse_numeric_package
+            
             # Fallback to Placement salary if package is 0
-            if not package_val or float(package_val) <= 0:
+            if not package_val or parse_numeric_package(package_val) <= 0:
                 placement = placements_lookup.get(cname.lower().strip())
                 if placement:
                     package_val = placement.salary
             
-            if package_val and float(package_val) > 0:
-                if not j['package'] or float(j['package']) <= 0:
-                    val = float(package_val)
+            package_val_numeric = parse_numeric_package(package_val)
+            j_package_numeric = parse_numeric_package(j['package'])
+            
+            if package_val_numeric > 0:
+                if j_package_numeric <= 0:
+                    val = package_val_numeric
                     if not is_internship_view:
                         val = self._to_lpa(val)
                     else:
@@ -280,9 +287,9 @@ class DashboardViewSet(viewsets.ViewSet):
             role_counts[j['role']] += 1
             location_details[j.get('location', 'Unknown')]['jobs'] += 1
             
-            if package_val and float(package_val) > 0:
-                if not j['package'] or float(j['package']) <= 0:
-                    val = float(package_val)
+            if package_val_numeric > 0:
+                if j_package_numeric <= 0:
+                    val = package_val_numeric
                     if not is_internship_view:
                         val = self._to_lpa(val)
                     else:
@@ -336,7 +343,7 @@ class DashboardViewSet(viewsets.ViewSet):
             app_filter_all &= Q(job__listing_type='job')
             
         for app in applications_qs.filter(app_filter_all).select_related('job'):
-            pkg = float(app.job.package or 0)
+            pkg = app.job.numeric_package
             if pkg <= 0:
                 # Fallback to Placement table with case-insensitive company name match
                 company_name = app.job.company_name or ""
@@ -469,7 +476,7 @@ class DashboardViewSet(viewsets.ViewSet):
         
         # External applications
         for app in applications_qs.filter(app_filter_all).select_related('job'):
-            val = float(app.job.package or 0)
+            val = app.job.numeric_package
             if val <= 0:
                 company_name = app.job.company_name or ""
                 placement = placements_lookup.get(company_name.lower().strip())
@@ -1095,7 +1102,7 @@ class DashboardViewSet(viewsets.ViewSet):
                     'id': str(job.id),
                     'company_name': job.company_name,
                     'role': job.role,
-                    'package': float(job.package),
+                    'package': job.numeric_package,
                     'deadline': job.application_deadline,
                     'status': job.status,
                 } for job in recent_jobs],
@@ -1211,7 +1218,7 @@ class DashboardViewSet(viewsets.ViewSet):
                 app.student.cgpa if app.student.cgpa is not None else '',
                 app.job.company_name or '', 
                 app.job.role or '',
-                self._to_lpa(app.job.package) if app.job.package else '', 
+                self._to_lpa(app.job.numeric_package) if app.job.package else '', 
                 app.status or '',
                 'External Application' if app.job.job_type == 'external' else 'Internal Job Posting'
             ])

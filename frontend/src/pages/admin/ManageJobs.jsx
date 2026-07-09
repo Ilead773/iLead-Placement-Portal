@@ -181,10 +181,17 @@ const ManageJobs = () => {
                 <div className="job-meta-item">
                   <IndianRupee size={15} className="meta-icon package text-emerald-500" style={{ color: '#10b981' }} />
                   <span className="meta-text font-bold">
-                    {job.listing_type === 'internship'
-                      ? (job.package ? `Stipend: ₹${Number(job.package).toLocaleString()}/month` : 'Stipend: Undisclosed')
-                      : (job.package ? `Salary: ${job.package} LPA` : 'Salary: Not Specified')
-                    }
+                    {(() => {
+                      if (!job.package) {
+                        return job.listing_type === 'internship' ? 'Stipend: Undisclosed' : 'Salary: Not Specified';
+                      }
+                      const pkgStr = String(job.package).trim();
+                      const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                      if (!isNumeric) return pkgStr;
+                      return job.listing_type === 'internship' 
+                        ? `Stipend: ₹${Number(pkgStr).toLocaleString()}/month` 
+                        : `Salary: ${pkgStr} LPA`;
+                    })()}
                   </span>
                 </div>
                 
@@ -361,8 +368,8 @@ const ManageJobs = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Package (LPA)</label>
-                  <input required type="number" step="0.1" name="package" defaultValue={editingOffCampusJob.package} className="input-field" style={{ width: '100%' }} />
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Package / Salary (Flexible)</label>
+                  <input required type="text" name="package" defaultValue={editingOffCampusJob.package} className="input-field" style={{ width: '100%' }} placeholder="e.g. 6.5 LPA or 5000-10000 /month" />
                 </div>
                 <div className="input-group">
                   <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Location</label>

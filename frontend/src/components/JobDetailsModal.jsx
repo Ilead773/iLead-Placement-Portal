@@ -124,9 +124,15 @@ const JobDetailsModal = ({
                     {job.listing_type === 'internship' ? 'Stipend' : 'Package'}
                   </span>
                   <span className="job-detail-meta-value">
-                    {job.listing_type === 'internship' 
-                      ? (job.package ? `₹${Number(job.package).toLocaleString()} / mo` : 'Undisclosed')
-                      : (job.package ? `₹${job.package} LPA` : 'Not Specified')}
+                    {(() => {
+                      if (!job.package) return job.listing_type === 'internship' ? 'Undisclosed' : 'Not Specified';
+                      const pkgStr = String(job.package).trim();
+                      const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                      if (!isNumeric) return pkgStr;
+                      return job.listing_type === 'internship' 
+                        ? `₹${Number(pkgStr).toLocaleString()} / mo` 
+                        : `₹${pkgStr} LPA`;
+                    })()}
                   </span>
                 </div>
 
