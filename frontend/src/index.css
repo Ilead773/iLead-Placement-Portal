@@ -822,44 +822,227 @@ a:hover { color: var(--accent-hover); }
 
 /* ─── Tables ──────────────────────────────────────────────────────────── */
 .table-container { 
-  background: var(--bg-card); border-radius: var(--radius-lg); 
-  border: 1px solid var(--border-color); overflow-x: auto;
+  background: var(--bg-card); 
+  border-radius: var(--radius-lg); 
+  border: 1px solid var(--border-color); 
+  overflow-x: auto;
   margin-top: var(--space-md);
+  box-shadow: 0 4px 20px -10px rgba(0, 0, 0, 0.05);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
+
+.table-container::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: left; 
+}
+
 table th { 
-  padding: var(--space-md) var(--space-lg); 
-  background: var(--bg-card-hover);
-  border-bottom: 2px solid var(--border-color);
+  padding: 16px 24px; 
+  background: var(--bg-card-hover); 
+  color: var(--text-muted); 
+  font-size: 0.72rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.08em; 
+  border-bottom: 2px solid var(--border-light);
+  white-space: nowrap;
 }
+
 table tr {
-  transition: all var(--transition);
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+}
+
+table tr:hover { 
+  background-color: var(--bg-card-hover) !important; 
+}
+
+table tr:active { 
+  background: var(--accent-soft); 
+}
+
+table td { 
+  padding: 16px 24px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.9rem; 
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+table tr:last-child td { 
+  border-bottom: none; 
+}
+
+/* Row-hover left-border micro-interaction */
+table tbody tr td:first-child {
   position: relative;
 }
-table tr:hover { 
-  background: var(--bg-card-hover); 
-  transform: scale(1.002);
-  box-shadow: 0 4px 20px -10px rgba(37, 99, 235, 0.2);
-  z-index: 10;
+table tbody tr td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-table tr:active { transform: scale(0.998); background: var(--accent-soft); }
-table td { 
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--border-light);
-  transition: color var(--transition);
+table tbody tr:hover td:first-child::before {
+  opacity: 1;
 }
-table tr:last-child td { border-bottom: none; }
-table { width: 100%; border-collapse: collapse; text-align: left; }
-th { 
-  padding: 16px 24px; background: var(--bg-body); color: var(--text-muted); 
-  font-size: 0.65rem; font-weight: 800; text-transform: uppercase; 
-  letter-spacing: 0.15em; border-bottom: 2px solid var(--border-color);
+
+/* Custom premium element classes */
+.student-name-link {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
-td { padding: 18px 24px; font-size: 0.9rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); transition: all 0.2s; }
-tr:last-child td { border-bottom: none; }
-tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
-tr:hover td { background: var(--bg-card-hover) !important; }
-tr:hover { cursor: pointer; }
+
+.student-name-link:hover {
+  color: var(--accent-primary);
+}
+
+.student-contact-info {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.student-contact-info span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.course-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.stream-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.year-sem-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .year-sem-tag {
+  background: var(--bg-card-hover);
+}
+
+.registration-no {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: rgba(148, 163, 184, 0.05);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color);
+  letter-spacing: 0.02em;
+  display: inline-block;
+}
+
+/* Premium Pill Badges for categories & scores */
+.premium-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.premium-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.premium-pill:hover::before {
+  transform: scale(1.3);
+}
+
+.premium-pill.tier-a {
+  background: rgba(16, 185, 129, 0.06);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.15);
+}
+.premium-pill.tier-a::before {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
+}
+
+.premium-pill.tier-b {
+  background: rgba(245, 158, 11, 0.06);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.15);
+}
+.premium-pill.tier-b::before {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.35);
+}
+
+.premium-pill.tier-c {
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.15);
+}
+.premium-pill.tier-c::before {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+}
+
+.table-wide {
+  min-width: 1600px;
+}
 
 /* ─── Cards ───────────────────────────────────────────────────────────── */
 .card {

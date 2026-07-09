@@ -16,7 +16,8 @@ import {
   Send,
   FileText,
   Trash,
-  Plus
+  Plus,
+  Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
@@ -86,6 +87,7 @@ export default function AdminDashboard() {
   const [filterCourse, setFilterCourse] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [certFilterCourse, setCertFilterCourse] = useState('');
+  const [certSearchQuery, setCertSearchQuery] = useState('');
   const [releasingCerts, setReleasingCerts] = useState(false);
 
   useEffect(() => {
@@ -1032,19 +1034,46 @@ export default function AdminDashboard() {
           {/* CERTIFICATES TAB */}
           {/* ================================================================== */}
           {activeTab === 'certificates' && (() => {
-            const filteredProgressList = certFilterCourse 
-              ? progressList.filter(prg => prg.course === certFilterCourse)
-              : progressList;
+            const filteredProgressList = progressList.filter(prg => {
+              const matchesCourse = certFilterCourse ? prg.course === certFilterCourse : true;
+              const matchesSearch = certSearchQuery 
+                ? (prg.student_details?.name || '').toLowerCase().includes(certSearchQuery.toLowerCase()) 
+                  || (prg.student_details?.email || '').toLowerCase().includes(certSearchQuery.toLowerCase())
+                  || (prg.course_name || '').toLowerCase().includes(certSearchQuery.toLowerCase())
+                : true;
+              return matchesCourse && matchesSearch;
+            });
 
             return (
               <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md animate-fadeIn">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white">Student Certification Status</h3>
                     <p className="text-xs text-slate-400 mt-1">Manual certificate triggers & bulk course-level graduation control.</p>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <div className="relative flex-1 lg:flex-initial">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 dark:text-slate-500">
+                        <Search size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Search student or course..."
+                        value={certSearchQuery}
+                        onChange={(e) => setCertSearchQuery(e.target.value)}
+                        className="pl-9 pr-8 py-2.5 w-full lg:w-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-xs text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500"
+                      />
+                      {certSearchQuery && (
+                        <button
+                          onClick={() => setCertSearchQuery('')}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
                     <select 
                       value={certFilterCourse}
                       onChange={(e) => setCertFilterCourse(e.target.value)}
@@ -1129,6 +1158,12 @@ export default function AdminDashboard() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                ) : progressList.length > 0 ? (
+                  <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <Search size={48} className="mx-auto mb-3 opacity-30 text-indigo-500" />
+                    <p className="font-semibold text-slate-500">No matching records found.</p>
+                    <p className="text-xs text-slate-400 mt-1">Try resetting your search query or changing the course stream.</p>
                   </div>
                 ) : (
                   <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">

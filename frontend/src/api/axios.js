@@ -56,8 +56,11 @@ api.interceptors.response.use(
       } catch (err) {
         processQueue(err);
         if (!skipAuthRedirect) {
+          const wasLoggedIn = getCookie('has_session') === 'true';
           eraseCookie('has_session');
-          localStorage.setItem('session_expired', 'true');
+          if (wasLoggedIn) {
+            localStorage.setItem('session_expired', 'true');
+          }
           window.location.href = '/login';
         }
         return Promise.reject(err);
@@ -67,8 +70,11 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !isLoginRequest && !skipAuthRedirect) {
+      const wasLoggedIn = getCookie('has_session') === 'true';
       eraseCookie('has_session');
-      localStorage.setItem('session_expired', 'true');
+      if (wasLoggedIn) {
+        localStorage.setItem('session_expired', 'true');
+      }
       window.location.href = '/login';
     }
 

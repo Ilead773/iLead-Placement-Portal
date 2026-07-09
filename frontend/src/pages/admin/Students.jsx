@@ -769,7 +769,7 @@ export default function Students() {
       {loading ? <div className="loading-screen" style={{ minHeight: 200 }}><div className="spinner" /></div> : (
         <>
           <div className="table-container">
-            <table>
+            <table className="table-wide">
               <thead>
                 <tr>
                   <th>Name & Contact</th>
@@ -781,7 +781,8 @@ export default function Students() {
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       PACT Score
                       <span style={{ 
-                        background: 'rgba(255,255,255,0.15)', 
+                        background: 'var(--border-color)', 
+                        color: 'var(--text-secondary)',
                         borderRadius: '50%', 
                         width: '15px', 
                         height: '15px', 
@@ -794,7 +795,7 @@ export default function Students() {
                       }}>?</span>
                     </span>
                     <div className="pact-tooltip-box">
-                      <div style={{ fontWeight: 800, marginBottom: 8, fontSize: '0.82rem', borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 4 }}>
+                      <div style={{ fontWeight: 800, marginBottom: 8, fontSize: '0.82rem', borderBottom: '1px solid var(--border-color)', paddingBottom: 4 }}>
                         🎯 PACT Score Weightages
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', fontWeight: 500 }}>
@@ -803,7 +804,7 @@ export default function Students() {
                         <div><strong>C</strong>onduct (Training): <strong>25%</strong></div>
                         <div><strong>T</strong>echnical (No Backlogs): <strong>15%</strong></div>
                       </div>
-                      <div style={{ fontSize: '0.68rem', marginTop: 8, opacity: 0.8, fontStyle: 'italic', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6 }}>
+                      <div style={{ fontSize: '0.68rem', marginTop: 8, opacity: 0.8, fontStyle: 'italic', borderTop: '1px solid var(--border-light)', paddingTop: 6 }}>
                         * Standing: Penalty of 25% per backlog.
                       </div>
                       <div className="pact-tooltip-arrow"></div>
@@ -821,103 +822,45 @@ export default function Students() {
                 {students.map((s) => (
                   <tr key={s.id}>
                     <td style={{ verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span 
-                          style={{ 
-                            fontWeight: 700, 
-                            fontSize: '0.95rem',
-                            color: 'var(--accent-primary)', 
-                            cursor: 'pointer',
-                            transition: 'opacity 0.2s',
-                            whiteSpace: 'nowrap'
-                          }}
+                          className="student-name-link"
                           onClick={() => fetchStudentProfile(s.id)}
                           title="Click to view full student profile"
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.textDecoration = 'underline';
-                            e.currentTarget.style.opacity = '0.85';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.textDecoration = 'none';
-                            e.currentTarget.style.opacity = '1';
-                          }}
                         >
                           {s.name}
                         </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexWrap: 'wrap', gap: '4px 8px', whiteSpace: 'nowrap' }}>
+                        <div className="student-contact-info">
                           <span>{s.email}</span>
-                          {s.phone_number && <span style={{ opacity: 0.6 }}>•</span>}
+                          {s.phone_number && <span style={{ opacity: 0.4 }}>•</span>}
                           {s.phone_number && <span>{s.phone_number}</span>}
-                        </span>
+                        </div>
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{s.registration_number}</td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span className="registration-no">{s.registration_number}</span>
+                    </td>
                     <td style={{ verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{s.course || '—'}</span>
-                        {s.stream && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>{s.stream}</span>}
+                        <span className="course-title">{s.course || '—'}</span>
+                        {s.stream && <span className="stream-subtitle">{s.stream}</span>}
                       </div>
                     </td>
-                    <td style={{ verticalAlign: 'middle', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                      {formatYearSem(s.year, s.semester)}
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <span className="year-sem-tag">
+                        {formatYearSem(s.year, s.semester)}
+                      </span>
                     </td>
                     <td style={{ verticalAlign: 'middle' }}>
                       {s.category ? (
-                        <span 
-                          className="badge" 
-                          style={{ 
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            whiteSpace: 'nowrap',
-                            background: s.category === 'A' ? 'rgba(16, 185, 129, 0.08)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                            color: s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444',
-                            border: `1px solid ${s.category === 'A' ? 'rgba(16, 185, 129, 0.2)' : s.category === 'B' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                            fontWeight: 800,
-                            padding: '4px 10px',
-                            borderRadius: '9999px',
-                            fontSize: '0.72rem',
-                            letterSpacing: '0.02em',
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          <span style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: s.category === 'A' ? '#10b981' : s.category === 'B' ? '#f59e0b' : '#ef4444',
-                            display: 'inline-block'
-                          }} />
+                        <span className={`premium-pill tier-${s.category.toLowerCase()}`}>
                           Cat {s.category}
                         </span>
                       ) : '—'}
                     </td>
                     <td style={{ verticalAlign: 'middle' }}>
                       {s.pact_score != null ? (
-                        <span 
-                          className="badge" 
-                          style={{ 
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            whiteSpace: 'nowrap',
-                            background: s.pact_score >= 80 ? 'rgba(16, 185, 129, 0.08)' : s.pact_score >= 60 ? 'rgba(245, 158, 11, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                            color: s.pact_score >= 80 ? '#10b981' : s.pact_score >= 60 ? '#f59e0b' : '#ef4444',
-                            border: `1px solid ${s.pact_score >= 80 ? 'rgba(16, 185, 129, 0.2)' : s.pact_score >= 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                            fontWeight: 800,
-                            padding: '4px 10px',
-                            borderRadius: '9999px',
-                            fontSize: '0.72rem',
-                            letterSpacing: '0.02em'
-                          }}
-                        >
-                          <span style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            background: s.pact_score >= 80 ? '#10b981' : s.pact_score >= 60 ? '#f59e0b' : '#ef4444',
-                            display: 'inline-block'
-                          }} />
+                        <span className={`premium-pill tier-${s.pact_score >= 80 ? 'a' : s.pact_score >= 60 ? 'b' : 'c'}`}>
                           {s.pact_score.toFixed(1)}
                         </span>
                       ) : '—'}

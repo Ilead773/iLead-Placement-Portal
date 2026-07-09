@@ -442,4 +442,12 @@ def placement_zoom_webhook(request):
         logger.info(f"Logged {event_name} for {email} in session '{session.title}'")
         return Response(status=status.HTTP_201_CREATED)
 
+    elif event_type == 'meeting.ended':
+        session = PlacementSession.objects.filter(zoom_meeting_id=meeting_id).first()
+        if session:
+            logger.info(f"Zoom webhook: Meeting ended. Triggering immediate finalization for session: '{session.title}'")
+            finalize_session_attendance.delay(str(session.id))
+            return Response({"detail": "Finalization triggered"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
     return Response({'detail': 'Event not handled'}, status=status.HTTP_200_OK)
