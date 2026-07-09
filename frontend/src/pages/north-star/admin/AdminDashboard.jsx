@@ -389,39 +389,57 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          {/* Navigation tabs - flush to bottom of header */}
-          <div className="flex items-end gap-1 overflow-x-auto pb-0 scrollbar-hide">
+          {/* Navigation tabs — premium pill strip */}
+          <div
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide mt-2 px-1 py-1.5 rounded-2xl"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(16px)',
+            }}
+          >
             {[
-              { id: 'dashboard',   label: 'Overview',        icon: '⬡' },
-              { id: 'classes',     label: 'Schedule',         icon: '📅' },
-              { id: 'attendance',  label: 'Attendance Grid',  icon: '✅' },
-              { id: 'assignments', label: 'Grading Hub',      icon: '📝' },
-              { id: 'email',       label: 'Notifications',    icon: '📨' },
-              { id: 'certificates',label: 'Certificates',     icon: '🏅' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={activeTab === tab.id ? {
-                  background: '#fff',
-                  color: '#1e1b4b',
-                  borderRadius: '12px 12px 0 0',
-                  boxShadow: '0 -4px 20px rgba(99,102,241,0.3)'
-                } : {
-                  background: 'rgba(255,255,255,0.04)',
-                  color: 'rgba(199,210,254,0.55)',
-                  borderRadius: '12px 12px 0 0',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderBottom: 'none'
-                }}
-                className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
-                  activeTab === tab.id ? '' : 'hover:bg-white/10 hover:text-indigo-200'
-                }`}
-              >
-                <span className="hidden sm:inline">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+              { id: 'dashboard',    label: 'Overview',       icon: '⬡',  color: '#818cf8' },
+              { id: 'classes',      label: 'Schedule',        icon: '📅', color: '#34d399' },
+              { id: 'attendance',   label: 'Attendance',      icon: '✅', color: '#38bdf8' },
+              { id: 'assignments',  label: 'Grading Hub',     icon: '📝', color: '#f472b6' },
+              { id: 'email',        label: 'Notifications',   icon: '📨', color: '#fb923c' },
+              { id: 'certificates', label: 'Certificates',    icon: '🏅', color: '#fbbf24' },
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={isActive ? {
+                    background: `linear-gradient(135deg, ${tab.color}22, ${tab.color}11)`,
+                    border: `1px solid ${tab.color}55`,
+                    color: '#fff',
+                    boxShadow: `0 0 16px ${tab.color}33, inset 0 1px 0 rgba(255,255,255,0.1)`,
+                  } : {
+                    background: 'transparent',
+                    border: '1px solid transparent',
+                    color: 'rgba(199,210,254,0.45)',
+                  }}
+                  className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-300 hover:scale-[1.04] hover:text-white group"
+                >
+                  {/* Active indicator dot */}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
+                      style={{ background: tab.color, boxShadow: `0 0 6px ${tab.color}` }}
+                    />
+                  )}
+                  <span
+                    className="text-sm leading-none transition-transform duration-300 group-hover:scale-110"
+                    style={isActive ? { filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.4))' } : {}}
+                  >
+                    {tab.icon}
+                  </span>
+                  <span className="hidden sm:inline tracking-wide">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
