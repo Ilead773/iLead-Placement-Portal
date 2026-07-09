@@ -91,11 +91,21 @@ def zoom_webhook(request):
     if not zoom_service.verify_webhook_signature(request, raw_body):
         logger.warning("Zoom webhook signature verification failed.")
         return Response({"detail": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
-        
-    # 3. Handle participant joined / left
+    # 3. Handle meeting ended or participant joined/left
     payload = request.data.get('payload', {})
     obj = payload.get('object', {})
     meeting_id = str(obj.get('id'))
+
+    if event_type == 'meeting.ended':
+        scheduled_class = ScheduledClass.objects.filter(zoom_meeting_id=meeting_id).first()
+        if scheduled_class:
+            scheduled_class.end_time = timezone.now()
+            scheduled_class.save()
+            logger.info(f"Class {scheduled_class.title} ended early via Zoom webhook. Triggering finalization.")
+            finalize_attendance.apply_async(args=[scheduled_class.id], countdown=5)
+            return Response({"detail": "Meeting ended processed successfully"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
+
     participant = obj.get('participant', {})
     email = participant.get('email', '')
     name = participant.get('user_name', '')
@@ -342,6 +352,19 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
             'sdk_key': zoom_service.get_sdk_key(),
             'role': role
         })
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def end(self, request, pk=None):
+        """
+        POST /classes/{id}/end/ -> Manually end a live class early and run attendance
+        """
+        scheduled_class = self.get_object()
+        scheduled_class.end_time = timezone.now()
+        scheduled_class.save()
+        
+        # Trigger attendance finalization immediately
+        finalize_attendance(scheduled_class.id)
+        return Response({"detail": "Class ended successfully and attendance calculation started."})
 
 
 @api_view(['POST'])

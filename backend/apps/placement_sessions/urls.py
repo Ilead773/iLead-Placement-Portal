@@ -5,6 +5,7 @@ from .views import (
     session_detail,
     join_session,
     start_session,
+    end_session,
     session_attendance,
     override_attendance,
     placement_zoom_webhook,
@@ -25,6 +26,9 @@ urlpatterns = [
 
     # Admin: host start URL
     path('<uuid:session_id>/start/', start_session, name='ps-start'),
+
+    # Admin: end session early
+    path('<uuid:session_id>/end/', end_session, name='ps-end'),
 
     # Attendance report
     path('<uuid:session_id>/attendance/', session_attendance, name='ps-attendance'),

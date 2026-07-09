@@ -275,6 +275,25 @@ def start_session(request, session_id):
     })
 
 
+@api_view(['POST'])
+@permission_classes([IsAdminOrCoordinator])
+def end_session(request, session_id):
+    """POST /placement-sessions/{id}/end/ — Manually end placement session early."""
+    try:
+        session = PlacementSession.objects.get(id=session_id)
+    except PlacementSession.DoesNotExist:
+        return Response({'detail': 'Session not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    session.end_time = timezone.now()
+    session.save()
+
+    # Trigger finalization task synchronously
+    from apps.placement_sessions.tasks import finalize_placement_attendance
+    finalize_placement_attendance(session.id)
+
+    return Response({'detail': 'Session ended and attendance finalization triggered.'})
+
+
 # ─── ADMIN: Get attendance report ─────────────────────────────────────────────
 
 @api_view(['GET'])
@@ -373,6 +392,20 @@ def placement_zoom_webhook(request):
     payload = request.data.get('payload', {})
     obj = payload.get('object', {})
     meeting_id = str(obj.get('id', ''))
+
+    if event_type == 'meeting.ended':
+        session = PlacementSession.objects.filter(zoom_meeting_id=meeting_id).first()
+        if session:
+            session.end_time = timezone.now()
+            session.save()
+            logger.info(f"Placement Session {session.title} ended early via Zoom webhook. Triggering finalization.")
+            
+            # Import and trigger the finalization task
+            from apps.placement_sessions.tasks import finalize_placement_attendance
+            finalize_placement_attendance(session.id)
+            return Response({"detail": "Meeting ended processed successfully"}, status=status.HTTP_200_OK)
+        return Response({"detail": "Session not found"}, status=status.HTTP_404_NOT_FOUND)
+
     participant = obj.get('participant', {})
     email = participant.get('email', '')
     name = participant.get('user_name', '')

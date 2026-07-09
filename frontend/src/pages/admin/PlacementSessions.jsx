@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import {
   Video, Plus, Calendar, Clock, Users, ChevronDown, ChevronRight,
   CheckCircle, XCircle, AlertCircle, Eye, Play, Trash2, BarChart2,
-  Filter, X, UserCheck, UserX, Loader, BookOpen
+  Filter, X, UserCheck, UserX, Loader, BookOpen, Square
 } from 'lucide-react';
 import placementSessionsAPI from '../../api/placementSessionsAPI';
 import useAuthStore from '../../store/authStore';
@@ -144,6 +144,18 @@ export default function AdminPlacementSessions() {
     }
   };
 
+  const handleEndSession = async (sessionId) => {
+    if (!window.confirm('Are you sure you want to end this session early? Attendance will be finalised immediately.')) return;
+    try {
+      await placementSessionsAPI.end(sessionId);
+      toast.success('Session ended. Attendance finalised.');
+      fetchSessions();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to end session.');
+    }
+  };
+
   const getSessionStatus = (s) => {
     const now = new Date();
     const start = new Date(s.start_time);
@@ -230,7 +242,7 @@ export default function AdminPlacementSessions() {
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Now
                   </h3>
                   {liveSessions.map(s => <SessionCard key={s.id} session={s} status="live"
-                    onViewAttendance={handleViewAttendance} onCancel={handleCancel} />)}
+                    onViewAttendance={handleViewAttendance} onCancel={handleCancel} onEnd={handleEndSession} />)}
                 </div>
               )}
               {upcomingSessions.length > 0 && (
@@ -513,7 +525,7 @@ export default function AdminPlacementSessions() {
   );
 }
 
-function SessionCard({ session, status, onViewAttendance, onCancel }) {
+function SessionCard({ session, status, onViewAttendance, onCancel, onEnd }) {
   const statusStyles = {
     live: 'border-l-4 border-emerald-500 bg-emerald-500/5',
     upcoming: 'border-l-4 border-blue-500',
@@ -575,6 +587,14 @@ function SessionCard({ session, status, onViewAttendance, onCancel }) {
                 No Start URL
               </span>
             )
+          )}
+          {status === 'live' && onEnd && (
+            <button
+              onClick={() => onEnd(session.id)}
+              className="btn text-xs px-3 py-1.5 flex items-center gap-1 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white border-0 shadow-lg shadow-rose-500/20"
+            >
+              <Square size={12} fill="currentColor" /> End Session
+            </button>
           )}
           {status !== 'ended' && (
             <button onClick={() => onCancel(session.id)} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">

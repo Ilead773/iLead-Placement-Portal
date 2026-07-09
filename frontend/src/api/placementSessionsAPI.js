@@ -28,6 +28,9 @@ const placementSessionsAPI = {
   // Admin: manually override a student's attendance
   overrideAttendance: (sessionId, attendanceId, newStatus) =>
     api.patch(`${BASE}/${sessionId}/attendance/${attendanceId}/`, { status: newStatus }),
+
+  // Admin: manually end session early
+  end: (id) => api.post(`${BASE}/${id}/end/`),
 };
 
 export default placementSessionsAPI;

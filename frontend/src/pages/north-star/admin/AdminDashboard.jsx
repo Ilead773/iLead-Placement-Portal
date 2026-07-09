@@ -17,7 +17,8 @@ import {
   FileText,
   Trash,
   Plus,
-  Search
+  Search,
+  Square
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
@@ -248,6 +249,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEndClass = async (classId) => {
+    if (!window.confirm('Are you sure you want to end this class early? Attendance will be finalised immediately.')) return;
+    try {
+      await northStarAPI.endClass(classId);
+      toast.success('Class ended. Attendance finalised.');
+      fetchAdminData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to end class.');
+    }
+  };
+
   const handleFetchAttendanceGrid = async () => {
     if (!filterClass) return;
     try {
@@ -307,53 +320,116 @@ export default function AdminDashboard() {
 
 
 
+  const TAB_ICONS = {
+    dashboard:   '⬡',
+    classes:     '📅',
+    attendance:  '✅',
+    assignments: '📝',
+    email:       '📨',
+    certificates:'🏅',
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-6 transition-colors duration-500">
-      {/* Header Panel */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-950 border border-slate-800 dark:border-slate-800 rounded-3xl p-8 shadow-2xl mb-8 text-white">
-        {/* Animated Radial Auras */}
-        <div className="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-        <div className="absolute -left-20 -bottom-20 w-96 h-96 rounded-full bg-violet-500/10 blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 text-indigo-200 backdrop-blur-md border border-white/5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 shadow-inner">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0c14] text-slate-800 dark:text-slate-100 transition-colors duration-500">
+
+      {/* ─── HERO HEADER ─────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden" style={{
+        background: 'linear-gradient(135deg, #0f0c29 0%, #1a1060 40%, #0d1b4b 70%, #0a0c1e 100%)'
+      }}>
+        {/* Mesh grid overlay */}
+        <div className="absolute inset-0 opacity-[0.06]" style={{
+          backgroundImage: 'linear-gradient(rgba(99,102,241,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.8) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }} />
+
+        {/* Glowing orbs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, #818cf8 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-15"
+          style={{ background: 'radial-gradient(circle, #a78bfa 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full opacity-10 animate-pulse"
+          style={{ background: 'radial-gradient(circle, #38bdf8 0%, transparent 70%)', animationDuration: '7s' }} />
+
+        {/* Content */}
+        <div className="relative z-10 px-8 pt-8 pb-0">
+          {/* Top row: badge + user */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-indigo-300"
+              style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', backdropFilter: 'blur(12px)' }}>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" style={{ animationDuration: '2s' }} />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400" />
+              </span>
               ★ North Star Coordinator Console
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-indigo-200 bg-clip-text text-transparent mb-2">
-              LMS Management Board
+
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-indigo-300/60 font-medium">Signed in as</p>
+                <p className="text-sm font-bold text-white">{user?.first_name} {user?.last_name}</p>
+              </div>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                {user?.first_name?.[0]}{user?.last_name?.[0]}
+              </div>
+            </div>
+          </div>
+
+          {/* Title + description */}
+          <div className="max-w-2xl mb-8">
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-3 leading-tight">
+              LMS{' '}
+              <span style={{ background: 'linear-gradient(90deg, #a5b4fc, #818cf8, #c4b5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Management
+              </span>{' '}
+              Board
             </h1>
-            <p className="text-indigo-200/70 text-sm max-w-2xl leading-relaxed">
+            <p className="text-indigo-200/55 text-sm leading-relaxed">
               Organize classes, track automated Zoom attendance records, grade homework, and issue student certificates.
             </p>
           </div>
 
-          {/* Navigation tabs - Glassmorphic pills */}
-          <div className="flex flex-wrap bg-white/5 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 self-start gap-1 shadow-inner">
+          {/* Navigation tabs - flush to bottom of header */}
+          <div className="flex items-end gap-1 overflow-x-auto pb-0 scrollbar-hide">
             {[
-              { id: 'dashboard', label: 'Overview' },
-              { id: 'classes', label: 'Schedule' },
-              { id: 'attendance', label: 'Attendance Grid' },
-              { id: 'assignments', label: 'Grading Hub' },
-              { id: 'email', label: 'Notifications' },
-              { id: 'certificates', label: 'Certificates' }
+              { id: 'dashboard',   label: 'Overview',        icon: '⬡' },
+              { id: 'classes',     label: 'Schedule',         icon: '📅' },
+              { id: 'attendance',  label: 'Attendance Grid',  icon: '✅' },
+              { id: 'assignments', label: 'Grading Hub',      icon: '📝' },
+              { id: 'email',       label: 'Notifications',    icon: '📨' },
+              { id: 'certificates',label: 'Certificates',     icon: '🏅' },
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); }}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
-                  activeTab === tab.id 
-                    ? 'bg-white text-indigo-950 shadow-lg scale-[1.02]' 
-                    : 'text-indigo-200/60 hover:text-white hover:bg-white/5'
+                onClick={() => setActiveTab(tab.id)}
+                style={activeTab === tab.id ? {
+                  background: '#fff',
+                  color: '#1e1b4b',
+                  borderRadius: '12px 12px 0 0',
+                  boxShadow: '0 -4px 20px rgba(99,102,241,0.3)'
+                } : {
+                  background: 'rgba(255,255,255,0.04)',
+                  color: 'rgba(199,210,254,0.55)',
+                  borderRadius: '12px 12px 0 0',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: 'none'
+                }}
+                className={`px-5 py-3 text-xs font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
+                  activeTab === tab.id ? '' : 'hover:bg-white/10 hover:text-indigo-200'
                 }`}
               >
+                <span className="hidden sm:inline">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
           </div>
         </div>
       </div>
+
+      {/* thin accent line under header */}
+      <div style={{ height: '3px', background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, transparent)' }} />
+
+      <div className="p-6">
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32">
@@ -586,20 +662,28 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                           {cls.zoom_start_url ? (
-                             <a
-                               href={cls.zoom_start_url}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider text-center"
+                           <div className="mt-4 md:mt-0 flex items-center gap-2">
+                             {cls.zoom_start_url ? (
+                               <a
+                                 href={cls.zoom_start_url}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider text-center"
+                               >
+                                 <Play size={12} fill="currentColor" /> Start Class (Host)
+                               </a>
+                             ) : (
+                               <span className="relative z-10 px-5 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200">
+                                 No Zoom Link
+                               </span>
+                             )}
+                             <button
+                               onClick={() => handleEndClass(cls.id)}
+                               className="relative z-10 px-4 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-rose-500/20 hover:shadow-rose-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider"
                              >
-                               <Play size={12} fill="currentColor" /> Start Class (Host)
-                             </a>
-                           ) : (
-                             <span className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200">
-                               No Zoom Link
-                             </span>
-                           )}
+                               <Square size={10} fill="currentColor" /> End Class
+                             </button>
+                           </div>
                         </div>
                       );
                     })}
@@ -1177,6 +1261,7 @@ export default function AdminDashboard() {
           })()}
         </>
       )}
+      </div>{/* end p-6 content wrapper */}
     </div>
   );
 }

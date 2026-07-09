@@ -13,6 +13,7 @@ export const northStarAPI = {
   scheduleClass: (data) => api.post(`${NORTH_STAR_BASE}/schedule-class/`, data),
   joinClass: (classId) => api.get(`${NORTH_STAR_BASE}/classes/${classId}/join/`),
   startClass: (classId) => api.get(`${NORTH_STAR_BASE}/classes/${classId}/start/`),
+  endClass: (classId) => api.post(`${NORTH_STAR_BASE}/classes/${classId}/end/`),
 
   // Attendance
   getAttendance: (params) => api.get(`${NORTH_STAR_BASE}/attendance/`, { params }),
