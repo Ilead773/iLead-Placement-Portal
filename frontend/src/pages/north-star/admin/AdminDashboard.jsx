@@ -368,10 +368,10 @@ export default function AdminDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap bg-transparent border-0 border-b-2 rounded-none shadow-none outline-none transition-all duration-200 ${
+                  className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap bg-transparent border-0 border-b-2 rounded-none shadow-none outline-none transition-all duration-200 ${
                     isActive
-                      ? 'border-indigo-500 text-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                      ? 'border-indigo-500 text-indigo-400'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   {tab.label}
