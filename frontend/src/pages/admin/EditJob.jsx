@@ -79,7 +79,7 @@ const EditJob = () => {
   const parsePackageValue = (pkg, listingType) => {
     if (!pkg) return { amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA' };
     const pkgStr = String(pkg).trim();
-    if (pkgStr === 'Competitive' || pkgStr === 'Negotiable' || pkgStr === 'Unpaid') {
+    if (pkgStr === 'Unpaid') {
       return { amount: '', unit: pkgStr };
     }
     if (pkgStr.endsWith('/month') || pkgStr.endsWith('/ month') || pkgStr.endsWith('/mo') || pkgStr.endsWith('/ mo')) {
@@ -94,14 +94,16 @@ const EditJob = () => {
       const amount = pkgStr.replace(/\s*LPA$/i, '').trim();
       return { amount, unit: 'LPA' };
     }
-    return { amount: pkgStr, unit: listingType === 'internship' ? '/ month' : 'LPA' };
+    return { amount: pkgStr, unit: 'Custom' };
   };
 
   const handleSalaryChange = (amount, unit) => {
     setSalaryAmount(amount);
     setSalaryUnit(unit);
-    if (unit === 'Competitive' || unit === 'Negotiable' || unit === 'Unpaid') {
+    if (unit === 'Unpaid') {
       setFormData(prev => ({ ...prev, package: unit }));
+    } else if (unit === 'Custom') {
+      setFormData(prev => ({ ...prev, package: amount }));
     } else {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
@@ -447,13 +449,13 @@ Return only the JSON object.`;
                   <label>{formData.listing_type === 'internship' ? 'Stipend (Flexible)' : 'Package / Salary (Flexible)'}</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input 
-                      required={salaryUnit !== 'Competitive' && salaryUnit !== 'Negotiable' && salaryUnit !== 'Unpaid'} 
-                      disabled={salaryUnit === 'Competitive' || salaryUnit === 'Negotiable' || salaryUnit === 'Unpaid'} 
+                      required={salaryUnit !== 'Unpaid'} 
+                      disabled={salaryUnit === 'Unpaid'} 
                       type="text" 
                       value={salaryAmount} 
                       onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
                       className="input-field" 
-                      placeholder="e.g. 6.5 or 5000-10000" 
+                      placeholder={salaryUnit === 'Custom' ? "e.g. 15k/mo + 6.5 LPA" : "e.g. 6.5 or 5000-10000"} 
                       style={{ flex: 1 }} 
                     />
                     <select 
@@ -467,14 +469,13 @@ Return only the JSON object.`;
                           <option value="/ month">/ month</option>
                           <option value="Total Stipend">Total Stipend</option>
                           <option value="Unpaid">Unpaid</option>
-                          <option value="Competitive">Competitive</option>
+                          <option value="Custom">Custom</option>
                         </>
                       ) : (
                         <>
                           <option value="LPA">LPA</option>
                           <option value="/ month">/ month</option>
-                          <option value="Competitive">Competitive</option>
-                          <option value="Negotiable">Negotiable</option>
+                          <option value="Custom">Custom</option>
                         </>
                       )}
                     </select>

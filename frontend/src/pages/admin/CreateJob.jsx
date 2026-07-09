@@ -66,8 +66,8 @@ const CreateJob = () => {
   const handleSalaryChange = (amount, unit) => {
     setSalaryAmount(amount);
     setSalaryUnit(unit);
-    if (unit === 'Competitive' || unit === 'Negotiable') {
-      setFormData(prev => ({ ...prev, package: unit }));
+    if (unit === 'Custom') {
+      setFormData(prev => ({ ...prev, package: amount }));
     } else {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
@@ -345,13 +345,12 @@ Return only the JSON object.`;
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input 
-                    required={salaryUnit !== 'Competitive' && salaryUnit !== 'Negotiable'} 
-                    disabled={salaryUnit === 'Competitive' || salaryUnit === 'Negotiable'} 
+                    required 
                     type="text" 
                     value={salaryAmount} 
                     onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
                     className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
-                    placeholder="e.g. 6.5 or 5000-10000" 
+                    placeholder={salaryUnit === 'Custom' ? "e.g. 15k/mo + 6.5 LPA" : "e.g. 6.5 or 5000-10000"} 
                     style={{ flex: 1 }} 
                   />
                   <select 
@@ -362,8 +361,7 @@ Return only the JSON object.`;
                   >
                     <option value="LPA">LPA</option>
                     <option value="/ month">/ month</option>
-                    <option value="Competitive">Competitive</option>
-                    <option value="Negotiable">Negotiable</option>
+                    <option value="Custom">Custom</option>
                   </select>
                 </div>
               </div>

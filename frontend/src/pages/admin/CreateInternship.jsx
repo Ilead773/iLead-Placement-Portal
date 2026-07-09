@@ -77,8 +77,10 @@ const CreateInternship = () => {
   const handleSalaryChange = (amount, unit) => {
     setSalaryAmount(amount);
     setSalaryUnit(unit);
-    if (unit === 'Unpaid' || unit === 'Competitive') {
+    if (unit === 'Unpaid') {
       setFormData(prev => ({ ...prev, package: unit }));
+    } else if (unit === 'Custom') {
+      setFormData(prev => ({ ...prev, package: amount }));
     } else {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
@@ -300,13 +302,13 @@ const CreateInternship = () => {
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input 
-                    required={salaryUnit !== 'Unpaid' && salaryUnit !== 'Competitive'} 
-                    disabled={salaryUnit === 'Unpaid' || salaryUnit === 'Competitive'} 
+                    required={salaryUnit !== 'Unpaid'} 
+                    disabled={salaryUnit === 'Unpaid'} 
                     type="text" 
                     value={salaryAmount} 
                     onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
                     className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
-                    placeholder="e.g. 15000 or 5000-10000" 
+                    placeholder={salaryUnit === 'Custom' ? "e.g. 15000 + PPO" : "e.g. 15000 or 5000-10000"} 
                     style={{ flex: 1 }} 
                   />
                   <select 
@@ -318,7 +320,7 @@ const CreateInternship = () => {
                     <option value="/ month">/ month</option>
                     <option value="Total Stipend">Total Stipend</option>
                     <option value="Unpaid">Unpaid</option>
-                    <option value="Competitive">Competitive</option>
+                    <option value="Custom">Custom</option>
                   </select>
                 </div>
               </div>
