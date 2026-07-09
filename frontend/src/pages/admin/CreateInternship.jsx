@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '../../api/axios';
+import toast from 'react-hot-toast';
 import { ILEAD_COURSES_OBJ } from '../../constants/courses';
 import { 
   Building2, Briefcase, MapPin, GraduationCap, Users, 
@@ -10,6 +11,9 @@ import {
 
 const CreateInternship = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const cloneId = searchParams.get('clone');
+  const useDraft = searchParams.get('use_draft');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [createdJobId, setCreatedJobId] = useState(null);
@@ -44,6 +48,129 @@ const CreateInternship = () => {
     };
     fetchCourses();
   }, []);
+
+  const parsePackageValue = (pkg, listingType) => {
+    if (!pkg) return { amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA' };
+    const pkgStr = String(pkg).trim();
+    if (pkgStr === 'Unpaid') {
+      return { amount: '', unit: pkgStr };
+    }
+    if (pkgStr.endsWith('/month') || pkgStr.endsWith('/ month') || pkgStr.endsWith('/mo') || pkgStr.endsWith('/ mo')) {
+      const amount = pkgStr.replace(/\s*\/\s*(month|mo)$/, '').trim();
+      return { amount, unit: '/ month' };
+    }
+    if (pkgStr.endsWith('Total Stipend') || pkgStr.endsWith('total stipend')) {
+      const amount = pkgStr.replace(/\s*total stipend$/i, '').trim();
+      return { amount, unit: 'Total Stipend' };
+    }
+    if (pkgStr.endsWith('LPA') || pkgStr.endsWith(' lpa')) {
+      const amount = pkgStr.replace(/\s*LPA$/i, '').trim();
+      return { amount, unit: 'LPA' };
+    }
+    return { amount: pkgStr, unit: 'Custom' };
+  };
+
+  useEffect(() => {
+    if (cloneId) {
+      const fetchCloneData = async () => {
+        try {
+          const response = await axios.get(`/jobs/jobs/${cloneId}/`, {
+            params: { _t: Date.now() }
+          });
+          const data = response.data;
+          
+          const parsedPkg = parsePackageValue(data.package, data.listing_type || 'internship');
+          setSalaryAmount(parsedPkg.amount);
+          setSalaryUnit(parsedPkg.unit);
+
+          let deadlineStr = '';
+          if (data.application_deadline) {
+            const d = new Date(data.application_deadline);
+            if (!isNaN(d.getTime())) {
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              const hours = String(d.getHours()).padStart(2, '0');
+              const minutes = String(d.getMinutes()).padStart(2, '0');
+              deadlineStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
+          }
+
+          setFormData(prev => ({
+            ...prev,
+            company_name: data.company_name || '',
+            company_website: data.company_website || '',
+            role: data.role ? `${data.role} (Copy)` : '',
+            description: data.description || '',
+            package: data.package || '',
+            location: data.location || '',
+            job_type: data.job_type || 'internal',
+            listing_type: data.listing_type || 'internship',
+            duration: data.duration || '',
+            application_deadline: deadlineStr,
+            external_link: data.external_link || '',
+            category: data.category || 'C',
+            openings_count: data.openings_count || 1,
+            hr_email: data.hr_email || '',
+            eligibility_rules: {
+              min_cgpa: data.eligibility_rules?.min_cgpa === undefined || data.eligibility_rules?.min_cgpa === null || data.eligibility_rules?.min_cgpa === 0 ? '' : String(data.eligibility_rules.min_cgpa),
+              min_attendance: data.eligibility_rules?.min_attendance === undefined || data.eligibility_rules?.min_attendance === null || data.eligibility_rules?.min_attendance === 0 ? '' : String(data.eligibility_rules.min_attendance),
+              max_backlogs: data.eligibility_rules?.max_backlogs === undefined || data.eligibility_rules?.max_backlogs === null ? '' : String(data.eligibility_rules.max_backlogs),
+              allowed_branches: data.eligibility_rules?.allowed_branches || [],
+              allowed_years: data.eligibility_rules?.allowed_years || [],
+              allowed_categories: data.eligibility_rules?.allowed_categories || [],
+              allowed_students: []
+            },
+            rounds: (data.rounds || []).map(r => ({
+              round_number: r.round_number,
+              round_name: r.round_name,
+              round_type: r.round_type,
+              is_elimination: r.is_elimination,
+              passing_score: r.passing_score,
+              duration_minutes: r.duration_minutes
+            }))
+          }));
+
+          const savedIds = data.eligibility_rules?.allowed_students || [];
+          if (savedIds.length > 0) {
+            try {
+              const { data: studData } = await axios.get(`/students/?ids=${savedIds.join(',')}&limit=200`);
+              const studentObjs = (studData.results || []).map(s => ({
+                id: s.id, name: s.name, registration_number: s.registration_number
+              }));
+              setFormData(prev => ({
+                ...prev,
+                eligibility_rules: { ...prev.eligibility_rules, allowed_students: studentObjs }
+              }));
+            } catch (e) {
+              console.error('Failed to pre-fill allowed_students for clone', e);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch clone details', err);
+          setError('Failed to fetch original internship details for cloning.');
+        }
+      };
+      fetchCloneData();
+    }
+  }, [cloneId]);
+
+  useEffect(() => {
+    if (useDraft) {
+      try {
+        const draftStr = sessionStorage.getItem('temp_internship_form');
+        if (draftStr) {
+          const parsed = JSON.parse(draftStr);
+          if (parsed.salaryAmount) setSalaryAmount(parsed.salaryAmount);
+          if (parsed.salaryUnit) setSalaryUnit(parsed.salaryUnit);
+          if (parsed.formData) setFormData(parsed.formData);
+          sessionStorage.removeItem('temp_internship_form');
+        }
+      } catch (err) {
+        console.error('Failed to load form draft', err);
+      }
+    }
+  }, [useDraft]);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -174,6 +301,8 @@ const CreateInternship = () => {
     }
   };
 
+  const [submitType, setSubmitType] = useState('publish');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -189,22 +318,54 @@ const CreateInternship = () => {
             ? null
             : parseInt(formData.eligibility_rules.max_backlogs),
           allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id)
-        }
+        },
+        rounds: (formData.rounds || []).map(r => {
+          const { id, ...rest } = r;
+          return rest;
+        })
       };
 
-      let jobId = createdJobId;
-      if (!jobId) {
-        const response = await axios.post('/jobs/admin/jobs/', payload);
-        jobId = response.data.id;
-        setCreatedJobId(jobId);
-      }
-      // Publish immediately
+      const response = await axios.post('/jobs/admin/jobs/', payload);
+      const jobId = response.data.id;
       await axios.post(`/jobs/admin/jobs/${jobId}/publish/`);
-      navigate('/admin/internships');
+      
+      if (submitType === 'add_another') {
+        toast.success(`Internship drive for "${formData.role}" published successfully! 🎉 Form is reset for the next role.`);
+        setFormData(prev => ({
+          ...prev,
+          role: '',
+          package: '',
+          duration: '',
+          application_deadline: '',
+          openings_count: 1
+        }));
+        setSalaryAmount('');
+        setSalaryUnit('/ month');
+        setCreatedJobId(null);
+      } else {
+        toast.success('Internship drive published successfully! 🎉');
+        navigate('/admin/internships');
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create internship');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCloneToNewTab = () => {
+    try {
+      const dataToSave = {
+        formData,
+        salaryAmount,
+        salaryUnit
+      };
+      sessionStorage.setItem('temp_internship_form', JSON.stringify(dataToSave));
+      window.open(window.location.pathname + '?use_draft=true', '_blank');
+      toast.success('Form details cloned to new tab! 🎉');
+    } catch (err) {
+      console.error('Failed to clone form state to new tab', err);
+      toast.error('Failed to clone form to new tab.');
     }
   };
 
@@ -225,8 +386,33 @@ const CreateInternship = () => {
           <button type="button" onClick={() => navigate('/admin/internships')} className="btn" style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
             Cancel
           </button>
-          <button type="submit" form="create-internship-form" disabled={loading} className="btn btn-primary px-6 flex items-center gap-2" style={{ borderRadius: '10px', boxShadow: '0 4px 15px rgba(37,99,235,0.25)' }}>
-            {loading ? 'Processing...' : 'Publish Internship'}
+          <button 
+            type="button" 
+            onClick={handleCloneToNewTab}
+            className="btn btn-secondary px-6 flex items-center gap-2" 
+            style={{ borderRadius: '10px', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)' }}
+          >
+            Clone to New Tab
+          </button>
+          <button 
+            type="submit" 
+            form="create-internship-form" 
+            disabled={loading} 
+            onClick={() => setSubmitType('add_another')}
+            className="btn btn-secondary px-6 flex items-center gap-2" 
+            style={{ borderRadius: '10px', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)' }}
+          >
+            {loading && submitType === 'add_another' ? 'Processing...' : 'Publish & Add Another'}
+          </button>
+          <button 
+            type="submit" 
+            form="create-internship-form" 
+            disabled={loading} 
+            onClick={() => setSubmitType('publish')}
+            className="btn btn-primary px-6 flex items-center gap-2" 
+            style={{ borderRadius: '10px', boxShadow: '0 4px 15px rgba(37,99,235,0.25)' }}
+          >
+            {loading && submitType === 'publish' ? 'Processing...' : 'Publish Internship'}
           </button>
         </div>
       </div>
