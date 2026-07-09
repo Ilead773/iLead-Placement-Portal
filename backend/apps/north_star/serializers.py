@@ -41,6 +41,7 @@ class ScheduledClassSerializer(serializers.ModelSerializer):
     courses_details = NorthStarCourseSerializer(source='courses', many=True, read_only=True)
     course_name = serializers.SerializerMethodField()
     host_name = serializers.CharField(source='host.name', read_only=True)
+    is_ended = serializers.SerializerMethodField()
 
     class Meta:
         model = ScheduledClass
@@ -52,6 +53,10 @@ class ScheduledClassSerializer(serializers.ModelSerializer):
         if not courses and obj.course:
             return obj.course.name
         return ", ".join(courses)
+
+    def get_is_ended(self, obj):
+        from django.utils import timezone
+        return obj.end_time <= timezone.now()
 
 class AttendanceEventSerializer(serializers.ModelSerializer):
     class Meta:

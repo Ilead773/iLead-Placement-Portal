@@ -597,7 +597,7 @@ export default function AdminDashboard() {
                 {classes.length > 0 ? (
                   <div className="space-y-3 overflow-y-auto pr-1 max-h-[500px]">
                     {classes.map(cls => {
-                      const isEnded = new Date() > new Date(cls.end_time);
+                      const isEnded = cls.is_ended || (new Date() > new Date(cls.end_time));
                       return (
                         <div 
                           key={cls.id}

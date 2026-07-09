@@ -406,8 +406,8 @@ export default function StudentDashboard() {
                   {dashboardData.upcoming_classes?.length > 0 ? (
                     <div className="space-y-4">
                       {dashboardData.upcoming_classes.map((cls) => {
-                        const isLive = new Date() >= new Date(cls.start_time) && new Date() <= new Date(cls.end_time);
-                        const hasEnded = new Date() > new Date(cls.end_time);
+                        const isLive = !cls.is_ended && new Date() >= new Date(cls.start_time) && new Date() <= new Date(cls.end_time);
+                        const hasEnded = cls.is_ended || new Date() > new Date(cls.end_time);
                         return (
                           <motion.div 
                             key={cls.id} 
@@ -538,7 +538,7 @@ export default function StudentDashboard() {
           {/* ================================================================== */}
           {activeTab === 'classes' && (() => {
             const filteredClasses = classes.filter(cls => {
-              const hasEnded = new Date() > new Date(cls.end_time);
+              const hasEnded = cls.is_ended || new Date() > new Date(cls.end_time);
               if (classFilter === 'upcoming') return !hasEnded;
               if (classFilter === 'past') return hasEnded;
               return true;
