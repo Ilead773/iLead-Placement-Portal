@@ -59,6 +59,16 @@ const CreateInternship = () => {
     category: 'C',
     openings_count: 1,
     hr_email: '',
+    eligibility_rules: {
+      min_cgpa: '',
+      min_attendance: '',
+      max_backlogs: '',
+      allowed_branches: [],
+      allowed_years: [],
+      allowed_categories: [],
+      allowed_students: []
+    },
+    rounds: []
   });
 
   const [salaryAmount, setSalaryAmount] = useState('');
@@ -73,17 +83,6 @@ const CreateInternship = () => {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
   };
-    eligibility_rules: {
-      min_cgpa: '',
-      min_attendance: '',
-      max_backlogs: '',
-      allowed_branches: [],
-      allowed_years: [],
-      allowed_categories: [],
-      allowed_students: []
-    },
-    rounds: []
-  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
