@@ -63,11 +63,19 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class_title = serializers.CharField(source='scheduled_class.title', read_only=True)
     class_start_time = serializers.DateTimeField(source='scheduled_class.start_time', read_only=True)
     course_name = serializers.SerializerMethodField()
+    attendance_percent = serializers.SerializerMethodField()
 
     class Meta:
         model = Attendance
         fields = '__all__'
         read_only_fields = ('marked_via', 'marked_by')
+
+    def get_attendance_percent(self, obj):
+        class_duration = int((obj.scheduled_class.end_time - obj.scheduled_class.start_time).total_seconds() / 60)
+        if class_duration <= 0:
+            class_duration = 60
+        pct = (obj.total_duration_minutes / class_duration) * 100
+        return round(min(100.0, max(0.0, pct)), 1)
 
     def get_course_name(self, obj):
         student_course = getattr(obj.student.student_profile, 'course', None) if hasattr(obj.student, 'student_profile') else None

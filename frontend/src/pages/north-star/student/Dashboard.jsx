@@ -1131,7 +1131,7 @@ export default function StudentDashboard() {
                           <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-2 text-[10px] text-slate-400">
                             <span>{classDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                             <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-extrabold tracking-wider uppercase ${status.bg}`}>
-                              {status.label}
+                              {record.status === 'excused' ? 'Excused' : `${record.attendance_percent ?? 0}%`}
                             </span>
                           </div>
                         </div>
