@@ -320,123 +320,61 @@ export default function AdminDashboard() {
 
 
 
-  const TAB_ICONS = {
-    dashboard:   '⬡',
-    classes:     '📅',
-    attendance:  '✅',
-    assignments: '📝',
-    email:       '📨',
-    certificates:'🏅',
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0c14] text-slate-800 dark:text-slate-100 transition-colors duration-500">
+    <div className="min-h-screen bg-[#f8f9fb] dark:bg-[#0e0f14] text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
-      {/* ─── HERO HEADER ─────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden" style={{
-        background: 'linear-gradient(135deg, #0f0c29 0%, #1a1060 40%, #0d1b4b 70%, #0a0c1e 100%)'
-      }}>
-        {/* Mesh grid overlay */}
-        <div className="absolute inset-0 opacity-[0.06]" style={{
-          backgroundImage: 'linear-gradient(rgba(99,102,241,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.8) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }} />
+      {/* ─── HEADER ─────────────────────────────────────── */}
+      <div className="bg-[#13141a] border-b border-white/[0.06]">
+        <div className="px-8 pt-7 pb-0 max-w-screen-2xl mx-auto">
 
-        {/* Glowing orbs */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #818cf8 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #a78bfa 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full opacity-10 animate-pulse"
-          style={{ background: 'radial-gradient(circle, #38bdf8 0%, transparent 70%)', animationDuration: '7s' }} />
-
-        {/* Content */}
-        <div className="relative z-10 px-8 pt-8 pb-0">
-          {/* Top row: badge + user */}
+          {/* Top row */}
           <div className="flex items-center justify-between mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-indigo-300"
-              style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', backdropFilter: 'blur(12px)' }}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" style={{ animationDuration: '2s' }} />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400" />
-              </span>
-              ★ North Star Coordinator Console
-            </div>
-
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-indigo-300/60 font-medium">Signed in as</p>
-                <p className="text-sm font-bold text-white">{user?.first_name} {user?.last_name}</p>
-              </div>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm text-white"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <div className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">
+                North Star · Coordinator Console
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
                 {user?.first_name?.[0]}{user?.last_name?.[0]}
               </div>
+              <span className="text-sm font-medium text-slate-300 hidden sm:block">
+                {user?.first_name} {user?.last_name}
+              </span>
             </div>
           </div>
 
-          {/* Title + description */}
-          <div className="max-w-2xl mb-8">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-3 leading-tight">
-              LMS{' '}
-              <span style={{ background: 'linear-gradient(90deg, #a5b4fc, #818cf8, #c4b5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Management
-              </span>{' '}
-              Board
-            </h1>
-            <p className="text-indigo-200/55 text-sm leading-relaxed">
-              Organize classes, track automated Zoom attendance records, grade homework, and issue student certificates.
+          {/* Title */}
+          <div className="mb-7">
+            <h1 className="text-2xl font-bold text-white tracking-tight">LMS Management Board</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Organize classes, track Zoom attendance, grade homework, and issue certificates.
             </p>
           </div>
 
-          {/* Navigation tabs — premium pill strip */}
-          <div
-            className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide mt-2 px-1 py-1.5 rounded-2xl"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              backdropFilter: 'blur(16px)',
-            }}
-          >
+          {/* Tab bar */}
+          <div className="flex items-end gap-0 overflow-x-auto scrollbar-hide -mb-px">
             {[
-              { id: 'dashboard',    label: 'Overview',       icon: '⬡',  color: '#818cf8' },
-              { id: 'classes',      label: 'Schedule',        icon: '📅', color: '#34d399' },
-              { id: 'attendance',   label: 'Attendance',      icon: '✅', color: '#38bdf8' },
-              { id: 'assignments',  label: 'Grading Hub',     icon: '📝', color: '#f472b6' },
-              { id: 'email',        label: 'Notifications',   icon: '📨', color: '#fb923c' },
-              { id: 'certificates', label: 'Certificates',    icon: '🏅', color: '#fbbf24' },
+              { id: 'dashboard',    label: 'Overview' },
+              { id: 'classes',      label: 'Schedule' },
+              { id: 'attendance',   label: 'Attendance' },
+              { id: 'assignments',  label: 'Grading Hub' },
+              { id: 'email',        label: 'Notifications' },
+              { id: 'certificates', label: 'Certificates' },
             ].map(tab => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={isActive ? {
-                    background: `linear-gradient(135deg, ${tab.color}22, ${tab.color}11)`,
-                    border: `1px solid ${tab.color}55`,
-                    color: '#fff',
-                    boxShadow: `0 0 16px ${tab.color}33, inset 0 1px 0 rgba(255,255,255,0.1)`,
-                  } : {
-                    background: 'transparent',
-                    border: '1px solid transparent',
-                    color: 'rgba(199,210,254,0.45)',
-                  }}
-                  className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-300 hover:scale-[1.04] hover:text-white group"
+                  className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-200 ${
+                    isActive
+                      ? 'border-indigo-500 text-white'
+                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                  }`}
                 >
-                  {/* Active indicator dot */}
-                  {isActive && (
-                    <span
-                      className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                      style={{ background: tab.color, boxShadow: `0 0 6px ${tab.color}` }}
-                    />
-                  )}
-                  <span
-                    className="text-sm leading-none transition-transform duration-300 group-hover:scale-110"
-                    style={isActive ? { filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.4))' } : {}}
-                  >
-                    {tab.icon}
-                  </span>
-                  <span className="tracking-wide">{tab.label}</span>
+                  {tab.label}
                 </button>
               );
             })}
@@ -444,10 +382,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* thin accent line under header */}
-      <div style={{ height: '3px', background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4, transparent)' }} />
-
-      <div className="p-6">
+      <div className="p-6 max-w-screen-2xl mx-auto">
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-32">
