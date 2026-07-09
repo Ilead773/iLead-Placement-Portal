@@ -354,30 +354,32 @@ export default function AdminDashboard() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-end gap-1 overflow-x-auto scrollbar-hide -mb-px">
-            {[
-              { id: 'dashboard',    label: 'Overview' },
-              { id: 'classes',      label: 'Schedule' },
-              { id: 'attendance',   label: 'Attendance' },
-              { id: 'assignments',  label: 'Grading Hub' },
-              { id: 'email',        label: 'Notifications' },
-              { id: 'certificates', label: 'Certificates' },
-            ].map(tab => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap bg-transparent border-0 border-b-2 rounded-none shadow-none outline-none transition-all duration-200 ${
-                    isActive
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex pb-4">
+            <div className="flex items-center gap-1 p-1 bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-x-auto scrollbar-hide">
+              {[
+                { id: 'dashboard',    label: 'Overview' },
+                { id: 'classes',      label: 'Schedule' },
+                { id: 'attendance',   label: 'Attendance' },
+                { id: 'assignments',  label: 'Grading Hub' },
+                { id: 'email',        label: 'Notifications' },
+                { id: 'certificates', label: 'Certificates' },
+              ].map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-1.5 text-xs font-semibold whitespace-nowrap rounded-lg outline-none transition-all duration-200 border ${
+                      isActive
+                        ? 'bg-white/[0.08] text-white border-white/[0.08] shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200 border-transparent'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -595,6 +597,7 @@ export default function AdminDashboard() {
                 {classes.length > 0 ? (
                   <div className="space-y-3 overflow-y-auto pr-1 max-h-[500px]">
                     {classes.map(cls => {
+                      const isEnded = new Date() > new Date(cls.end_time);
                       return (
                         <div 
                           key={cls.id}
@@ -612,26 +615,34 @@ export default function AdminDashboard() {
                           </div>
 
                            <div className="mt-3 md:mt-0 flex items-center gap-2">
-                             {cls.zoom_start_url ? (
-                               <a
-                                 href={cls.zoom_start_url}
-                                 target="_blank"
-                                 rel="noopener noreferrer"
-                                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition-colors uppercase tracking-wider text-center"
-                               >
-                                 <Play size={10} fill="currentColor" /> Start Host
-                               </a>
-                             ) : (
-                               <span className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 font-semibold rounded-lg text-[10px] border border-slate-200 dark:border-slate-700">
-                                 No Link
+                             {isEnded ? (
+                               <span className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-semibold rounded-lg text-[10px] border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                                 Ended
                                </span>
+                             ) : (
+                               <>
+                                 {cls.zoom_start_url ? (
+                                   <a
+                                     href={cls.zoom_start_url}
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                                     className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition-colors uppercase tracking-wider text-center"
+                                   >
+                                     <Play size={10} fill="currentColor" /> Start Host
+                                   </a>
+                                 ) : (
+                                   <span className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 font-semibold rounded-lg text-[10px] border border-slate-200 dark:border-slate-700">
+                                     No Link
+                                   </span>
+                                 )}
+                                 <button
+                                   onClick={() => handleEndClass(cls.id)}
+                                   className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
+                                 >
+                                   <Square size={8} fill="currentColor" /> End Class
+                                 </button>
+                               </>
                              )}
-                             <button
-                               onClick={() => handleEndClass(cls.id)}
-                               className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
-                             >
-                               <Square size={8} fill="currentColor" /> End Class
-                             </button>
                            </div>
                         </div>
                       );
