@@ -254,16 +254,12 @@ def start_session(request, session_id):
 
     zoom_service = ZoomService()
     try:
-        # Fetch fresh ZAK token from Zoom
-        host_email = session.host.email if (session.host and session.host.email) else 'me'
-        zak = zoom_service.get_user_zak_token(host_email)
-        
+        # Strip the expired ZAK query parameter from the Zoom start_url
         start_url = session.zoom_start_url or ''
-        if zak and start_url:
-            clean_url = start_url.split('?')[0]
-            start_url = f"{clean_url}?zak={zak}"
+        if '?' in start_url:
+            start_url = start_url.split('?')[0]
             
-        role = 1 if zak else 0
+        role = 1
         signature = zoom_service.generate_sdk_signature(session.zoom_meeting_id, role=role)
     except Exception as e:
         return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -390,7 +386,8 @@ def placement_zoom_webhook(request):
         try:
             timestamp = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%SZ') if time_str else timezone.now()
             if time_str:
-                timestamp = timezone.make_aware(timestamp, timezone.utc)
+                from datetime import timezone as dt_timezone
+                timestamp = timezone.make_aware(timestamp, dt_timezone.utc)
         except Exception:
             timestamp = timezone.now()
 

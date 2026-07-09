@@ -176,37 +176,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleStartClass = async (classId) => {
-    // Open a blank tab immediately to bypass browser popup blockers
-    const newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-    
-    try {
-      toast.loading('Initializing Host Session...');
-      const res = await northStarAPI.startClass(classId);
-      toast.dismiss();
 
-      // Admins get the start_url (contains ZAK token, auto-logs in as host)
-      // Fall back to join_url if start_url is not present
-      const startUrl = res.data.start_url || res.data.join_url || '';
-      if (!startUrl) {
-        if (newWindow) newWindow.close();
-        toast.error('No Zoom start link found for this class.');
-        return;
-      }
-
-      // Redirect the opened tab to the Zoom start URL
-      if (newWindow) {
-        newWindow.location.href = startUrl;
-      } else {
-        window.open(startUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch (err) {
-      if (newWindow) newWindow.close();
-      toast.dismiss();
-      console.error(err);
-      toast.error('Could not initialize meeting. Zoom credentials are required.');
-    }
-  };
 
   const handlePostAssignment = async (e) => {
     e.preventDefault();
@@ -614,12 +584,20 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => handleStartClass(cls.id)}
-                            className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider"
-                          >
-                            <Play size={12} fill="currentColor" /> Start Class (Host)
-                          </button>
+                           {cls.zoom_start_url ? (
+                             <a
+                               href={cls.zoom_start_url.split('?')[0]}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider text-center"
+                             >
+                               <Play size={12} fill="currentColor" /> Start Class (Host)
+                             </a>
+                           ) : (
+                             <span className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200">
+                               No Zoom Link
+                             </span>
+                           )}
                         </div>
                       );
                     })}

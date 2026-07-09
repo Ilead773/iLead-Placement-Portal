@@ -107,9 +107,10 @@ def zoom_webhook(request):
         try:
             timestamp = timezone.now()
             if time_str:
+                from datetime import timezone as dt_timezone
                 # Parse Zoom ISO-8601 timestamp (e.g. "2026-06-13T12:00:00Z")
                 timestamp = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%SZ')
-                timestamp = timezone.make_aware(timestamp, timezone.utc)
+                timestamp = timezone.make_aware(timestamp, dt_timezone.utc)
         except Exception as e:
             logger.error(f"Failed to parse participant event timestamp: {e}")
             timestamp = timezone.now()
@@ -327,16 +328,12 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
         scheduled_class = self.get_object()
         zoom_service = ZoomService()
         
-        # Fetch fresh ZAK token from Zoom
-        host_email = scheduled_class.host.email if (scheduled_class.host and scheduled_class.host.email) else 'me'
-        zak = zoom_service.get_user_zak_token(host_email)
-        
+        # Strip the expired ZAK query parameter from the Zoom start_url
         start_url = scheduled_class.zoom_start_url or ''
-        if zak and start_url:
-            clean_url = start_url.split('?')[0]
-            start_url = f"{clean_url}?zak={zak}"
+        if '?' in start_url:
+            start_url = start_url.split('?')[0]
             
-        role = 1 if zak else 0
+        role = 1
         signature = zoom_service.generate_sdk_signature(scheduled_class.zoom_meeting_id, role=role)
         
         return Response({

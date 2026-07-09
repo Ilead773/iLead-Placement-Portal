@@ -80,14 +80,16 @@ def finalize_attendance(self, scheduled_class_id):
                                 student_user = std_profile.user
 
                     try:
+                        from datetime import timezone as dt_timezone
                         join_time = datetime.strptime(join_time_str, '%Y-%m-%dT%H:%M:%SZ')
-                        join_time = timezone.make_aware(join_time, timezone.utc)
+                        join_time = timezone.make_aware(join_time, dt_timezone.utc)
                     except Exception:
                         join_time = timezone.now()
 
                     try:
+                        from datetime import timezone as dt_timezone
                         leave_time = datetime.strptime(leave_time_str, '%Y-%m-%dT%H:%M:%SZ')
-                        leave_time = timezone.make_aware(leave_time, timezone.utc)
+                        leave_time = timezone.make_aware(leave_time, dt_timezone.utc)
                     except Exception:
                         leave_time = timezone.now()
 
