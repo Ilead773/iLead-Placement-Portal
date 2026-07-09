@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import { getCookie } from '../utils/cookies';
 import logo from '../logo.png';
 import { toast } from 'react-hot-toast';
 
@@ -14,12 +15,18 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (localStorage.getItem('session_expired') === 'true') {
+    const sessionExpiredFlag = localStorage.getItem('session_expired') === 'true';
+    // Always clean up the flag to prevent it persisting across refreshes
+    localStorage.removeItem('session_expired');
+    // Only show the toast if:
+    //   1. The flag was explicitly set (meaning an actual 401 was received while logged in)
+    //   2. AND the has_session cookie is now gone (confirms the session truly ended)
+    // This prevents stale flags (e.g., from a DB blip or incognito) from showing a false warning.
+    if (sessionExpiredFlag && !getCookie('has_session')) {
       toast.error('Your secure session has expired. Please log in again to continue.', {
         duration: 6000,
         id: 'session-expired-toast'
       });
-      localStorage.removeItem('session_expired');
     }
   }, []);
 

@@ -436,7 +436,7 @@ export default function AdminDashboard() {
                   >
                     {tab.icon}
                   </span>
-                  <span className="hidden sm:inline tracking-wide">{tab.label}</span>
+                  <span className="tracking-wide">{tab.label}</span>
                 </button>
               );
             })}
