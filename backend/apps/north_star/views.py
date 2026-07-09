@@ -737,10 +737,14 @@ def student_dashboard(request):
     ).distinct().order_by('start_time')[:5]
     
     # Attendance %
-    records = Attendance.objects.filter(student=user)
-    total_classes = records.count()
-    attended_classes = records.filter(status__in=['present', 'late']).count()
-    attendance_percent = (attended_classes * 100.0 / total_classes) if total_classes > 0 else 100.0
+    progress = CourseProgress.objects.filter(student=user).first()
+    if progress:
+        attendance_percent = progress.attendance_percent
+    else:
+        records = Attendance.objects.filter(student=user)
+        total_classes = records.count()
+        attended_classes = records.filter(status__in=['present', 'late']).count()
+        attendance_percent = (attended_classes * 100.0 / total_classes) if total_classes > 0 else 100.0
     
     # Pending assignments count (where no submission exists or submission state is missing)
     assignments = NorthStarAssignment.objects.filter(course__name__iexact=student_course)
