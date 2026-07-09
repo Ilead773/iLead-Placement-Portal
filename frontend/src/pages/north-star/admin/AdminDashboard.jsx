@@ -654,7 +654,6 @@ export default function AdminDashboard() {
                             <th className="p-4">Duration</th>
                             <th className="p-4">Tracking</th>
                             <th className="p-4">Status</th>
-                            <th className="p-4 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -681,22 +680,6 @@ export default function AdminDashboard() {
                                 }`}>
                                   {att.status === 'excused' ? 'Excused' : `${att.attendance_percent ?? 0}%`}
                                 </span>
-                              </td>
-                              <td className="p-4 text-right space-x-2">
-                                {['present', 'late', 'absent', 'excused'].map(st => (
-                                  <button
-                                    key={st}
-                                    onClick={() => handleOverrideAttendance(att.id, st)}
-                                    disabled={att.status === st}
-                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all duration-200 ${
-                                      att.status === st 
-                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed border border-transparent' 
-                                        : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white'
-                                    }`}
-                                  >
-                                    {st}
-                                  </button>
-                                ))}
                               </td>
                             </tr>
                           ))}

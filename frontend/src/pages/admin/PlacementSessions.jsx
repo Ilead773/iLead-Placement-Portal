@@ -293,7 +293,7 @@ export default function AdminPlacementSessions() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800/50">
                     <tr>
-                      {['Student', 'Duration', 'Join Count', 'Attendance %', 'Status', 'Override'].map(h => (
+                      {['Student', 'Duration', 'Join Count', 'Attendance %', 'Status'].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-text-muted uppercase">{h}</th>
                       ))}
                     </tr>
@@ -316,17 +316,7 @@ export default function AdminPlacementSessions() {
                           </div>
                         </td>
                         <td className="px-4 py-3"><StatusBadge status={rec.status} /></td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={rec.status}
-                            onChange={e => handleOverride(selectedSession.id, rec.id, e.target.value)}
-                            className="input-field text-xs py-1 px-2 w-24"
-                          >
-                            <option value="present">Present</option>
-                            <option value="late">Late</option>
-                            <option value="absent">Absent</option>
-                          </select>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
