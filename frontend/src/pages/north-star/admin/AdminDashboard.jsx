@@ -354,7 +354,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-end gap-0 overflow-x-auto scrollbar-hide -mb-px">
+          <div className="flex items-end gap-1 overflow-x-auto scrollbar-hide -mb-px">
             {[
               { id: 'dashboard',    label: 'Overview' },
               { id: 'classes',      label: 'Schedule' },
@@ -368,10 +368,10 @@ export default function AdminDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-200 ${
+                  className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap bg-transparent border-0 border-b-2 rounded-none shadow-none outline-none transition-all duration-200 ${
                     isActive
                       ? 'border-indigo-500 text-white'
-                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'
                   }`}
                 >
                   {tab.label}
@@ -395,126 +395,124 @@ export default function AdminDashboard() {
           {/* OVERVIEW TAB */}
           {/* ================================================================== */}
           {activeTab === 'dashboard' && stats && (
-            <div className="space-y-8 animate-fadeIn">
+            <div className="space-y-6">
               {/* Top stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Enrolled Students Card */}
-                <div className="group relative overflow-hidden bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-between">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/0 via-indigo-500/0 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10">
-                    <span className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Enrolled Students</span>
-                    <h3 className="text-4xl font-black mt-1.5 text-slate-900 dark:text-white tracking-tight">{stats.total_enrolled_students}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                      Active portal accounts
+                <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:border-slate-350 dark:hover:border-slate-700 transition-colors flex items-center justify-between">
+                  <div>
+                    <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Enrolled Students</span>
+                    <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white tracking-tight">{stats.total_enrolled_students}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      Active student accounts
                     </p>
                   </div>
-                  <div className="relative z-10 p-4 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-md">
-                    <Users size={28} />
+                  <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                    <Users size={20} />
                   </div>
                 </div>
 
                 {/* Active Courses Card */}
-                <div className="group relative overflow-hidden bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-between">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/0 via-emerald-500/0 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10">
-                    <span className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Active Courses</span>
-                    <h3 className="text-4xl font-black mt-1.5 text-slate-900 dark:text-white tracking-tight">{courses.length}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Registered class channels
+                <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:border-slate-350 dark:hover:border-slate-700 transition-colors flex items-center justify-between">
+                  <div>
+                    <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Active Courses</span>
+                    <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white tracking-tight">{courses.length}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-550" style={{ backgroundColor: '#10b981' }} />
+                      Registered syllabus streams
                     </p>
                   </div>
-                  <div className="relative z-10 p-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-md">
-                    <BookOpen size={28} />
+                  <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                    <BookOpen size={20} />
                   </div>
                 </div>
 
                 {/* Classes Logged Card */}
-                <div className="group relative overflow-hidden bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-between">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/0 via-blue-500/0 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <div className="relative z-10">
-                    <span className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider">Classes Logged</span>
-                    <h3 className="text-4xl font-black mt-1.5 text-slate-900 dark:text-white tracking-tight">{classes.length}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                      Held class sessions
+                <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:border-slate-350 dark:hover:border-slate-700 transition-colors flex items-center justify-between">
+                  <div>
+                    <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Classes Logged</span>
+                    <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white tracking-tight">{classes.length}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      Recorded class sessions
                     </p>
                   </div>
-                  <div className="relative z-10 p-4 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl group-hover:scale-110 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 shadow-md">
-                    <Calendar size={28} />
+                  <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg">
+                    <Calendar size={20} />
                   </div>
                 </div>
               </div>
 
               {/* Course Performance Board */}
-              <div className="grid grid-cols-1 gap-8">
-                <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Award className="text-indigo-500 animate-bounce" size={22} /> Active Course Stream Stats
-                  </h3>
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-sm">
+                <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center gap-2">
+                  <Award className="text-indigo-500" size={18} />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Course Stream Performance</h3>
+                </div>
 
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800/80">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                          <th className="p-4">Course Name</th>
-                          <th className="p-4">Enrollments</th>
-                          <th className="p-4">Avg Attendance</th>
-                          <th className="p-4">Avg Completion</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.course_stats.map(c => (
-                          <tr key={c.course_id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-sm hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors">
-                            <td className="p-4 font-bold text-slate-800 dark:text-slate-200">{c.course_name}</td>
-                            <td className="p-4 text-slate-600 dark:text-slate-400">{c.enrollments} students</td>
-                            <td className="p-4">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold ${
-                                c.avg_attendance >= 75 
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${c.avg_attendance >= 75 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                                {c.avg_attendance}%
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-28 bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                                  <div 
-                                    className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full" 
-                                    style={{ width: `${c.avg_completion}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{c.avg_completion}%</span>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/50 dark:bg-[#15171e] border-b border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                        <th className="px-6 py-3">Course Name</th>
+                        <th className="px-6 py-3">Enrollments</th>
+                        <th className="px-6 py-3">Avg Attendance</th>
+                        <th className="px-6 py-3 text-right">Avg Completion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.course_stats.map(c => (
+                        <tr key={c.course_id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-xs hover:bg-slate-50/80 dark:hover:bg-[#161822] transition-colors">
+                          <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.course_name}</td>
+                          <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{c.enrollments} students</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold border ${
+                              c.avg_attendance >= 75 
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10' 
+                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/10'
+                            }`}>
+                              <span className={`w-1 h-1 rounded-full ${c.avg_attendance >= 75 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                              {c.avg_attendance}%
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-3">
+                              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{c.avg_completion}%</span>
+                              <div className="w-24 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div 
+                                  className="bg-indigo-650 h-full rounded-full" 
+                                  style={{ width: `${c.avg_completion}%`, backgroundColor: '#4f46e5' }}
+                                />
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
           {/* ================================================================== */}
+          {/* ================================================================== */}
           {/* SCHEDULE CLASS TAB */}
           {/* ================================================================== */}
           {activeTab === 'classes' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form to Schedule */}
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Calendar className="text-indigo-500" size={22} /> Schedule Class
-                </h3>
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-5">
+                  <Calendar className="text-indigo-500" size={18} />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Schedule Class</h3>
+                </div>
 
-                <form onSubmit={handleScheduleClass} className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Target Course Streams (Select Multiple)</label>
-                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/50 shadow-inner">
+                <form onSubmit={handleScheduleClass} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Target Course Streams</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 border border-slate-200 dark:border-slate-800/80 rounded-lg bg-slate-50/50 dark:bg-slate-950/50">
                       {courses.map(c => {
                         const isSelected = selectedCourses.includes(c.id);
                         return (
@@ -532,10 +530,10 @@ export default function AdminDashboard() {
                                 setSelectedCourses([...selectedCourses, c.id]);
                               }
                             }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                            className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-all duration-150 ${
                               isSelected 
-                                ? 'bg-indigo-600 text-white shadow-sm scale-[1.02]' 
-                                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                ? 'bg-indigo-600 text-white border-indigo-650' 
+                                : 'bg-white dark:bg-[#161822] text-slate-650 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-55 dark:hover:bg-slate-800'
                             }`}
                           >
                             {c.name}
@@ -546,95 +544,93 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Class Topic / Title</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Class Topic / Title</label>
                     <input 
                       type="text" 
                       value={classTitle}
                       onChange={(e) => setClassTitle(e.target.value)}
                       placeholder="e.g. Intro to Digital Campaigns"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-1 focus:ring-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Start Datetime</label>
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Start Datetime</label>
                       <input 
                         type="datetime-local" 
                         value={classStart}
                         onChange={(e) => setClassStart(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">End Datetime</label>
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">End Datetime</label>
                       <input 
                         type="datetime-local" 
                         value={classEnd}
                         onChange={(e) => setClassEnd(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 hover:scale-[1.01] transition-all duration-300 uppercase tracking-wider"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider"
                   >
-                    Generate Zoom Meeting & Schedule
+                    Schedule Class & Zoom Meeting
                   </button>
                 </form>
               </div>
 
               {/* Class list and Start Buttons */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md flex flex-col">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Play className="text-emerald-500 animate-pulse" size={22} fill="currentColor" /> Start Hosted Class Sessions
-                </h3>
+              <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col">
+                <div className="flex items-center gap-2 mb-5">
+                  <Play className="text-indigo-500" size={18} />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Active Hosted Class Sessions</h3>
+                </div>
 
                 {classes.length > 0 ? (
-                  <div className="space-y-4 overflow-y-auto pr-1 max-h-[500px]">
+                  <div className="space-y-3 overflow-y-auto pr-1 max-h-[500px]">
                     {classes.map(cls => {
                       return (
                         <div 
                           key={cls.id}
-                          className="group relative flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-indigo-500/30 hover:shadow-md transition-all duration-300"
+                          className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50/50 dark:bg-[#161822] border border-slate-150 dark:border-slate-800/80 rounded-lg hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                         >
-                          {/* Accent left highlight bar */}
-                          <div className="absolute left-0 top-4 bottom-4 w-1 bg-indigo-500 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                          
-                          <div className="space-y-1.5 relative z-10 pl-2">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{cls.course_name}</span>
-                            <h4 className="text-base font-bold text-slate-800 dark:text-white">{cls.title}</h4>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider">{cls.course_name}</span>
+                            <h4 className="text-sm font-semibold text-slate-800 dark:text-white">{cls.title}</h4>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 dark:text-slate-500">
                               <span className="flex items-center gap-1">
-                                <Clock size={14} className="text-slate-400" /> {new Date(cls.start_time).toLocaleDateString()} at {new Date(cls.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <Clock size={12} /> {new Date(cls.start_time).toLocaleDateString()} at {new Date(cls.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                               <span>• Zoom ID: {cls.zoom_meeting_id}</span>
                             </div>
                           </div>
 
-                           <div className="mt-4 md:mt-0 flex items-center gap-2">
+                           <div className="mt-3 md:mt-0 flex items-center gap-2">
                              {cls.zoom_start_url ? (
                                <a
                                  href={cls.zoom_start_url}
                                  target="_blank"
                                  rel="noopener noreferrer"
-                                 className="relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider text-center"
+                                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1.5 transition-colors uppercase tracking-wider text-center"
                                >
-                                 <Play size={12} fill="currentColor" /> Start Class (Host)
+                                 <Play size={10} fill="currentColor" /> Start Host
                                </a>
                              ) : (
-                               <span className="relative z-10 px-5 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200">
-                                 No Zoom Link
+                               <span className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-400 font-semibold rounded-lg text-[10px] border border-slate-200 dark:border-slate-700">
+                                 No Link
                                </span>
                              )}
                              <button
                                onClick={() => handleEndClass(cls.id)}
-                               className="relative z-10 px-4 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-rose-500/20 hover:shadow-rose-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider"
+                               className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
                              >
-                               <Square size={10} fill="currentColor" /> End Class
+                               <Square size={8} fill="currentColor" /> End Class
                              </button>
                            </div>
                         </div>
@@ -642,36 +638,35 @@ export default function AdminDashboard() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex-1 flex flex-col items-center justify-center">
-                    <Calendar size={48} className="opacity-30 mb-2" />
-                    <p className="font-semibold text-slate-500">No class channels created yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">Use the scheduler form to launch a Zoom channel.</p>
+                  <div className="text-center py-20 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex-1 flex flex-col items-center justify-center">
+                    <Calendar size={36} className="opacity-25 mb-2" />
+                    <p className="font-semibold text-xs text-slate-500">No class channels created yet.</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Use the scheduler form to launch a Zoom channel.</p>
                   </div>
                 )}
               </div>
             </div>
           )}
-
-          {/* ================================================================== */}
+                 {/* ================================================================== */}
           {/* ATTENDANCE GRID TAB */}
           {/* ================================================================== */}
           {activeTab === 'attendance' && (
-            <div className="space-y-8 animate-fadeIn">
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Student Attendance Records</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Select class to view or override attendance list</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Student Attendance Records</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Select class to view or override attendance list</p>
                   </div>
 
                   {/* Filters */}
                   <div className="flex gap-4">
-                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
-                      <Filter size={16} className="text-indigo-500" />
+                    <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <Filter size={14} className="text-indigo-500" />
                       <select 
                         value={filterClass}
                         onChange={(e) => setFilterClass(e.target.value)}
-                        className="bg-transparent border-none text-sm outline-none font-bold text-slate-700 dark:text-slate-300"
+                        className="bg-transparent border-none text-xs outline-none font-bold text-slate-700 dark:text-slate-300"
                       >
                         <option value="">-- Choose Class --</option>
                         {classes.map(c => (
@@ -684,38 +679,38 @@ export default function AdminDashboard() {
 
                 {filterClass ? (
                   attendance.length > 0 ? (
-                    <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-800/80">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                            <th className="p-4">Student Name</th>
-                            <th className="p-4">Email</th>
-                            <th className="p-4">Duration</th>
-                            <th className="p-4">Tracking</th>
-                            <th className="p-4">Status</th>
+                          <tr className="bg-slate-50/50 dark:bg-[#15171e] border-b border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                            <th className="px-6 py-3">Student Name</th>
+                            <th className="px-6 py-3">Email</th>
+                            <th className="px-6 py-3">Duration</th>
+                            <th className="px-6 py-3">Tracking</th>
+                            <th className="px-6 py-3">Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {attendance.map(att => (
-                            <tr key={att.id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-sm hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors">
-                              <td className="p-4 font-bold text-slate-800 dark:text-slate-200">{att.student_details?.name || 'Student'}</td>
-                              <td className="p-4 text-slate-500 dark:text-slate-400">{att.student_details?.email}</td>
-                              <td className="p-4 font-semibold text-slate-700 dark:text-slate-300">{att.total_duration_minutes} mins</td>
-                              <td className="p-4">
-                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                            <tr key={att.id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-xs hover:bg-slate-50/80 dark:hover:bg-[#161822] transition-colors">
+                              <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{att.student_details?.name || 'Student'}</td>
+                              <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{att.student_details?.email}</td>
+                              <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300">{att.total_duration_minutes} mins</td>
+                              <td className="px-6 py-4">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
                                   att.marked_via === 'manual' 
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
-                                    : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10' 
+                                    : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/10'
                                 }`}>
                                   {att.marked_via === 'manual' ? 'Manual' : 'Zoom Auto'}
                                 </span>
                               </td>
-                              <td className="p-4">
-                                <span className={`text-xs px-2.5 py-1 rounded-full font-extrabold uppercase ${
-                                  att.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
-                                  att.status === 'late' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' :
-                                  att.status === 'excused' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                                  'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                              <td className="px-6 py-4">
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase border ${
+                                  att.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10' :
+                                  att.status === 'late' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10' :
+                                  att.status === 'excused' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/10' :
+                                  'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/10'
                                 }`}>
                                   {att.status === 'excused' ? 'Excused' : `${att.attendance_percent ?? 0}%`}
                                 </span>
@@ -726,75 +721,74 @@ export default function AdminDashboard() {
                       </table>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="text-center py-12 text-xs text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
                       No attendance reports generated for this class yet. Zoom webhook finalizing runs 15 mins after class end.
                     </div>
                   )
                 ) : (
-                  <div className="text-center py-16 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                    <Filter size={40} className="mx-auto mb-3 opacity-30 text-indigo-500" />
-                    <p className="font-semibold text-slate-500">Select a class from the dropdown filter to view logs.</p>
+                  <div className="text-center py-16 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                    <Filter size={32} className="mx-auto mb-2 opacity-25 text-indigo-500" />
+                    <p className="font-semibold text-xs text-slate-500">Select a class from the dropdown filter to view logs.</p>
                   </div>
                 )}
               </div>
 
               {/* Reconciliation Panel */}
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Zoom Unmatched Participant Queue</h3>
-                <p className="text-xs text-slate-505 dark:text-slate-400 mb-6">Logs of participants who joined via Zoom but couldn't be auto-mapped to a database student account.</p>
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-0.5">Zoom Unmatched Participant Queue</h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mb-5">Logs of participants who joined via Zoom but couldn't be auto-mapped to a database student account.</p>
 
                 {reconciliationQueue.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {reconciliationQueue.map(ev => (
-                      <div key={ev.id} className="group relative flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-indigo-500/20 transition-all duration-300">
-                        {/* Status bar */}
-                        <div className="absolute left-0 top-4 bottom-4 w-1 bg-amber-500 rounded-r-full" />
+                      <div key={ev.id} className="relative flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800 rounded-lg hover:border-slate-350 dark:hover:border-slate-700 transition-colors">
+                        <div className="absolute left-0 top-3 bottom-3 w-1 bg-amber-500 rounded-r-full" />
                         
                         <div className="space-y-1 pl-2">
-                          <h5 className="text-sm font-bold text-slate-800 dark:text-slate-200">{ev.participant_name}</h5>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{ev.participant_email}</p>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-505 block mt-1">Class: {ev.scheduled_class?.title || 'Unknown'} at {new Date(ev.timestamp).toLocaleTimeString()}</span>
+                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">{ev.participant_name}</h5>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{ev.participant_email}</p>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">Class: {ev.scheduled_class?.title || 'Unknown'} at {new Date(ev.timestamp).toLocaleTimeString()}</span>
                         </div>
 
                         <button
                           onClick={() => {
                             toast('Manual matching feature: search user by email to link this event.', { icon: 'ℹ️' });
                           }}
-                          className="mt-4 md:mt-0 px-4 py-2 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white font-bold rounded-xl text-xs transition-all duration-300"
+                          className="mt-3 md:mt-0 px-3 py-1.5 border border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white font-bold rounded-lg text-[10px] uppercase transition-colors"
                         >
-                          Resolve & Match Student
+                          Resolve & Match
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-slate-400 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <CheckCircle size={36} className="mx-auto mb-2 text-emerald-500 opacity-60" />
-                    <p className="font-semibold text-slate-500">Reconciliation queue is empty. Clean sync!</p>
+                  <div className="text-center py-12 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
+                    <CheckCircle size={32} className="mx-auto mb-2 text-emerald-500 opacity-50" />
+                    <p className="font-semibold text-xs text-slate-505">Reconciliation queue is empty. Clean sync!</p>
                   </div>
                 )}
               </div>
             </div>
           )}
-
-          {/* ================================================================== */}
+             {/* ================================================================== */}
           {/* GRADING HUB TAB */}
           {/* ================================================================== */}
           {activeTab === 'assignments' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form to Post Homework */}
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <BookOpen className="text-indigo-500" size={22} /> Post Assignment
-                </h3>
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-5">
+                  <BookOpen className="text-indigo-500" size={18} />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Post Assignment</h3>
+                </div>
 
                 <form onSubmit={handlePostAssignment} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Stream</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Stream</label>
                     <select 
                       value={asmCourse}
                       onChange={(e) => setAsmCourse(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-700 dark:text-slate-350"
                     >
                       {courses.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -803,72 +797,72 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assignment Title</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assignment Title</label>
                     <input 
                       type="text" 
                       value={asmTitle}
                       onChange={(e) => setAsmTitle(e.target.value)}
                       placeholder="e.g. SEO Optimization Audit"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Instructions / Description</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Instructions / Description</label>
                     <textarea 
                       value={asmDesc}
                       onChange={(e) => setAsmDesc(e.target.value)}
                       rows={2}
                       placeholder="Write instructions or rules here..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Due Date</label>
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Due Date</label>
                       <input 
                         type="datetime-local" 
                         value={asmDue}
                         onChange={(e) => setAsmDue(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Duration Limit (Min)</label>
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Duration (Min)</label>
                       <input 
                         type="number" 
                         min="1"
                         value={asmDuration}
                         onChange={(e) => setAsmDuration(Number(e.target.value))}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
                       />
                     </div>
                   </div>
 
                   {/* MCQ Builder */}
-                  <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-700">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">MCQ Questions</h4>
+                  <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">MCQ Questions</h4>
                     
                     {asmQuestions.map((question, qIdx) => (
-                      <div key={qIdx} className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3 relative">
+                      <div key={qIdx} className="p-3 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800/80 rounded-lg space-y-2.5 relative">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Question {qIdx + 1}</span>
-                          <div className="flex items-center gap-3">
-                            <label className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5 uppercase">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Question {qIdx + 1}</span>
+                          <div className="flex items-center gap-2">
+                            <label className="text-[9px] font-bold text-slate-550 flex items-center gap-1.5 uppercase">
                               Points
                               <input 
                                 type="number" 
                                 min="1" 
                                 value={question.points} 
                                 onChange={(e) => updateQuestion(qIdx, 'points', Number(e.target.value))}
-                                className="w-14 px-2 py-1 text-xs rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
+                                className="w-10 px-1 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
                               />
                             </label>
                             {asmQuestions.length > 1 && (
-                              <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-600 transition-colors">
-                                <Trash size={14} />
+                              <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-650 transition-colors">
+                                <Trash size={12} />
                               </button>
                             )}
                           </div>
@@ -879,25 +873,25 @@ export default function AdminDashboard() {
                           placeholder="Enter question prompt..." 
                           value={question.prompt} 
                           onChange={(e) => updateQuestion(qIdx, 'prompt', e.target.value)}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                          className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-800 dark:text-slate-350"
                         />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-1.5">
                           {question.options.map((opt, oIdx) => (
-                            <div key={oIdx} className={`flex items-center gap-2 p-2 rounded-lg border ${question.correct_option === oIdx ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950'}`}>
+                            <div key={oIdx} className={`flex items-center gap-2 p-1.5 rounded border ${question.correct_option === oIdx ? 'border-green-500/50 bg-green-500/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'}`}>
                               <input 
                                 type="radio" 
                                 name={`correct-${qIdx}`} 
                                 checked={question.correct_option === oIdx} 
                                 onChange={() => updateQuestion(qIdx, 'correct_option', oIdx)}
-                                className="accent-green-500"
+                                className="accent-green-600"
                               />
                               <input 
                                 type="text" 
                                 placeholder={`Option ${oIdx + 1}`} 
                                 value={opt} 
                                 onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                                className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-300"
+                                className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-350"
                               />
                             </div>
                           ))}
@@ -908,66 +902,65 @@ export default function AdminDashboard() {
                     <button 
                       type="button" 
                       onClick={addQuestion}
-                      className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                      className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-100/40 transition-colors"
                     >
-                      <Plus size={14} /> Add Another Question
+                      <Plus size={12} /> Add Question
                     </button>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all duration-300 uppercase tracking-wider"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider"
                   >
-                    Publish MCQ Assessment
+                    Publish Assessment
                   </button>
                 </form>
               </div>
 
               {/* List of Submissions & Grading Drawer */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md flex flex-col">
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Submissions Grading Queue</h3>
+              <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-5">Submissions Grading Queue</h3>
 
                 {submissions.length > 0 ? (
-                  <div className="space-y-4 overflow-y-auto pr-1 max-h-[500px]">
+                  <div className="space-y-3 overflow-y-auto pr-1 max-h-[500px]">
                     {submissions.map(sub => (
                       <div 
                         key={sub.id}
-                        className="group relative flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl hover:border-indigo-500/20 hover:shadow-md transition-all duration-300"
+                        className="relative flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50/50 dark:bg-[#161822] border border-slate-150 dark:border-slate-800/80 rounded-lg hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                       >
-                        {/* Accent left highlight bar for ungraded */}
                         {sub.status !== 'graded' && (
-                          <div className="absolute left-0 top-4 bottom-4 w-1 bg-indigo-500 rounded-r-full" />
+                          <div className="absolute left-0 top-3 bottom-3 w-1 bg-indigo-500 rounded-r-full" />
                         )}
 
-                        <div className="space-y-1.5 relative z-10 pl-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{sub.assignment_title}</span>
-                          <h4 className="text-base font-bold text-slate-800 dark:text-white">{sub.student_details?.name || 'Student'}</h4>
-                          <p className="text-xs text-slate-400 dark:text-slate-550">Submitted: {new Date(sub.submitted_at).toLocaleString()}</p>
+                        <div className="space-y-1 relative z-10 pl-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider">{sub.assignment_title}</span>
+                          <h4 className="text-sm font-semibold text-slate-800 dark:text-white">{sub.student_details?.name || 'Student'}</h4>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">Submitted: {new Date(sub.submitted_at).toLocaleString()}</p>
                           
                           {sub.file && (
                             <a 
                               href={sub.file} 
                               target="_blank" 
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs text-indigo-500 dark:text-indigo-400 font-bold hover:underline mt-2"
+                              className="inline-flex items-center gap-1 text-xs text-indigo-500 dark:text-indigo-400 font-bold hover:underline mt-1.5"
                             >
-                              <FileText size={14} /> View Submission File
+                              <FileText size={12} /> View Submission File
                             </a>
                           )}
                         </div>
 
-                        <div className="mt-4 md:mt-0 relative z-10">
+                        <div className="mt-3 md:mt-0 relative z-10">
                           {sub.status === 'graded' ? (
                             <div className="text-right">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 uppercase">
                                 Graded: {sub.score} pts
                               </span>
                               {sub.feedback && (
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic max-w-xs">"{sub.feedback}"</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic max-w-xs">"{sub.feedback}"</p>
                               )}
                             </div>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 uppercase">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10 uppercase">
                               Submitted
                             </span>
                           )}
@@ -976,33 +969,33 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex-1 flex flex-col items-center justify-center">
-                    <BookOpen size={48} className="opacity-30 mb-2" />
-                    <p className="font-semibold text-slate-500">No student homework submissions logged yet.</p>
+                  <div className="text-center py-20 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex-1 flex flex-col items-center justify-center">
+                    <BookOpen size={36} className="opacity-25 mb-2" />
+                    <p className="font-semibold text-xs text-slate-500">No student homework submissions logged yet.</p>
                   </div>
-                  )}
+                )}
               </div>
             </div>
           )}
-
-          {/* ================================================================== */}
+             {/* ================================================================== */}
           {/* NOTIFICATIONS / BULK EMAIL TAB */}
           {/* ================================================================== */}
           {activeTab === 'email' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Form to Send Mail */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Mail className="text-indigo-500" size={22} /> Send Bulk Announcement Email
-                </h3>
+              <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-5">
+                  <Mail className="text-indigo-500" size={18} />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Send Bulk Announcement Email</h3>
+                </div>
 
-                <form onSubmit={handleSendEmail} className="space-y-5">
+                <form onSubmit={handleSendEmail} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Target Course Group</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Target Course Group</label>
                     <select 
                       value={emailCourse}
                       onChange={(e) => setEmailCourse(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-700 dark:text-slate-355"
                     >
                       <option value="">-- All Enrolled Students --</option>
                       {courses.map(c => (
@@ -1012,56 +1005,53 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Subject</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Subject</label>
                     <input 
                       type="text" 
                       value={emailSubject}
                       onChange={(e) => setEmailSubject(e.target.value)}
                       required
                       placeholder="e.g. Schedule Update or Homework Reminder"
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Body Message</label>
+                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Body Message</label>
                     <textarea 
                       value={emailBody}
                       onChange={(e) => setEmailBody(e.target.value)}
                       required
-                      rows={6}
+                      rows={5}
                       placeholder="Write your email body copy here..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all duration-300 flex items-center justify-center gap-2 uppercase tracking-wider"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 uppercase tracking-wider"
                   >
-                    <Send size={14} /> Dispatch Announcement Email
+                    <Send size={12} /> Send Email
                   </button>
                 </form>
               </div>
 
               {/* Instructions Box */}
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md flex flex-col justify-between relative overflow-hidden">
-                {/* Decorative background circle */}
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-indigo-500/5 blur-2xl" />
-                
-                <div className="space-y-4 relative z-10">
-                  <h4 className="font-extrabold text-base text-slate-900 dark:text-white">Bulk Announcement Guidelines</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Announcements sent via this console are dispatched asynchronously via the Celery background worker queue.
+              <div className="bg-slate-50 dark:bg-[#12131a] border border-slate-250 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                <div className="space-y-3">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Announcement Guidelines</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed">
+                    Announcements sent via this console are dispatched asynchronously via background worker queue.
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    You can select a target Course Group to message only students belonging to a particular syllabus stream, or leave it blank to message the entire active student roster.
+                  <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed">
+                    Select a target Course Group to message only students belonging to a particular syllabus stream, or leave it blank to message the entire active student roster.
                   </p>
                 </div>
                 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 mt-6 flex items-center gap-2 relative z-10">
-                  <AlertCircle size={16} className="text-indigo-500 animate-pulse" />
-                  <span>Powered by existing secure email services.</span>
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 mt-4 flex items-center gap-2">
+                  <AlertCircle size={14} className="text-indigo-500" />
+                  <span>Dispatched via secure background mailing task.</span>
                 </div>
               </div>
             </div>
@@ -1082,29 +1072,29 @@ export default function AdminDashboard() {
             });
 
             return (
-              <div className="bg-white dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-md animate-fadeIn">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 pb-5 border-b border-slate-100 dark:border-slate-800">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Student Certification Status</h3>
-                    <p className="text-xs text-slate-400 mt-1">Manual certificate triggers & bulk course-level graduation control.</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Student Certification Status</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Manual certificate triggers & bulk course-level graduation control.</p>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                     <div className="relative flex-1 lg:flex-initial">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 dark:text-slate-500">
-                        <Search size={16} />
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400 dark:text-slate-500">
+                        <Search size={14} />
                       </span>
                       <input
                         type="text"
-                        placeholder="Search student or course..."
+                        placeholder="Search student..."
                         value={certSearchQuery}
                         onChange={(e) => setCertSearchQuery(e.target.value)}
-                        className="pl-9 pr-8 py-2.5 w-full lg:w-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-xs text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500"
+                        className="pl-8 pr-8 py-2 w-full lg:w-48 rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
                       />
                       {certSearchQuery && (
                         <button
                           onClick={() => setCertSearchQuery('')}
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xs font-bold"
+                          className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-650 text-xs font-bold"
                         >
                           Clear
                         </button>
@@ -1114,9 +1104,9 @@ export default function AdminDashboard() {
                     <select 
                       value={certFilterCourse}
                       onChange={(e) => setCertFilterCourse(e.target.value)}
-                      className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all text-xs text-slate-700 dark:text-slate-300"
+                      className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
                     >
-                      <option value="">-- All Course Streams --</option>
+                      <option value="">-- All Streams --</option>
                       {courses.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
@@ -1126,67 +1116,67 @@ export default function AdminDashboard() {
                       <button
                         onClick={handleReleaseCertificates}
                         disabled={releasingCerts}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all duration-200 flex items-center gap-2"
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-450 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center gap-1.5"
                       >
                         {releasingCerts ? (
-                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <Award size={14} />
+                          <Award size={12} />
                         )}
-                        Release Certificates
+                        Release Stream
                       </button>
                     )}
                   </div>
                 </div>
 
                 {filteredProgressList.length > 0 ? (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                  <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-800/85">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                          <th className="p-4">Student Name</th>
-                          <th className="p-4">Course Stream</th>
-                          <th className="p-4">Attendance</th>
-                          <th className="p-4">Completion</th>
-                          <th className="p-4">Certificate</th>
-                          <th className="p-4 text-right">Actions</th>
+                        <tr className="bg-slate-50/50 dark:bg-[#15171e] border-b border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-550 font-bold uppercase tracking-wider">
+                          <th className="px-6 py-3">Student Name</th>
+                          <th className="px-6 py-3">Course Stream</th>
+                          <th className="px-6 py-3">Attendance</th>
+                          <th className="px-6 py-3">Completion</th>
+                          <th className="px-6 py-3">Certificate</th>
+                          <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredProgressList.map(prg => (
-                          <tr key={prg.id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-sm hover:bg-slate-50/80 dark:hover:bg-slate-900/30 transition-colors">
-                            <td className="p-4 font-bold text-slate-800 dark:text-slate-200">{prg.student_details?.name || 'Student'}</td>
-                            <td className="p-4 text-slate-500 dark:text-slate-400">{prg.course_name}</td>
-                            <td className="p-4 font-bold text-slate-700 dark:text-slate-300">{prg.attendance_percent}%</td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-24 bg-slate-100 dark:bg-slate-950 rounded-full h-2 overflow-hidden">
+                          <tr key={prg.id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-xs hover:bg-slate-50/80 dark:hover:bg-[#161822] transition-colors">
+                            <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{prg.student_details?.name || 'Student'}</td>
+                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{prg.course_name}</td>
+                            <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">{prg.attendance_percent}%</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-semibold text-slate-650 dark:text-slate-400 w-8">{prg.completion_percent}%</span>
+                                <div className="w-20 bg-slate-100 dark:bg-slate-950 rounded-full h-1.5 overflow-hidden">
                                   <div 
-                                    className="bg-indigo-500 h-full rounded-full" 
+                                    className="bg-indigo-600 h-full rounded-full" 
                                     style={{ width: `${prg.completion_percent}%` }}
                                   />
                                 </div>
-                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{prg.completion_percent}%</span>
                               </div>
                             </td>
-                            <td className="p-4">
+                            <td className="px-6 py-4">
                               {prg.certificate_unlocked ? (
                                 <a 
                                   href={prg.certificate_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs text-emerald-500 dark:text-emerald-400 font-bold hover:underline"
+                                  className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
                                 >
-                                  <Award size={14} /> View PDF
+                                  <Award size={12} /> View PDF
                                 </a>
                               ) : (
-                                <span className="text-xs text-slate-400 dark:text-slate-600">Locked</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-600">Locked</span>
                               )}
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-6 py-4 text-right">
                               <button
                                 onClick={() => handleTriggerCertificate(prg.student, prg.course)}
-                                className="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white border border-indigo-100 dark:border-indigo-900/50 font-bold rounded-xl text-[10px] uppercase transition-all duration-200"
+                                className="px-2.5 py-1.5 bg-slate-50 dark:bg-[#161822] hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded text-[9px] uppercase transition-colors"
                               >
                                 Force Generate
                               </button>
@@ -1197,16 +1187,15 @@ export default function AdminDashboard() {
                     </table>
                   </div>
                 ) : progressList.length > 0 ? (
-                  <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                    <Search size={48} className="mx-auto mb-3 opacity-30 text-indigo-500" />
-                    <p className="font-semibold text-slate-500">No matching records found.</p>
-                    <p className="text-xs text-slate-400 mt-1">Try resetting your search query or changing the course stream.</p>
+                  <div className="text-center py-20 text-slate-400 dark:text-slate-500 border border-dashed border-slate-250 dark:border-slate-800 rounded-lg">
+                    <Search size={32} className="mx-auto mb-2 opacity-25 text-indigo-500" />
+                    <p className="font-semibold text-xs text-slate-500">No matching records found.</p>
+                    <p className="text-[11px] text-slate-405 mt-0.5">Reset search filter or select another course stream.</p>
                   </div>
                 ) : (
-                  <div className="text-center py-20 text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                    <Award size={48} className="mx-auto mb-3 opacity-30 text-indigo-500 animate-pulse" />
-                    <p className="font-semibold text-slate-500">No student progress records detected.</p>
-                    <p className="text-xs text-slate-400 mt-1">Students must participate in classes to initialize progress tracking.</p>
+                  <div className="text-center py-20 text-slate-400 dark:text-slate-500 border border-dashed border-slate-250 dark:border-slate-800 rounded-lg">
+                    <Award size={32} className="mx-auto mb-2 opacity-25 text-indigo-500" />
+                    <p className="font-semibold text-xs text-slate-500">No progress records found.</p>
                   </div>
                 )}
               </div>
