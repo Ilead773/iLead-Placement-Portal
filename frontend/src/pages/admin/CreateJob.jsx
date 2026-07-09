@@ -401,8 +401,13 @@ Return only the JSON object.`;
         salaryUnit
       };
       sessionStorage.setItem('temp_job_form', JSON.stringify(dataToSave));
-      window.open(window.location.pathname + '?use_draft=true', '_blank');
-      toast.success('Form details cloned to new tab! 🎉');
+      const newWindow = window.open(window.location.pathname + '?use_draft=true', '_blank');
+      
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        toast.error('Popup blocked! Please click the icon in your browser URL bar to allow popups.');
+      } else {
+        toast.success('Form details cloned to new tab! 🎉');
+      }
     } catch (err) {
       console.error('Failed to clone form state to new tab', err);
       toast.error('Failed to clone form to new tab.');
