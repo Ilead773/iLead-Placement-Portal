@@ -987,6 +987,23 @@ const BulkSendResumes = () => {
           </div>
         </div>
       )}
+      {/* Premium Email Sending Progress Overlay for Resumes */}
+      {sending && (
+        <div className="email-overlay-backdrop">
+          <div className="email-overlay-card">
+            <div className="airplane-container">
+              <div className="wind-stream wind-1"></div>
+              <div className="wind-stream wind-2"></div>
+              <div className="wind-stream wind-3"></div>
+              <span className="paper-airplane">✈</span>
+            </div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>Dispatching Resumes</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+              Please wait while we pack candidate profiles, attach verify-checked resumes, and securely email the hiring team...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

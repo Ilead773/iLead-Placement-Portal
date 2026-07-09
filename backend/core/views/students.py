@@ -217,15 +217,69 @@ class StudentViewSet(viewsets.ViewSet):
                         f"Here are your login credentials:\n"
                         f"- Login ID: {login_id}\n"
                         f"- Temporary Password: {temp_password}\n\n"
-                        f"Please log in and update your password immediately at your first login.\n\n"
+                        f"Please log in and update your password immediately at your first login: {settings.FRONTEND_URL}/login\n\n"
                         f"Best regards,\n"
                         f"Placement Team\n"
                         f"iLEAD Institute of Leadership, Entrepreneurship and Development"
                     )
+                    html_message = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <style>
+                            body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 0; -webkit-font-smoothing: antialiased; }}
+                            .container {{ max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }}
+                            .header {{ background: #1e3a8a; padding: 40px; text-align: center; color: #ffffff; }}
+                            .header h1 {{ margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }}
+                            .content {{ padding: 40px; color: #334155; line-height: 1.6; }}
+                            .content p {{ margin: 0 0 20px 0; font-size: 16px; }}
+                            .cred-box {{ background: #f1f5f9; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px dashed #cbd5e1; }}
+                            .cred-item {{ display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }}
+                            .cred-item:last-child {{ margin-bottom: 0; }}
+                            .cred-label {{ font-weight: 600; color: #64748b; }}
+                            .cred-value {{ font-family: monospace; font-weight: 700; color: #0f172a; font-size: 16px; background: #e2e8f0; padding: 2px 8px; border-radius: 4px; }}
+                            .btn-container {{ text-align: center; margin: 32px 0 20px 0; }}
+                            .btn {{ display: inline-block; background-color: #3b82f6; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s ease; }}
+                            .footer {{ background: #f8fafc; padding: 24px 40px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 14px; color: #64748b; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1>iLEAD Placement Portal</h1>
+                            </div>
+                            <div class="content">
+                                <p>Dear {name},</p>
+                                <p>Your student account has been successfully created on the official iLEAD Placement Portal. You can now log in to update your profile, upload your resume, and apply for recruitment drives.</p>
+                                <p>Please use the following credentials to access your account:</p>
+                                <div class="cred-box">
+                                    <div class="cred-item">
+                                        <span class="cred-label">Login ID:</span>
+                                        <span class="cred-value">{login_id}</span>
+                                    </div>
+                                    <div class="cred-item">
+                                        <span class="cred-label">Temporary Password:</span>
+                                        <span class="cred-value">{temp_password}</span>
+                                    </div>
+                                </div>
+                                <div class="btn-container">
+                                    <a href="{settings.FRONTEND_URL}/login" class="btn">Access Portal Login</a>
+                                </div>
+                                <p style="font-size: 14px; color: #64748b; margin-top: 24px;"><em>* For security reasons, you will be prompted to change your temporary password immediately upon your first login.</em></p>
+                            </div>
+                            <div class="footer">
+                                <p>Best regards,<br><strong>Placement Team</strong><br>iLEAD Institute of Leadership, Entrepreneurship and Development</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    """
                     async_send_mail.delay(
                         subject=subject,
                         message=message,
-                        recipient_list=[email]
+                        recipient_list=[email],
+                        html_message=html_message
                     )
                     sent_emails_count += 1
             
@@ -246,6 +300,38 @@ class StudentViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.exception("Error sending manual emails")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='filters')
+    def get_filters(self, request):
+        """Returns unique courses, streams, sems, years, categories and their student counts."""
+        from django.db.models import Count
+        
+        course_counts = Student.objects.exclude(course=None).exclude(course='').values('course').annotate(count=Count('id')).order_by('course')
+        stream_counts = Student.objects.exclude(stream=None).exclude(stream='').values('stream').annotate(count=Count('id')).order_by('stream')
+        year_counts = Student.objects.exclude(year=None).exclude(year='').values('year').annotate(count=Count('id')).order_by('year')
+        sem_counts = Student.objects.exclude(semester=None).values('semester').annotate(count=Count('id')).order_by('semester')
+        cat_counts = Student.objects.exclude(category=None).exclude(category='').values('category').annotate(count=Count('id')).order_by('category')
+        
+        course_stream_map = {}
+        cs_pairs = Student.objects.exclude(course=None).exclude(course='').values('course', 'stream').annotate(count=Count('id'))
+        for pair in cs_pairs:
+            c = pair['course']
+            s = pair['stream']
+            cnt = pair['count']
+            if c:
+                if c not in course_stream_map:
+                    course_stream_map[c] = []
+                if s:
+                    course_stream_map[c].append({'name': s, 'count': cnt})
+                    
+        return Response({
+            'courses': [{'name': item['course'], 'count': item['count']} for item in course_counts],
+            'streams': [{'name': item['stream'], 'count': item['count']} for item in stream_counts],
+            'years': [{'name': item['year'], 'count': item['count']} for item in year_counts],
+            'semesters': [{'name': str(item['semester']), 'count': item['count']} for item in sem_counts],
+            'categories': [{'name': item['category'], 'count': item['count']} for item in cat_counts],
+            'course_stream_map': course_stream_map
+        })
 
     @action(detail=False, methods=['get'], url_path='list')
     def list_students(self, request):

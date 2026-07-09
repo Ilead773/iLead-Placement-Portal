@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { ILEAD_COURSES } from '../../constants/courses';
@@ -117,6 +118,104 @@ export default function Students() {
   };
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [availableStreams, setAvailableStreams] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [courseStreamMap, setCourseStreamMap] = useState({});
+
+  const fetchFilterMetadata = useCallback(async () => {
+    try {
+      const { data } = await api.get('/students/filters/');
+      setAvailableCourses(data.courses || []);
+      setAvailableStreams(data.streams || []);
+      setAvailableYears(data.years || []);
+      setAvailableSemesters(data.semesters || []);
+      setAvailableCategories(data.categories || []);
+      setCourseStreamMap(data.course_stream_map || {});
+    } catch (err) {
+      console.error('Failed to load filter metadata:', err);
+    }
+  }, []);
+
+  const handleCourseChange = (courseValue) => {
+    setFilters(prev => ({
+      ...prev,
+      course: courseValue,
+      stream: '' // Reset stream on course change to avoid mismatch
+    }));
+  };
+
+  const getFilteredStreams = () => {
+    if (filters.course && courseStreamMap[filters.course]) {
+      return courseStreamMap[filters.course];
+    }
+    return availableStreams;
+  };
+
+  const handleYearChange = (yearValue) => {
+    let nextSem = filters.semester;
+    if (yearValue === '1st' && !['1', '2'].includes(filters.semester)) nextSem = '';
+    if (yearValue === '2nd' && !['3', '4'].includes(filters.semester)) nextSem = '';
+    if (yearValue === '3rd' && !['5', '6'].includes(filters.semester)) nextSem = '';
+    if (yearValue === '4th' && !['7', '8'].includes(filters.semester)) nextSem = '';
+
+    setFilters(prev => ({
+      ...prev,
+      year: yearValue,
+      semester: nextSem
+    }));
+  };
+
+  const handleSemesterChange = (semValue) => {
+    let autoYear = filters.year;
+    if (['1', '2'].includes(semValue)) autoYear = '1st';
+    else if (['3', '4'].includes(semValue)) autoYear = '2nd';
+    else if (['5', '6'].includes(semValue)) autoYear = '3rd';
+    else if (['7', '8'].includes(semValue)) autoYear = '4th';
+
+    setFilters(prev => ({
+      ...prev,
+      semester: semValue,
+      year: autoYear
+    }));
+  };
+
+  const getFilteredSemesters = () => {
+    const allSems = [
+      { val: '1', label: 'Semester 1' },
+      { val: '2', label: 'Semester 2' },
+      { val: '3', label: 'Semester 3' },
+      { val: '4', label: 'Semester 4' },
+      { val: '5', label: 'Semester 5' },
+      { val: '6', label: 'Semester 6' },
+      { val: '7', label: 'Semester 7' },
+      { val: '8', label: 'Semester 8' },
+    ];
+    const semsWithCounts = allSems.map(s => {
+      const match = availableSemesters.find(as => as.name === s.val);
+      const count = match ? match.count : 0;
+      return { val: s.val, label: `${s.label} (${count})` };
+    });
+    if (filters.year === '1st') return semsWithCounts.filter(s => ['1', '2'].includes(s.val));
+    if (filters.year === '2nd') return semsWithCounts.filter(s => ['3', '4'].includes(s.val));
+    if (filters.year === '3rd') return semsWithCounts.filter(s => ['5', '6'].includes(s.val));
+    if (filters.year === '4th') return semsWithCounts.filter(s => ['7', '8'].includes(s.val));
+    return semsWithCounts;
+  };
+
+  const getYearCount = (yearKey) => {
+    const match = availableYears.find(ay => ay.name === yearKey);
+    return match ? match.count : 0;
+  };
+
+  const getCategoryCount = (catKey) => {
+    const match = availableCategories.find(ac => ac.name === catKey);
+    return match ? match.count : 0;
+  };
+
 
   const [filters, setFilters] = useState({ 
     year: '', 
@@ -238,7 +337,10 @@ export default function Students() {
     finally { setLoading(false); }
   }, [search, filters]);
 
-  useEffect(() => { fetchStudents(1); }, [fetchStudents]);
+  useEffect(() => {
+    fetchFilterMetadata();
+    fetchStudents(1);
+  }, [fetchStudents, fetchFilterMetadata]);
 
   const pollUploadStatus = (logId) => {
     let intervalId = setInterval(async () => {
@@ -352,11 +454,7 @@ export default function Students() {
       <div className="page-header">
         <h1>Students ({total})</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
-            {uploading ? 'Uploading...' : '📤 Upload CSV'}
-            <input type="file" accept=".csv" onChange={handleCSVUpload} hidden disabled={uploading} />
-          </label>
-          <button className="btn btn-secondary" onClick={fetchHistory}>📜 Upload History</button>
+          <Link to="/admin/csv-upload" className="btn btn-primary">📤 Import Students</Link>
         </div>
       </div>
 
@@ -587,10 +685,10 @@ export default function Students() {
         >
           <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Course</label>
-            <select className="input-field" value={filters.course} onChange={(e) => setFilters({...filters, course: e.target.value})} style={{ width: '100%' }}>
+            <select className="input-field" value={filters.course} onChange={(e) => handleCourseChange(e.target.value)} style={{ width: '100%' }}>
               <option value="">All Courses</option>
-              {ILEAD_COURSES.map(course => (
-                <option key={course} value={course}>{course}</option>
+              {availableCourses.map(course => (
+                <option key={course.name} value={course.name}>{course.name} ({course.count})</option>
               ))}
             </select>
           </div>
@@ -599,36 +697,30 @@ export default function Students() {
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Stream / Specialization</label>
             <select className="input-field" value={filters.stream} onChange={(e) => setFilters({...filters, stream: e.target.value})} style={{ width: '100%' }}>
               <option value="">All Streams</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Data Science">Data Science</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Finance">Finance</option>
+              {getFilteredStreams().map(stream => (
+                <option key={stream.name} value={stream.name}>{stream.name} ({stream.count})</option>
+              ))}
             </select>
           </div>
 
           <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Semester</label>
-            <select className="input-field" value={filters.semester} onChange={(e) => setFilters({...filters, semester: e.target.value})} style={{ width: '100%' }}>
+            <select className="input-field" value={filters.semester} onChange={(e) => handleSemesterChange(e.target.value)} style={{ width: '100%' }}>
               <option value="">All Sems</option>
-              <option value="1">Semester 1</option>
-              <option value="2">Semester 2</option>
-              <option value="3">Semester 3</option>
-              <option value="4">Semester 4</option>
-              <option value="5">Semester 5</option>
-              <option value="6">Semester 6</option>
-              <option value="7">Semester 7</option>
-              <option value="8">Semester 8</option>
+              {getFilteredSemesters().map(s => (
+                <option key={s.val} value={s.val}>{s.label}</option>
+              ))}
             </select>
           </div>
 
           <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Year</label>
-            <select className="input-field" value={filters.year} onChange={(e) => setFilters({...filters, year: e.target.value})} style={{ width: '100%' }}>
+            <select className="input-field" value={filters.year} onChange={(e) => handleYearChange(e.target.value)} style={{ width: '100%' }}>
               <option value="">All Years</option>
-              <option value="1st">1st Year</option>
-              <option value="2nd">2nd Year</option>
-              <option value="3rd">3rd Year</option>
-              <option value="4th">4th Year</option>
+              <option value="1st">1st Year ({getYearCount('1st')})</option>
+              <option value="2nd">2nd Year ({getYearCount('2nd')})</option>
+              <option value="3rd">3rd Year ({getYearCount('3rd')})</option>
+              <option value="4th">4th Year ({getYearCount('4th')})</option>
             </select>
           </div>
 
@@ -636,9 +728,9 @@ export default function Students() {
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Category</label>
             <select className="input-field" value={filters.category} onChange={(e) => setFilters({...filters, category: e.target.value})} style={{ width: '100%' }}>
               <option value="">All Categories</option>
-              <option value="A">Category A</option>
-              <option value="B">Category B</option>
-              <option value="C">Category C</option>
+              <option value="A">Category A ({getCategoryCount('A')})</option>
+              <option value="B">Category B ({getCategoryCount('B')})</option>
+              <option value="C">Category C ({getCategoryCount('C')})</option>
             </select>
           </div>
 
