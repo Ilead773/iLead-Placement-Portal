@@ -291,6 +291,20 @@ def update_course_progress(self, student_id, course_id):
             }
         )
 
+        # Sync to Student profile training_attendance (average of all active courses)
+        try:
+            from core.models import Student
+            student_profile = Student.objects.filter(user=student_user).first()
+            if student_profile:
+                progress_records = CourseProgress.objects.filter(student=student_user)
+                if progress_records.exists():
+                    avg_attd = sum(p.attendance_percent for p in progress_records) / progress_records.count()
+                    student_profile.training_attendance = round(avg_attd, 2)
+                    student_profile.save()  # Recalculates category as well!
+                    logger.info(f"update_course_progress: Synced training_attendance for student {student_user.email} to {student_profile.training_attendance}%")
+        except Exception as sync_err:
+            logger.error(f"update_course_progress: Failed to sync training_attendance to Student profile: {sync_err}", exc_info=True)
+
         logger.info(
             f"update_course_progress: Updated progress for {student_user.email} in {course.name}: "
             f"Completion {progress.completion_percent}%, Attendance {progress.attendance_percent}%"
