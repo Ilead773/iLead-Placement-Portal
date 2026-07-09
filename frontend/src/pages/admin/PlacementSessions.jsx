@@ -563,7 +563,7 @@ function SessionCard({ session, status, onViewAttendance, onCancel }) {
           {(status === 'live' || status === 'upcoming') && (
             session.zoom_start_url ? (
               <a
-                href={session.zoom_start_url.split('?')[0]}
+                href={session.zoom_start_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-primary text-xs px-3 py-1.5 flex items-center gap-1 text-center"

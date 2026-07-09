@@ -167,14 +167,6 @@ def zoom_webhook(request):
         )
         logger.info(f"Logged AttendanceEvent: {event_name} for {email} in class '{scheduled_class.title}'")
         return Response(status=status.HTTP_201_CREATED)
-
-    elif event_type == 'meeting.ended':
-        scheduled_class = ScheduledClass.objects.filter(zoom_meeting_id=meeting_id).first()
-        if scheduled_class:
-            logger.info(f"Zoom webhook: Meeting ended. Triggering immediate finalization for class: '{scheduled_class.title}'")
-            finalize_attendance.delay(scheduled_class.id)
-            return Response({"detail": "Finalization triggered"}, status=status.HTTP_200_OK)
-        return Response({"detail": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
         
     return Response({"detail": "Event not handled"}, status=status.HTTP_200_OK)
 
@@ -336,10 +328,8 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
         scheduled_class = self.get_object()
         zoom_service = ZoomService()
         
-        # Strip the expired ZAK query parameter from the Zoom start_url
+        # Return the full Zoom start URL including the ZAK parameter so the host can authenticate
         start_url = scheduled_class.zoom_start_url or ''
-        if '?' in start_url:
-            start_url = start_url.split('?')[0]
             
         role = 1
         signature = zoom_service.generate_sdk_signature(scheduled_class.zoom_meeting_id, role=role)

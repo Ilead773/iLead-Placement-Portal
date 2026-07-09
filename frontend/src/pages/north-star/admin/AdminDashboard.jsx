@@ -588,7 +588,7 @@ export default function AdminDashboard() {
 
                            {cls.zoom_start_url ? (
                              <a
-                               href={cls.zoom_start_url.split('?')[0]}
+                               href={cls.zoom_start_url}
                                target="_blank"
                                rel="noopener noreferrer"
                                className="mt-4 md:mt-0 relative z-10 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:scale-[1.03] transition-all duration-300 uppercase tracking-wider text-center"
