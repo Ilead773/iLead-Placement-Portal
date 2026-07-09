@@ -76,9 +76,27 @@ const EditJob = () => {
   const [salaryAmount, setSalaryAmount] = useState('');
   const [salaryUnit, setSalaryUnit] = useState('LPA');
 
+  const [ppoStipend, setPpoStipend] = useState('');
+  const [ppoDuration, setPpoDuration] = useState('3 months');
+  const [ppoCtc, setPpoCtc] = useState('');
+
   const parsePackageValue = (pkg, listingType) => {
     if (!pkg) return { amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA' };
     const pkgStr = String(pkg).trim();
+
+    if (pkgStr.includes('Internship') && pkgStr.includes('PPO')) {
+      const match = pkgStr.match(/(?:([\d,]+)\s*\/|Unpaid).*?\((.*?)\s+Internship\).*?\+\s*([\d.]+)\s*LPA/i);
+      if (match) {
+        const stipendVal = match[1] ? match[1].replace(/,/g, '') : '';
+        const durationVal = match[2];
+        const ctcVal = match[3];
+        setPpoStipend(stipendVal);
+        setPpoDuration(durationVal);
+        setPpoCtc(ctcVal);
+        return { amount: '', unit: 'Internship + PPO' };
+      }
+    }
+
     if (pkgStr === 'Unpaid') {
       return { amount: '', unit: pkgStr };
     }
@@ -97,6 +115,15 @@ const EditJob = () => {
     return { amount: pkgStr, unit: 'Custom' };
   };
 
+  const handlePpoChange = (stipend, duration, ctc) => {
+    setPpoStipend(stipend);
+    setPpoDuration(duration);
+    setPpoCtc(ctc);
+    const stipendStr = stipend ? `${stipend} / month` : 'Unpaid';
+    const combined = `${stipendStr} (${duration} Internship) + ${ctc} LPA (PPO)`;
+    setFormData(prev => ({ ...prev, package: combined }));
+  };
+
   const handleSalaryChange = (amount, unit) => {
     setSalaryAmount(amount);
     setSalaryUnit(unit);
@@ -104,6 +131,8 @@ const EditJob = () => {
       setFormData(prev => ({ ...prev, package: unit }));
     } else if (unit === 'Custom') {
       setFormData(prev => ({ ...prev, package: amount }));
+    } else if (unit === 'Internship + PPO') {
+      handlePpoChange(ppoStipend, ppoDuration, ppoCtc);
     } else {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
@@ -447,39 +476,89 @@ Return only the JSON object.`;
 
                 <div className="input-group">
                   <label>{formData.listing_type === 'internship' ? 'Stipend (Flexible)' : 'Package / Salary (Flexible)'}</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input 
-                      required={salaryUnit !== 'Unpaid'} 
-                      disabled={salaryUnit === 'Unpaid'} 
-                      type="text" 
-                      value={salaryAmount} 
-                      onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
-                      className="input-field" 
-                      placeholder={salaryUnit === 'Custom' ? "e.g. 15k/mo + 6.5 LPA" : "e.g. 6.5 or 5000-10000"} 
-                      style={{ flex: 1 }} 
-                    />
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+                    {salaryUnit !== 'Internship + PPO' && (
+                      <input 
+                        required={salaryUnit !== 'Unpaid'} 
+                        disabled={salaryUnit === 'Unpaid'} 
+                        type="text" 
+                        value={salaryAmount} 
+                        onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
+                        className="input-field" 
+                        placeholder={salaryUnit === 'Custom' ? "e.g. 15k/mo + 6.5 LPA" : "e.g. 6.5 or 5000-10000"} 
+                        style={{ flex: 1 }} 
+                      />
+                    )}
+                    {salaryUnit === 'Internship + PPO' && (
+                      <div style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        Configure Internship + PPO details below:
+                      </div>
+                    )}
                     <select 
                       value={salaryUnit} 
                       onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
                       className="input-field" 
-                      style={{ width: '130px', minWidth: '130px' }}
+                      style={{ width: '150px', minWidth: '150px' }}
                     >
                       {formData.listing_type === 'internship' ? (
                         <>
                           <option value="/ month">/ month</option>
                           <option value="Total Stipend">Total Stipend</option>
                           <option value="Unpaid">Unpaid</option>
+                          <option value="Internship + PPO">Internship + PPO</option>
                           <option value="Custom">Custom</option>
                         </>
                       ) : (
                         <>
                           <option value="LPA">LPA</option>
                           <option value="/ month">/ month</option>
+                          <option value="Internship + PPO">Internship + PPO</option>
                           <option value="Custom">Custom</option>
                         </>
                       )}
                     </select>
                   </div>
+                  {salaryUnit === 'Internship + PPO' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', width: '100%', marginTop: '8px', padding: '12px', background: 'var(--bg-card-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
+                      <div className="input-group">
+                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Stipend (Rupees)</label>
+                        <input 
+                          type="text" 
+                          value={ppoStipend} 
+                          onChange={(e) => handlePpoChange(e.target.value, ppoDuration, ppoCtc)} 
+                          className="input-field text-xs font-semibold text-[var(--accent-primary)]" 
+                          placeholder="e.g. 15000 (or blank for Unpaid)" 
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Duration</label>
+                        <select 
+                          value={ppoDuration} 
+                          onChange={(e) => handlePpoChange(ppoStipend, e.target.value, ppoCtc)} 
+                          className="input-field text-xs font-semibold text-[var(--text-primary)]"
+                          style={{ width: '100%' }}
+                        >
+                          <option value="2 months">2 months</option>
+                          <option value="3 months">3 months</option>
+                          <option value="6 months">6 months</option>
+                          <option value="9 months">9 months</option>
+                        </select>
+                      </div>
+                      <div className="input-group">
+                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>CTC (LPA)</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={ppoCtc} 
+                          onChange={(e) => handlePpoChange(ppoStipend, ppoDuration, e.target.value)} 
+                          className="input-field text-xs font-semibold text-[var(--accent-primary)]" 
+                          placeholder="e.g. 6.5" 
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {formData.listing_type === 'internship' && (
                   <div className="input-group">

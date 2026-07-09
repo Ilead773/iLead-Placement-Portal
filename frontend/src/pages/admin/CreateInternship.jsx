@@ -74,6 +74,19 @@ const CreateInternship = () => {
   const [salaryAmount, setSalaryAmount] = useState('');
   const [salaryUnit, setSalaryUnit] = useState('/ month');
 
+  const [ppoStipend, setPpoStipend] = useState('');
+  const [ppoDuration, setPpoDuration] = useState('3 months');
+  const [ppoCtc, setPpoCtc] = useState('');
+
+  const handlePpoChange = (stipend, duration, ctc) => {
+    setPpoStipend(stipend);
+    setPpoDuration(duration);
+    setPpoCtc(ctc);
+    const stipendStr = stipend ? `${stipend} / month` : 'Unpaid';
+    const combined = `${stipendStr} (${duration} Internship) + ${ctc} LPA (PPO)`;
+    setFormData(prev => ({ ...prev, package: combined }));
+  };
+
   const handleSalaryChange = (amount, unit) => {
     setSalaryAmount(amount);
     setSalaryUnit(unit);
@@ -81,6 +94,8 @@ const CreateInternship = () => {
       setFormData(prev => ({ ...prev, package: unit }));
     } else if (unit === 'Custom') {
       setFormData(prev => ({ ...prev, package: amount }));
+    } else if (unit === 'Internship + PPO') {
+      handlePpoChange(ppoStipend, ppoDuration, ppoCtc);
     } else {
       setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
     }
@@ -300,29 +315,78 @@ const CreateInternship = () => {
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
                   <DollarSign size={14} /> Stipend (Flexible) <span className="text-danger">*</span>
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    required={salaryUnit !== 'Unpaid'} 
-                    disabled={salaryUnit === 'Unpaid'} 
-                    type="text" 
-                    value={salaryAmount} 
-                    onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
-                    className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
-                    placeholder={salaryUnit === 'Custom' ? "e.g. 15000 + PPO" : "e.g. 15000 or 5000-10000"} 
-                    style={{ flex: 1 }} 
-                  />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {salaryUnit !== 'Internship + PPO' && (
+                    <input 
+                      required={salaryUnit !== 'Unpaid'} 
+                      disabled={salaryUnit === 'Unpaid'} 
+                      type="text" 
+                      value={salaryAmount} 
+                      onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
+                      className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
+                      placeholder={salaryUnit === 'Custom' ? "e.g. 15000 + PPO" : "e.g. 15000 or 5000-10000"} 
+                      style={{ flex: 1 }} 
+                    />
+                  )}
+                  {salaryUnit === 'Internship + PPO' && (
+                    <div style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      Configure Internship + PPO details below:
+                    </div>
+                  )}
                   <select 
                     value={salaryUnit} 
                     onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
                     className="input-field shadow-sm font-semibold text-[var(--text-primary)]" 
-                    style={{ width: '130px', minWidth: '130px' }}
+                    style={{ width: '150px', minWidth: '150px' }}
                   >
                     <option value="/ month">/ month</option>
                     <option value="Total Stipend">Total Stipend</option>
                     <option value="Unpaid">Unpaid</option>
+                    <option value="Internship + PPO">Internship + PPO</option>
                     <option value="Custom">Custom</option>
                   </select>
                 </div>
+                {salaryUnit === 'Internship + PPO' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', width: '100%', marginTop: '8px', padding: '12px', background: 'var(--bg-card-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
+                    <div className="input-group">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Stipend (Rupees)</label>
+                      <input 
+                        type="text" 
+                        value={ppoStipend} 
+                        onChange={(e) => handlePpoChange(e.target.value, ppoDuration, ppoCtc)} 
+                        className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]" 
+                        placeholder="e.g. 15000 (or blank for Unpaid)" 
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Duration</label>
+                      <select 
+                        value={ppoDuration} 
+                        onChange={(e) => handlePpoChange(ppoStipend, e.target.value, ppoCtc)} 
+                        className="input-field shadow-sm text-xs font-semibold text-[var(--text-primary)]"
+                        style={{ width: '100%' }}
+                      >
+                        <option value="2 months">2 months</option>
+                        <option value="3 months">3 months</option>
+                        <option value="6 months">6 months</option>
+                        <option value="9 months">9 months</option>
+                      </select>
+                    </div>
+                    <div className="input-group">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>CTC (LPA)</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={ppoCtc} 
+                        onChange={(e) => handlePpoChange(ppoStipend, ppoDuration, e.target.value)} 
+                        className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]" 
+                        placeholder="e.g. 6.5" 
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
