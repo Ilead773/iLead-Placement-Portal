@@ -328,7 +328,7 @@ CELERY_TASK_ROUTES = {
     'core.tasks.async_send_mail': {'queue': 'notifications'},
 }
 # Cache backend (used by rate limiting + scraper query caching)
-if TESTING:
+if TESTING or os.environ.get('USE_LOCMEM_CACHE', 'False') == 'True':
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

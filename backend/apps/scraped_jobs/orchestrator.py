@@ -73,6 +73,20 @@ class ScrapingOrchestrator:
             courses_failed = []
             per_course_stats = {}
 
+            # Pre-fetch all LinkedIn/Apify jobs in a single batch run
+            uses_linkedin = False
+            for course_name in self.active_config.keys():
+                strategy = SCRAPER_STRATEGIES.get(course_name, SCRAPER_STRATEGIES['DEFAULT'])
+                if any(s in ['linkedin', 'apify'] for s in strategy):
+                    uses_linkedin = True
+                    break
+
+            if uses_linkedin:
+                try:
+                    self.linkedin.pre_fetch_batch(self.active_config, self)
+                except Exception as e:
+                    logger.error(f"[Orchestrator] Batch pre-fetch failed: {e}", exc_info=True)
+
             for course_name in self.active_config.keys():
                 try:
                     strategy = SCRAPER_STRATEGIES.get(course_name, SCRAPER_STRATEGIES['DEFAULT'])
@@ -187,7 +201,7 @@ class ScrapingOrchestrator:
             logger.error(f"[Orchestrator] Error checking low supply for {course_name}: {e}")
             return False
 
-    def _process_course(self, course_name, strategy, api_calls):
+    def _process_course(self, course_name, strategy, api_calls, *args, **kwargs):
         # Get active counts
         active_jobs, active_internships = self._get_active_counts(course_name)
         
@@ -303,9 +317,11 @@ class ScrapingOrchestrator:
             filtered_interns = []
             for j in internships_to_save:
                 title = j.get('title', '')
-                if self.jsearch.should_exclude(title, j.get('description', ''), exclude_keywords):
+                description = j.get('description', '')
+                if self.jsearch.should_exclude(title, description, exclude_keywords):
                     continue
-                if domain_terms and not any(term.lower() in title.lower() for term in domain_terms):
+                # For internships: match domain terms in title OR description (internship titles are often generic like 'Summer Intern')
+                if domain_terms and not any(term.lower() in title.lower() or term.lower() in description.lower() for term in domain_terms):
                     continue
                 if j.get('quality_score', 0) >= 40:
                     filtered_interns.append(j)

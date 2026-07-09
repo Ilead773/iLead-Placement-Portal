@@ -76,3 +76,74 @@ def test_lever_scraper_fetch(mock_get):
     assert jobs[0]['title'] == 'Software Intern'
     assert jobs[0]['is_internship'] is True
     assert jobs[0]['source'] == 'lever'
+
+
+@patch('requests.Session.post')
+@patch('requests.Session.get')
+def test_linkedin_scraper_batch(mock_get, mock_post):
+    from apps.scraped_jobs.scrapers.linkedin_scraper import LinkedInScraper
+    scraper = LinkedInScraper()
+    scraper.apify_token = 'fake-token'
+
+    # Mock Apify actor run triggering response
+    mock_post_res = MagicMock()
+    mock_post_res.status_code = 201
+    mock_post_res.json.return_value = {
+        'data': {
+            'id': 'run123',
+            'defaultDatasetId': 'dataset123'
+        }
+    }
+    mock_post.return_value = mock_post_res
+
+    # Mock Apify status checks and dataset retrieval
+    # First get is status check (SUCCEEDED), second get is dataset items
+    mock_get_res1 = MagicMock()
+    mock_get_res1.status_code = 200
+    mock_get_res1.json.return_value = {'data': {'status': 'SUCCEEDED'}}
+    
+    mock_get_res2 = MagicMock()
+    mock_get_res2.status_code = 200
+    mock_get_res2.json.return_value = [
+        {
+            'id': 'job1',
+            'title': 'Junior Python Developer',
+            'company': 'Google',
+            'url': 'https://linkedin.com/job1',
+            'description': 'Python React software developer fresher',
+            'postedAt': '2026-07-08T12:00:00Z'
+        }
+    ]
+    
+    mock_get.side_effect = [mock_get_res1, mock_get_res2]
+
+    # Mock orchestrator counts
+    mock_orch = MagicMock()
+    mock_orch._get_active_counts.return_value = (0, 0)
+
+    active_config = {
+        'BSc in Computer Application (BCA)': {
+            'keywords': ['Python', 'Developer'],
+            'internship_keywords': ['Developer intern'],
+        }
+    }
+
+    # Run batch pre-fetch
+    scraper.pre_fetch_batch(active_config, mock_orch)
+
+    # Check cache was populated
+    assert scraper._batch_fetched is True
+    assert 'BSc in Computer Application (BCA)' in scraper._batch_cache['jobs']
+    assert len(scraper._batch_cache['jobs']['BSc in Computer Application (BCA)']) == 1
+
+    # Check fetch_jobs reads from cache
+    jobs = scraper.fetch_jobs('BSc in Computer Application (BCA)', ['Python'], limit=1)
+    assert len(jobs) == 1
+    assert jobs[0]['title'] == 'Junior Python Developer'
+    
+    # Check that calling fetch_jobs again does NOT trigger requests.Session.post (uses cache)
+    mock_post.reset_mock()
+    jobs2 = scraper.fetch_jobs('BSc in Computer Application (BCA)', ['Python'], limit=1)
+    assert len(jobs2) == 1
+    mock_post.assert_not_called()
+

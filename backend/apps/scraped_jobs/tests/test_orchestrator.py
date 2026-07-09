@@ -28,7 +28,7 @@ class TestOrchestrator:
             {
                 'external_job_id': 'test1',
                 'source': 'jsearch',
-                'title': 'Data Scientist',
+                'title': 'Data Science Developer',
                 'company_name': 'TestCo',
                 'dedup_hash': 'hash123',
                 'quality_score': 50,
@@ -43,7 +43,7 @@ class TestOrchestrator:
         
         assert ScrapingRun.objects.count() == 1
         assert ScrapedJob.objects.count() == 1
-        assert ScrapedJob.objects.first().title == 'Data Scientist'
+        assert ScrapedJob.objects.first().title == 'Data Science Developer'
 
     def test_deactivate_expired_jobs(self):
         from datetime import datetime, timezone, timedelta
