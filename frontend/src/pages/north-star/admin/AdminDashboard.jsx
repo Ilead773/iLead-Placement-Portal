@@ -18,7 +18,8 @@ import {
   Trash,
   Plus,
   Search,
-  Square
+  Square,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
@@ -36,6 +37,15 @@ export default function AdminDashboard() {
   const [progressList, setProgressList] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  
+  // Grading Hub Redesign States
+  const [gradingTab, setGradingTab] = useState('results'); // 'results' | 'build'
+  const [selectedAsm, setSelectedAsm] = useState(null);
+  const [selectedSub, setSelectedSub] = useState(null);
+  const [editScore, setEditScore] = useState('');
+  const [editFeedback, setEditFeedback] = useState('');
+  const [submittingGrade, setSubmittingGrade] = useState(false);
   
   // Forms states
   const [classTitle, setClassTitle] = useState('');
@@ -110,7 +120,8 @@ export default function AdminDashboard() {
         northStarAPI.getClasses(),
         northStarAPI.getReconciliation(),
         northStarAPI.getProgress(),
-        northStarAPI.getSubmissions()
+        northStarAPI.getSubmissions(),
+        northStarAPI.getAssignments()
       ]);
 
       if (results[0].status === 'fulfilled') {
@@ -133,6 +144,9 @@ export default function AdminDashboard() {
       }
       if (results[4].status === 'fulfilled') {
         setSubmissions(results[4].value.data);
+      }
+      if (results[5] && results[5].status === 'fulfilled') {
+        setAssignments(results[5].value.data);
       }
     } catch (err) {
       console.error(err);
@@ -220,6 +234,7 @@ export default function AdminDashboard() {
       setAsmDue('');
       setAsmDuration(30);
       setAsmQuestions([{ prompt: '', options: ['', '', '', ''], correct_option: 0, points: 1 }]);
+      setGradingTab('results'); // Switch back to submissions queue view on success
       fetchAdminData();
     } catch (err) {
       console.error(err);
@@ -799,207 +814,370 @@ export default function AdminDashboard() {
           {/* GRADING HUB TAB */}
           {/* ================================================================== */}
           {activeTab === 'assignments' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Form to Post Homework */}
-              <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-5">
-                  <BookOpen className="text-indigo-500" size={18} />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Post Assignment</h3>
-                </div>
-
-                <form onSubmit={handlePostAssignment} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Stream</label>
-                    <select 
-                      value={asmCourse}
-                      onChange={(e) => setAsmCourse(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-700 dark:text-slate-350"
-                    >
-                      {courses.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assignment Title</label>
-                    <input 
-                      type="text" 
-                      value={asmTitle}
-                      onChange={(e) => setAsmTitle(e.target.value)}
-                      placeholder="e.g. SEO Optimization Audit"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Instructions / Description</label>
-                    <textarea 
-                      value={asmDesc}
-                      onChange={(e) => setAsmDesc(e.target.value)}
-                      rows={2}
-                      placeholder="Write instructions or rules here..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Due Date</label>
-                      <input 
-                        type="datetime-local" 
-                        value={asmDue}
-                        onChange={(e) => setAsmDue(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Duration (Min)</label>
-                      <input 
-                        type="number" 
-                        min="1"
-                        value={asmDuration}
-                        onChange={(e) => setAsmDuration(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
-                      />
-                    </div>
-                  </div>
-
-                  {/* MCQ Builder */}
-                  <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">MCQ Questions</h4>
-                    
-                    {asmQuestions.map((question, qIdx) => (
-                      <div key={qIdx} className="p-3 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800/80 rounded-lg space-y-2.5 relative">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Question {qIdx + 1}</span>
-                          <div className="flex items-center gap-2">
-                            <label className="text-[9px] font-bold text-slate-550 flex items-center gap-1.5 uppercase">
-                              Points
-                              <input 
-                                type="number" 
-                                min="1" 
-                                value={question.points} 
-                                onChange={(e) => updateQuestion(qIdx, 'points', Number(e.target.value))}
-                                className="w-10 px-1 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
-                              />
-                            </label>
-                            {asmQuestions.length > 1 && (
-                              <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-650 transition-colors">
-                                <Trash size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <input 
-                          type="text" 
-                          placeholder="Enter question prompt..." 
-                          value={question.prompt} 
-                          onChange={(e) => updateQuestion(qIdx, 'prompt', e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-800 dark:text-slate-350"
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-1.5">
-                          {question.options.map((opt, oIdx) => (
-                            <div key={oIdx} className={`flex items-center gap-2 p-1.5 rounded border ${question.correct_option === oIdx ? 'border-green-500/50 bg-green-500/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'}`}>
-                              <input 
-                                type="radio" 
-                                name={`correct-${qIdx}`} 
-                                checked={question.correct_option === oIdx} 
-                                onChange={() => updateQuestion(qIdx, 'correct_option', oIdx)}
-                                className="accent-green-600"
-                              />
-                              <input 
-                                type="text" 
-                                placeholder={`Option ${oIdx + 1}`} 
-                                value={opt} 
-                                onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                                className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-350"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-
-                    <button 
-                      type="button" 
-                      onClick={addQuestion}
-                      className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-100/40 transition-colors"
-                    >
-                      <Plus size={12} /> Add Question
-                    </button>
-                  </div>
-
+            <div className="space-y-6">
+              {/* Grading Hub Sub-Tabs Switcher */}
+              <div className="flex justify-between items-center bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm">
+                <div className="flex gap-2">
                   <button
-                    type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider"
+                    onClick={() => setGradingTab('results')}
+                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+                      gradingTab === 'results'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
+                    }`}
                   >
-                    Publish Assessment
+                    <CheckCircle size={14} /> Submissions & Grading
                   </button>
-                </form>
-              </div>
-
-              {/* List of Submissions & Grading Drawer */}
-              <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-5">Submissions Grading Queue</h3>
-
-                {submissions.length > 0 ? (
-                  <div className="space-y-3 overflow-y-auto pr-1 max-h-[500px]">
-                    {submissions.map(sub => (
-                      <div 
-                        key={sub.id}
-                        className="relative flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50/50 dark:bg-[#161822] border border-slate-150 dark:border-slate-800/80 rounded-lg hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
-                      >
-                        {sub.status !== 'graded' && (
-                          <div className="absolute left-0 top-3 bottom-3 w-1 bg-indigo-500 rounded-r-full" />
-                        )}
-
-                        <div className="space-y-1 relative z-10 pl-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider">{sub.assignment_title}</span>
-                          <h4 className="text-sm font-semibold text-slate-800 dark:text-white">{sub.student_details?.name || 'Student'}</h4>
-                          <p className="text-xs text-slate-400 dark:text-slate-500">Submitted: {new Date(sub.submitted_at).toLocaleString()}</p>
-                          
-                          {sub.file && (
-                            <a 
-                              href={sub.file} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-indigo-500 dark:text-indigo-400 font-bold hover:underline mt-1.5"
-                            >
-                              <FileText size={12} /> View Submission File
-                            </a>
-                          )}
-                        </div>
-
-                        <div className="mt-3 md:mt-0 relative z-10">
-                          {sub.status === 'graded' ? (
-                            <div className="text-right">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10 uppercase">
-                                Graded: {sub.score} pts
-                              </span>
-                              {sub.feedback && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic max-w-xs">"{sub.feedback}"</p>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10 uppercase">
-                              Submitted
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-20 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex-1 flex flex-col items-center justify-center">
-                    <BookOpen size={36} className="opacity-25 mb-2" />
-                    <p className="font-semibold text-xs text-slate-500">No student homework submissions logged yet.</p>
+                  <button
+                    onClick={() => setGradingTab('build')}
+                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 ${
+                      gradingTab === 'build'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
+                    }`}
+                  >
+                    <Plus size={14} /> Post New Assessment
+                  </button>
+                </div>
+                
+                {selectedAsm && gradingTab === 'results' && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Selected: <span className="font-bold text-slate-800 dark:text-slate-200">{selectedAsm.title}</span>
                   </div>
                 )}
               </div>
+
+              {/* Tab 1: Submissions & Grading */}
+              {gradingTab === 'results' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Left Column: Assessments List */}
+                  <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+                    <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+                      <BookOpen className="text-indigo-500" size={16} />
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Assessments</h4>
+                    </div>
+
+                    <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1">
+                      {assignments.length > 0 ? (
+                        assignments.map(asm => {
+                          const asmSubs = submissions.filter(s => s.assignment === asm.id);
+                          const isMCQ = asm.questions && asm.questions.length > 0;
+                          const isSelected = selectedAsm?.id === asm.id;
+                          const pendingCount = asmSubs.filter(s => s.status !== 'graded').length;
+
+                          return (
+                            <div
+                              key={asm.id}
+                              onClick={() => {
+                                setSelectedAsm(asm);
+                                setSelectedSub(null);
+                              }}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                isSelected
+                                  ? 'border-indigo-500 bg-indigo-50/10 dark:bg-indigo-950/20'
+                                  : 'border-slate-200 dark:border-slate-800/80 hover:border-slate-350 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-950/20'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="text-[9px] font-extrabold text-indigo-500 dark:text-indigo-400 bg-indigo-500/5 px-2 py-0.5 rounded uppercase">
+                                  {asm.course_name}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-bold">
+                                  Max: {asm.max_score} pts
+                                </span>
+                              </div>
+                              <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 line-clamp-1">{asm.title}</h5>
+                              <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/50 text-[10px] text-slate-400">
+                                <span className="flex items-center gap-1">
+                                  {isMCQ ? <CheckCircle size={10} className="text-emerald-500" /> : <FileText size={10} className="text-amber-500" />}
+                                  {isMCQ ? 'MCQ Test' : 'File Upload'}
+                                </span>
+                                {pendingCount > 0 ? (
+                                  <span className="font-bold text-amber-500">
+                                    {pendingCount} Pending
+                                  </span>
+                                ) : (
+                                  <span>{asmSubs.length} Submissions</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-10 text-slate-400">
+                          <BookOpen size={24} className="mx-auto opacity-30 mb-2" />
+                          <p className="text-[11px]">No assessments found.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right 2 Columns: Submissions & Performance detail */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {!selectedAsm ? (
+                      <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-16 shadow-sm text-center flex flex-col items-center justify-center h-full min-h-[350px]">
+                        <ClipboardList size={40} className="opacity-20 text-indigo-500 mb-3" />
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Select an Assessment</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+                          Click on any assessment in the list to view its submissions queue and grade student work.
+                        </p>
+                      </div>
+                    ) : (() => {
+                      const asmSubs = submissions.filter(s => s.assignment === selectedAsm.id);
+                      const totalCount = asmSubs.length;
+                      const gradedCount = asmSubs.filter(s => s.status === 'graded').length;
+                      const pendingCount = totalCount - gradedCount;
+                      const averageScore = gradedCount > 0 
+                        ? (asmSubs.filter(s => s.status === 'graded').reduce((sum, s) => sum + (s.score || 0), 0) / (gradedCount * (selectedAsm.max_score || 1)) * 100).toFixed(0) 
+                        : '0';
+
+                      return (
+                        <>
+                          {/* Stats cards for Selected Assignment */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex justify-between items-center relative overflow-hidden">
+                              <div>
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Total Submissions</span>
+                                <span className="text-2xl font-extrabold text-slate-850 dark:text-white mt-1 block">{totalCount}</span>
+                              </div>
+                              <Users size={20} className="text-indigo-500 opacity-40" />
+                              <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500" />
+                            </div>
+
+                            <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex justify-between items-center relative overflow-hidden">
+                              <div>
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Graded & Completed</span>
+                                <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">{gradedCount}</span>
+                              </div>
+                              <CheckCircle size={20} className="text-emerald-500 opacity-40" />
+                              <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500" />
+                            </div>
+
+                            <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex justify-between items-center relative overflow-hidden">
+                              <div>
+                                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Average Accuracy</span>
+                                <span className="text-2xl font-extrabold text-amber-500 mt-1 block">{averageScore}%</span>
+                              </div>
+                              <Award size={20} className="text-amber-500 opacity-40" />
+                              <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-500" />
+                            </div>
+                          </div>
+
+                          {/* Submissions Queue Table */}
+                          <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Submissions Queue</h4>
+                              <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">{selectedAsm.title}</span>
+                            </div>
+                            {asmSubs.length > 0 ? (
+                              <div className="overflow-x-auto rounded-lg border border-slate-100 dark:border-slate-800">
+                                <table className="w-full text-left border-collapse">
+                                  <thead>
+                                    <tr className="bg-slate-50/50 dark:bg-[#15171e] border-b border-slate-150 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                                      <th className="px-4 py-2.5">Student</th>
+                                      <th className="px-4 py-2.5">Submitted At</th>
+                                      <th className="px-4 py-2.5">Status</th>
+                                      <th className="px-4 py-2.5">Score</th>
+                                      <th className="px-4 py-2.5 text-right">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {asmSubs.map(sub => (
+                                      <tr key={sub.id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-xs hover:bg-slate-50/80 dark:hover:bg-[#161822] transition-colors">
+                                        <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">
+                                          {sub.student_details?.name || 'Student'}
+                                          <span className="text-[10px] font-normal text-slate-400 block">{sub.student_details?.email}</span>
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-slate-455">
+                                          {new Date(sub.submitted_at).toLocaleString()}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                            sub.status === 'graded'
+                                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10'
+                                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/10'
+                                          }`}>
+                                            {sub.status}
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300">
+                                          {sub.score != null ? `${sub.score} / ${selectedAsm.max_score} pts` : '-'}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                          <button
+                                            onClick={() => {
+                                              setSelectedSub(sub);
+                                              setEditScore(sub.score != null ? String(sub.score) : '');
+                                              setEditFeedback(sub.feedback || '');
+                                            }}
+                                            className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 hover:border-indigo-600 dark:hover:border-indigo-600 text-slate-600 dark:text-slate-400 font-bold rounded text-[9px] uppercase transition-colors"
+                                          >
+                                            Review & Grade
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="text-center py-10 text-slate-400">
+                                <Users size={24} className="mx-auto opacity-30 mb-2" />
+                                <p className="text-xs">No submissions received yet for this assessment.</p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Post New Assessment */}
+              {gradingTab === 'build' && (
+                <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm max-w-2xl mx-auto">
+                  <div className="flex items-center gap-2 mb-5">
+                    <BookOpen className="text-indigo-500" size={18} />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Post Assignment</h3>
+                  </div>
+
+                  <form onSubmit={handlePostAssignment} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Stream</label>
+                      <select 
+                        value={asmCourse}
+                        onChange={(e) => setAsmCourse(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-700 dark:text-slate-355"
+                      >
+                        {courses.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assignment Title</label>
+                      <input 
+                        type="text" 
+                        value={asmTitle}
+                        onChange={(e) => setAsmTitle(e.target.value)}
+                        placeholder="e.g. SEO Optimization Audit"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Instructions / Description</label>
+                      <textarea 
+                        value={asmDesc}
+                        onChange={(e) => setAsmDesc(e.target.value)}
+                        rows={2}
+                        placeholder="Write instructions or rules here..."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Due Date</label>
+                        <input 
+                          type="datetime-local" 
+                          value={asmDue}
+                          onChange={(e) => setAsmDue(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Duration (Min)</label>
+                        <input 
+                          type="number" 
+                          min="1"
+                          value={asmDuration}
+                          onChange={(e) => setAsmDuration(Number(e.target.value))}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-850 dark:text-slate-350"
+                        />
+                      </div>
+                    </div>
+
+                    {/* MCQ Builder */}
+                    <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">MCQ Questions</h4>
+                      
+                      {asmQuestions.map((question, qIdx) => (
+                        <div key={qIdx} className="p-3 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800/80 rounded-lg space-y-2.5 relative">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Question {qIdx + 1}</span>
+                            <div className="flex items-center gap-2">
+                              <label className="text-[9px] font-bold text-slate-550 flex items-center gap-1.5 uppercase">
+                                Points
+                                <input 
+                                  type="number" 
+                                  min="1" 
+                                  value={question.points} 
+                                  onChange={(e) => updateQuestion(qIdx, 'points', Number(e.target.value))}
+                                  className="w-10 px-1 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
+                                />
+                              </label>
+                              {asmQuestions.length > 1 && (
+                                <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-650 transition-colors">
+                                  <Trash size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <input 
+                            type="text" 
+                            placeholder="Enter question prompt..." 
+                            value={question.prompt} 
+                            onChange={(e) => updateQuestion(qIdx, 'prompt', e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-800 dark:text-slate-350"
+                          />
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-1.5">
+                            {question.options.map((opt, oIdx) => (
+                              <div key={oIdx} className={`flex items-center gap-2 p-1.5 rounded border ${question.correct_option === oIdx ? 'border-green-500/50 bg-green-500/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'}`}>
+                                <input 
+                                  type="radio" 
+                                  name={`correct-${qIdx}`} 
+                                  checked={question.correct_option === oIdx} 
+                                  onChange={() => updateQuestion(qIdx, 'correct_option', oIdx)}
+                                  className="accent-green-600"
+                                />
+                                <input 
+                                  type="text" 
+                                  placeholder={`Option ${oIdx + 1}`} 
+                                  value={opt} 
+                                  onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
+                                  className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-355"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+
+                      <button 
+                        type="button" 
+                        onClick={addQuestion}
+                        className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-100/40 transition-colors"
+                      >
+                        <Plus size={12} /> Add Question
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider"
+                    >
+                      Publish Assessment
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           )}
              {/* ================================================================== */}
@@ -1226,6 +1404,272 @@ export default function AdminDashboard() {
               </div>
             );
           })()}
+      
+      {/* ──────────────────────────────────────────────────────────── */}
+      {/* NORTH STAR MANUAL GRADING MODAL                              */}
+      {/* ──────────────────────────────────────────────────────────── */}
+      {selectedSub && selectedAsm && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setSelectedSub(null)}
+        >
+          <div 
+            className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
+              <div>
+                <span className="inline-flex px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 uppercase border border-indigo-500/10">
+                  {selectedAsm.questions && selectedAsm.questions.length > 0 ? 'MCQ TEST SUBMISSION' : 'FILE SUBMISSION'}
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">
+                  {selectedSub.student_details?.name || 'Student Submission'}
+                </h3>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Email: {selectedSub.student_details?.email} | Assessment: {selectedAsm.title}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedSub(null)} 
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content Split: Details and Grading form */}
+            <div className="space-y-6">
+              
+              {/* Submission Date / Status Bar */}
+              <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-150 dark:border-slate-800/80 rounded-xl p-3.5 flex flex-wrap justify-between items-center text-xs gap-3">
+                <div>
+                  <span className="font-semibold text-slate-500">Submitted:</span>{' '}
+                  <span className="font-bold text-slate-700 dark:text-slate-350">
+                    {new Date(selectedSub.submitted_at).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-555">Auto-Calculated Score:</span>{' '}
+                  <span className="font-bold text-slate-700 dark:text-slate-300">
+                    {selectedSub.score != null ? `${selectedSub.score} / ${selectedAsm.max_score} pts` : 'Pending evaluation'}
+                  </span>
+                </div>
+              </div>
+
+              {/* View/Download file if it exists */}
+              {selectedSub.file && (
+                <div className="bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <FileText size={20} className="text-indigo-500" />
+                    <div>
+                      <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">Student Submission File</h5>
+                      <p className="text-[10px] text-slate-400">File uploaded by student for manual grading.</p>
+                    </div>
+                  </div>
+                  <a 
+                    href={selectedSub.file}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-[10px] uppercase shadow-sm transition-colors flex items-center gap-1.5"
+                  >
+                    <UploadCloud size={12} /> View / Download File
+                  </a>
+                </div>
+              )}
+
+              {/* MCQ Question and Student Choices Review */}
+              {selectedAsm.questions && selectedAsm.questions.length > 0 && selectedSub.answers_data && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Questions & Answers Review
+                  </h4>
+                  <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+                    {selectedSub.answers_data.map((ans, idx) => {
+                      const userSelected = ans.selected_option;
+                      const correctOption = ans.correct_option;
+                      const isCorrect = ans.is_correct;
+                      const pointsEarned = ans.awarded_points;
+                      const promptText = ans.prompt;
+
+                      // Retrieve options from selectedAsm questions
+                      const originalQ = selectedAsm.questions.find(q => String(q.id) === String(ans.question_id));
+                      const options = originalQ ? originalQ.options : [];
+
+                      return (
+                        <div 
+                          key={ans.question_id || idx}
+                          className="bg-slate-50/50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-800/80 rounded-xl p-4 space-y-3"
+                        >
+                          <div className="flex justify-between items-start gap-4">
+                            <h5 className="text-xs font-bold text-slate-800 dark:text-white leading-relaxed">
+                              {idx + 1}. {promptText}
+                            </h5>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {isCorrect ? (
+                                <span className="text-[9px] font-extrabold bg-emerald-500/10 text-emerald-650 dark:text-emerald-450 border border-emerald-500/20 px-2 py-0.5 rounded">
+                                  Correct
+                                </span>
+                              ) : userSelected === null || userSelected === undefined ? (
+                                <span className="text-[9px] font-extrabold bg-rose-500/10 text-rose-650 dark:text-rose-450 border border-rose-500/20 px-2 py-0.5 rounded">
+                                  Unanswered
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-extrabold bg-rose-500/10 text-rose-650 dark:text-rose-455 border border-rose-500/20 px-2 py-0.5 rounded">
+                                  Incorrect
+                                </span>
+                              )}
+                              <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded">
+                                {pointsEarned} pt(s)
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            {options.map((opt, oIdx) => {
+                              const isSelectedByStudent = userSelected === oIdx;
+                              const isCorrectOption = correctOption === oIdx;
+                              const optionLetter = String.fromCharCode(65 + oIdx);
+
+                              let cardStyle = "border-slate-150 dark:border-slate-850 bg-white dark:bg-[#12131a]";
+                              let pillStyle = "bg-slate-100 dark:bg-slate-850 text-slate-550";
+
+                              if (isSelectedByStudent && isCorrectOption) {
+                                cardStyle = "border-emerald-500 bg-emerald-500/5 dark:bg-emerald-950/10";
+                                pillStyle = "bg-emerald-500 text-white";
+                              } else if (isSelectedByStudent && !isCorrectOption) {
+                                cardStyle = "border-rose-500 bg-rose-500/5 dark:bg-rose-950/10";
+                                pillStyle = "bg-rose-500 text-white";
+                              } else if (isCorrectOption) {
+                                cardStyle = "border-emerald-500/60 dark:border-emerald-500/30 bg-emerald-500/2 dark:bg-emerald-950/5 border-dashed";
+                                pillStyle = "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+                              }
+
+                              return (
+                                <div key={oIdx} className={`p-2.5 rounded-lg border flex items-center justify-between text-[11px] ${cardStyle}`}>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-5 h-5 rounded font-bold text-[9px] flex items-center justify-center ${pillStyle}`}>
+                                      {optionLetter}
+                                    </div>
+                                    <span className="font-semibold text-slate-650 dark:text-slate-350">{opt}</span>
+                                  </div>
+                                  {isSelectedByStudent && (
+                                    <span className="text-[8px] font-black uppercase text-indigo-500">Choice</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Grading Input Fields */}
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-4 space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Evaluate Submission
+                </h4>
+
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (editScore === '') {
+                      toast.error('Please enter a grade score.');
+                      return;
+                    }
+                    const numScore = Number(editScore);
+                    if (isNaN(numScore) || numScore < 0 || numScore > selectedAsm.max_score) {
+                      toast.error(`Score must be a number between 0 and ${selectedAsm.max_score}`);
+                      return;
+                    }
+                    setSubmittingGrade(true);
+                    try {
+                      await northStarAPI.gradeSubmission(selectedSub.id, {
+                        score: numScore,
+                        feedback: editFeedback
+                      });
+                      toast.success('Grade submitted successfully!');
+                      setSelectedSub(null);
+                      fetchAdminData(true);
+                    } catch (err) {
+                      console.error(err);
+                      toast.error('Failed to save grade.');
+                    } finally {
+                      setSubmittingGrade(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Award Score (Max: {selectedAsm.max_score} pts)
+                      </label>
+                      <input 
+                        type="number"
+                        min="0"
+                        max={selectedAsm.max_score}
+                        value={editScore}
+                        onChange={(e) => setEditScore(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
+                        placeholder={`0 - ${selectedAsm.max_score}`}
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Evaluation Status
+                      </label>
+                      <input 
+                        type="text"
+                        disabled
+                        value={selectedSub.status === 'graded' ? 'Graded & Evaluated' : 'Awaiting Grading'}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-100 dark:bg-slate-900 outline-none text-xs text-slate-500 dark:text-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      Feedback / Remarks
+                    </label>
+                    <textarea 
+                      value={editFeedback}
+                      onChange={(e) => setEditFeedback(e.target.value)}
+                      rows={3}
+                      placeholder="Write feedback, improvement areas, or general remarks for the student..."
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSub(null)}
+                      className="px-4 py-2 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-50 dark:hover:bg-slate-950 transition-colors uppercase tracking-wider"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingGrade}
+                      className="px-6 py-2 bg-indigo-650 hover:bg-indigo-700 disabled:bg-indigo-550 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider flex items-center gap-2"
+                    >
+                      {submittingGrade && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                      Save Evaluation & Grade
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
         </>
       )}
       </div>{/* end p-6 content wrapper */}
