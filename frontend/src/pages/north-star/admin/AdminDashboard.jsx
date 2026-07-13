@@ -113,10 +113,12 @@ export default function AdminDashboard() {
   // Lightweight refresh: only re-fetches the classes list
   const refreshClasses = async () => {
     try {
+      console.log('[NS-DEBUG] refreshClasses: firing...');
       const res = await northStarAPI.getClasses();
+      console.log('[NS-DEBUG] refreshClasses: got', res.data.length, 'classes from server:', res.data.map(c => c.title));
       setClasses(res.data);
     } catch (err) {
-      console.error('Failed to refresh classes:', err);
+      console.error('[NS-DEBUG] refreshClasses: FAILED', err);
     }
   };
 
@@ -178,6 +180,7 @@ export default function AdminDashboard() {
 
     const tid = toast.loading('Creating class & generating Zoom meeting...');
     try {
+      console.log('[NS-DEBUG] handleScheduleClass: sending request...');
       const res = await northStarAPI.scheduleClass({
         course_ids: selectedCourses,
         course_id: selectedCourses[0],
@@ -185,13 +188,20 @@ export default function AdminDashboard() {
         start_time: classStart,
         end_time: classEnd
       });
+      console.log('[NS-DEBUG] handleScheduleClass: API SUCCESS. Response:', res.data);
       toast.dismiss(tid);
       toast.success('Class scheduled! Zoom meeting created ✅');
 
-      // INSTANT UPDATE: inject the new class directly into state so the list
-      // updates immediately without waiting for a full fetchAdminData cycle.
+      // INSTANT UPDATE: inject the new class directly into state
       if (res.data && res.data.id) {
-        setClasses(prev => [res.data, ...prev]);
+        console.log('[NS-DEBUG] handleScheduleClass: injecting new class into state. id=', res.data.id, 'title=', res.data.title);
+        setClasses(prev => {
+          const updated = [res.data, ...prev];
+          console.log('[NS-DEBUG] handleScheduleClass: classes state now has', updated.length, 'items:', updated.map(c => c.title));
+          return updated;
+        });
+      } else {
+        console.warn('[NS-DEBUG] handleScheduleClass: res.data missing or has no id!', res.data);
       }
 
       // Show the join link to admin so they can share it
@@ -219,10 +229,11 @@ export default function AdminDashboard() {
       }
       // Delay the server refresh by 2s so the DB write has committed before we re-fetch.
       // The instant injection above shows the class immediately in the UI.
+      console.log('[NS-DEBUG] handleScheduleClass: scheduling delayed refreshClasses in 2s...');
       setTimeout(() => refreshClasses(), 2000);
     } catch (err) {
       toast.dismiss(tid);
-      console.error(err);
+      console.error('[NS-DEBUG] handleScheduleClass: ERROR', err);
       const detail = err?.response?.data?.detail || '';
       toast.error(detail || 'Failed to schedule class. Check Zoom S2S credentials.');
     }
