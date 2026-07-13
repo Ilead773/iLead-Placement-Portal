@@ -13,7 +13,6 @@ const CreateInternship = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const cloneId = searchParams.get('clone');
-  const useDraft = searchParams.get('use_draft');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [createdJobId, setCreatedJobId] = useState(null);
@@ -155,55 +154,114 @@ const CreateInternship = () => {
     }
   }, [cloneId]);
 
-  useEffect(() => {
-    if (useDraft) {
-      try {
-        const draftStr = sessionStorage.getItem('temp_internship_form');
-        if (draftStr) {
-          const parsed = JSON.parse(draftStr);
-          if (parsed.salaryAmount) setSalaryAmount(parsed.salaryAmount);
-          if (parsed.salaryUnit) setSalaryUnit(parsed.salaryUnit);
-          if (parsed.formData) setFormData(parsed.formData);
-          sessionStorage.removeItem('temp_internship_form');
-        }
-      } catch (err) {
-        console.error('Failed to load form draft', err);
+  const [formData, setFormData] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.formData) return parsed.formData;
       }
+    } catch (err) {
+      console.error('Failed to load form draft', err);
     }
-  }, [useDraft]);
-
-  const [formData, setFormData] = useState({
-    company_name: '',
-    role: '',
-    description: '',
-    package: '', // Stored as stipend/package
-    location: '',
-    job_type: 'internal',
-    listing_type: 'internship',
-    duration: '', // e.g., "3 months"
-    application_deadline: '',
-    external_link: '',
-    category: 'C',
-    openings_count: 1,
-    hr_email: '',
-    eligibility_rules: {
-      min_cgpa: '',
-      min_attendance: '',
-      max_backlogs: '',
-      allowed_branches: [],
-      allowed_years: [],
-      allowed_categories: [],
-      allowed_students: []
-    },
-    rounds: []
+    return {
+      company_name: '',
+      role: '',
+      description: '',
+      package: '', // Stored as stipend/package
+      location: '',
+      job_type: 'internal',
+      listing_type: 'internship',
+      duration: '', // e.g., "3 months"
+      application_deadline: '',
+      external_link: '',
+      category: 'C',
+      openings_count: 1,
+      hr_email: '',
+      eligibility_rules: {
+        min_cgpa: '',
+        min_attendance: '',
+        max_backlogs: '',
+        allowed_branches: [],
+        allowed_years: [],
+        allowed_categories: [],
+        allowed_students: []
+      },
+      rounds: []
+    };
   });
 
-  const [salaryAmount, setSalaryAmount] = useState('');
-  const [salaryUnit, setSalaryUnit] = useState('/ month');
+  const [salaryAmount, setSalaryAmount] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.salaryAmount !== undefined) return parsed.salaryAmount;
+      }
+    } catch (e) {}
+    return '';
+  });
 
-  const [ppoStipend, setPpoStipend] = useState('');
-  const [ppoDuration, setPpoDuration] = useState('3 months');
-  const [ppoCtc, setPpoCtc] = useState('');
+  const [salaryUnit, setSalaryUnit] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.salaryUnit !== undefined) return parsed.salaryUnit;
+      }
+    } catch (e) {}
+    return '/ month';
+  });
+
+  const [ppoStipend, setPpoStipend] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.ppoStipend !== undefined) return parsed.ppoStipend;
+      }
+    } catch (e) {}
+    return '';
+  });
+
+  const [ppoDuration, setPpoDuration] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.ppoDuration !== undefined) return parsed.ppoDuration;
+      }
+    } catch (e) {}
+    return '3 months';
+  });
+
+  const [ppoCtc, setPpoCtc] = useState(() => {
+    try {
+      const savedDraft = localStorage.getItem('autosave_internship_form');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed.ppoCtc !== undefined) return parsed.ppoCtc;
+      }
+    } catch (e) {}
+    return '';
+  });
+
+  // ── Auto-save Draft on State Changes ──
+  useEffect(() => {
+    try {
+      const dataToSave = {
+        formData,
+        salaryAmount,
+        salaryUnit,
+        ppoStipend,
+        ppoDuration,
+        ppoCtc
+      };
+      localStorage.setItem('autosave_internship_form', JSON.stringify(dataToSave));
+    } catch (err) {
+      console.error('Failed to autosave draft', err);
+    }
+  }, [formData, salaryAmount, salaryUnit, ppoStipend, ppoDuration, ppoCtc]);
 
   const handlePpoChange = (stipend, duration, ctc) => {
     setPpoStipend(stipend);
@@ -330,19 +388,9 @@ const CreateInternship = () => {
       await axios.post(`/jobs/admin/jobs/${jobId}/publish/`);
       
       if (submitType === 'add_another') {
-        toast.success(`Internship drive for "${formData.role}" published successfully! 🎉 Form is reset for the next role.`);
-        setFormData(prev => ({
-          ...prev,
-          role: '',
-          package: '',
-          duration: '',
-          application_deadline: '',
-          openings_count: 1
-        }));
-        setSalaryAmount('');
-        setSalaryUnit('/ month');
-        setCreatedJobId(null);
+        toast.success(`Internship drive for "${formData.role}" published successfully! 🎉 You can now edit and publish another.`);
       } else {
+        localStorage.removeItem('autosave_internship_form');
         toast.success('Internship drive published successfully! 🎉');
         navigate('/admin/internships');
       }
@@ -350,27 +398,6 @@ const CreateInternship = () => {
       setError(err.response?.data?.error || 'Failed to create internship');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCloneToNewTab = () => {
-    try {
-      const dataToSave = {
-        formData,
-        salaryAmount,
-        salaryUnit
-      };
-      sessionStorage.setItem('temp_internship_form', JSON.stringify(dataToSave));
-      const newWindow = window.open(window.location.pathname + '?use_draft=true', '_blank');
-      
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        toast.error('Popup blocked! Please click the icon in your browser URL bar to allow popups.');
-      } else {
-        toast.success('Form details cloned to new tab! 🎉');
-      }
-    } catch (err) {
-      console.error('Failed to clone form state to new tab', err);
-      toast.error('Failed to clone form to new tab.');
     }
   };
 
@@ -388,17 +415,32 @@ const CreateInternship = () => {
           <p className="text-sm text-muted mt-2 m-0 ml-12">Publish a new internship opportunity for students.</p>
         </div>
         <div className="flex items-center gap-4 self-end sm:self-auto">
-          <button type="button" onClick={() => navigate('/admin/internships')} className="btn" style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
-            Cancel
-          </button>
           <button 
             type="button" 
-            onClick={handleCloneToNewTab}
-            className="btn btn-secondary px-6 flex items-center gap-2" 
-            style={{ borderRadius: '10px', background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)' }}
+            onClick={() => {
+              localStorage.removeItem('autosave_internship_form');
+              navigate('/admin/internships');
+            }} 
+            className="btn" 
+            style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: '10px' }}
           >
-            Clone to New Tab
+            Cancel
           </button>
+
+          <button 
+            type="button" 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to clear the form?")) {
+                localStorage.removeItem('autosave_internship_form');
+                window.location.reload();
+              }
+            }} 
+            className="btn" 
+            style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: '10px' }}
+          >
+            Reset Form
+          </button>
+
           <button 
             type="submit" 
             form="create-internship-form" 

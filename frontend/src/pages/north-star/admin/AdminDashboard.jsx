@@ -93,10 +93,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
+    const interval = setInterval(() => {
+      fetchAdminData(true);
+    }, 15000); // Poll every 15 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchAdminData = async () => {
-    setLoading(true);
+  const fetchAdminData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const statsRes = await northStarAPI.getAdminDashboard();
       setStats(statsRes.data);
@@ -122,9 +126,9 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load coordinator data.');
+      if (!silent) toast.error('Failed to load coordinator data.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

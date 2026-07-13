@@ -136,4 +136,10 @@ class SecurityHeadersMiddleware:
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=*'
         
+        # Disable caching for API responses to ensure real-time consistency
+        if request.path.startswith('/api/'):
+            response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+            
         return response

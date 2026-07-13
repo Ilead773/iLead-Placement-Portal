@@ -142,10 +142,14 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 15000); // Poll every 15 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
+  const fetchDashboardData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await northStarAPI.getStudentDashboard();
       setDashboardData(res.data);
@@ -164,9 +168,9 @@ export default function StudentDashboard() {
       setAttendanceRecords(attendanceRes.data.records || []);
     } catch (err) {
       console.error(err);
-      toast.error('Failed to load dashboard data.');
+      if (!silent) toast.error('Failed to load dashboard data.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -582,9 +586,9 @@ export default function StudentDashboard() {
                       const now = new Date();
                       const startTime = new Date(cls.start_time);
                       const endTime = new Date(cls.end_time);
-                      const isLive = now >= startTime && now <= endTime;
-                      const isUpcoming = now < startTime;
-                      const hasEnded = now > endTime;
+                      const isLive = !cls.is_ended && now >= startTime && now <= endTime;
+                      const isUpcoming = !cls.is_ended && now < startTime;
+                      const hasEnded = cls.is_ended || now > endTime;
 
                       const day = startTime.getDate();
                       const month = startTime.toLocaleDateString([], { month: 'short' }).toUpperCase();
