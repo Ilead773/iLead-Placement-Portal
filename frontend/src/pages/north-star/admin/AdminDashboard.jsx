@@ -155,6 +155,17 @@ export default function AdminDashboard() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailCourse, setEmailCourse] = useState('');
+  const [emailAttendanceFilter, setEmailAttendanceFilter] = useState('');
+  const [emailCompletionFilter, setEmailCompletionFilter] = useState('');
+  const [emailSearchQuery, setEmailSearchQuery] = useState('');
+  const [selectedRecipients, setSelectedRecipients] = useState([]);
+
+  // Auto-select all students when the progress list loads
+  useEffect(() => {
+    if (progressList.length > 0 && selectedRecipients.length === 0) {
+      setSelectedRecipients(progressList.map(p => p.student));
+    }
+  }, [progressList]);
 
 
 
@@ -346,18 +357,24 @@ export default function AdminDashboard() {
       toast.error('Please fill subject and body.');
       return;
     }
+    if (selectedRecipients.length === 0) {
+      toast.error('Please select at least one recipient student.');
+      return;
+    }
 
+    const tid = toast.loading('Queueing email dispatch...');
     try {
       await northStarAPI.sendBulkEmail({
         subject: emailSubject,
         body: emailBody,
-        course_id: emailCourse || null
+        recipient_ids: selectedRecipients
       });
-      toast.success('Bulk emails successfully queued!');
+      toast.dismiss(tid);
+      toast.success(`Announcement emails queued for ${selectedRecipients.length} recipients!`);
       setEmailSubject('');
       setEmailBody('');
-      setEmailCourse('');
     } catch (err) {
+      toast.dismiss(tid);
       console.error(err);
       toast.error('Failed to queue emails.');
     }
@@ -1323,82 +1340,286 @@ export default function AdminDashboard() {
              {/* ================================================================== */}
           {/* NOTIFICATIONS / BULK EMAIL TAB */}
           {/* ================================================================== */}
-          {activeTab === 'email' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Form to Send Mail */}
-              <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-5">
-                  <Mail className="text-indigo-500" size={18} />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Send Bulk Announcement Email</h3>
-                </div>
+          {activeTab === 'email' && (() => {
+            // Apply filtering logic to get targeted list of students
+            const targetedStudents = progressList.filter(prg => {
+              // 1. Course Stream filter
+              if (emailCourse && prg.course !== emailCourse) return false;
+              
+              // 2. Search query filter
+              if (emailSearchQuery) {
+                const q = emailSearchQuery.toLowerCase();
+                const name = (prg.student_details?.name || '').toLowerCase();
+                const email = (prg.student_details?.email || '').toLowerCase();
+                if (!name.includes(q) && !email.includes(q)) return false;
+              }
+              
+              // 3. Attendance filter
+              if (emailAttendanceFilter) {
+                const att = prg.attendance_percent || 0;
+                if (emailAttendanceFilter === '<75' && att >= 75) return false;
+                if (emailAttendanceFilter === '75-90' && (att < 75 || att > 90)) return false;
+                if (emailAttendanceFilter === '>90' && att <= 90) return false;
+              }
+              
+              // 4. Completion filter
+              if (emailCompletionFilter) {
+                const comp = prg.completion_percent || 0;
+                if (emailCompletionFilter === '<50' && comp >= 50) return false;
+                if (emailCompletionFilter === '50-90' && (comp < 50 || comp > 90)) return false;
+                if (emailCompletionFilter === '>90' && comp <= 90) return false;
+              }
+              
+              return true;
+            });
 
-                <form onSubmit={handleSendEmail} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Filter Target Course Group</label>
-                    <select 
-                      value={emailCourse}
-                      onChange={(e) => setEmailCourse(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-700 dark:text-slate-355"
+            const handleSelectAllMatched = () => {
+              const matchedIds = targetedStudents.map(prg => prg.student);
+              setSelectedRecipients(prev => Array.from(new Set([...prev, ...matchedIds])));
+            };
+
+            const handleDeselectAllMatched = () => {
+              const matchedIds = new Set(targetedStudents.map(prg => prg.student));
+              setSelectedRecipients(prev => prev.filter(id => !matchedIds.has(id)));
+            };
+
+            const handleToggleRecipient = (studentId) => {
+              if (selectedRecipients.includes(studentId)) {
+                setSelectedRecipients(selectedRecipients.filter(id => id !== studentId));
+              } else {
+                setSelectedRecipients([...selectedRecipients, studentId]);
+              }
+            };
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                {/* Form to Send Mail (Left 2 columns in a 5-col grid) */}
+                <div className="lg:col-span-2 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm h-fit">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Mail className="text-indigo-500" size={18} />
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Compose Announcement</h3>
+                  </div>
+
+                  <form onSubmit={handleSendEmail} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Subject</label>
+                      <input 
+                        type="text" 
+                        value={emailSubject}
+                        onChange={(e) => setEmailSubject(e.target.value)}
+                        required
+                        placeholder="e.g. Schedule Update or Homework Reminder"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Body Message</label>
+                      <textarea 
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
+                        required
+                        rows={7}
+                        placeholder="Write your email body copy here..."
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
+                      />
+                    </div>
+
+                    <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/15 border border-indigo-100 dark:border-indigo-950/30 rounded-xl space-y-1">
+                      <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Mailing Summary</span>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                        This email will be sent to {selectedRecipients.length} student{selectedRecipients.length !== 1 && 's'}.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 uppercase tracking-wider"
                     >
-                      <option value="">-- All Enrolled Students --</option>
-                      {courses.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Subject</label>
-                    <input 
-                      type="text" 
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                      required
-                      placeholder="e.g. Schedule Update or Homework Reminder"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email Body Message</label>
-                    <textarea 
-                      value={emailBody}
-                      onChange={(e) => setEmailBody(e.target.value)}
-                      required
-                      rows={5}
-                      placeholder="Write your email body copy here..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-400"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 uppercase tracking-wider"
-                  >
-                    <Send size={12} /> Send Email
-                  </button>
-                </form>
-              </div>
-
-              {/* Instructions Box */}
-              <div className="bg-slate-50 dark:bg-[#12131a] border border-slate-250 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between">
-                <div className="space-y-3">
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Announcement Guidelines</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed">
-                    Announcements sent via this console are dispatched asynchronously via background worker queue.
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-450 leading-relaxed">
-                    Select a target Course Group to message only students belonging to a particular syllabus stream, or leave it blank to message the entire active student roster.
-                  </p>
+                      <Send size={12} /> Send Email
+                    </button>
+                  </form>
                 </div>
-                
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 mt-4 flex items-center gap-2">
-                  <AlertCircle size={14} className="text-indigo-500" />
-                  <span>Dispatched via secure background mailing task.</span>
+
+                {/* Recipient Targeting & Filtering (Right 3 columns in a 5-col grid) */}
+                <div className="lg:col-span-3 bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recipient Targeting</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">Filter by progress metrics & select individual recipients.</p>
+                    </div>
+                    <span className="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 rounded-full font-bold text-[10px]">
+                      {selectedRecipients.length} Selected
+                    </span>
+                  </div>
+
+                  {/* Filters Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Stream</label>
+                      <select 
+                        value={emailCourse}
+                        onChange={(e) => setEmailCourse(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
+                      >
+                        <option value="">-- All Streams --</option>
+                        {courses.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Student Search</label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400 dark:text-slate-500">
+                          <Search size={12} />
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Search name/email..."
+                          value={emailSearchQuery}
+                          onChange={(e) => setEmailSearchQuery(e.target.value)}
+                          className="pl-7 pr-7 py-1.5 w-full rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
+                        />
+                        {emailSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setEmailSearchQuery('')}
+                            className="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-600 text-[10px]"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Attendance Rate</label>
+                      <select 
+                        value={emailAttendanceFilter}
+                        onChange={(e) => setEmailAttendanceFilter(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
+                      >
+                        <option value="">All Attendance Levels</option>
+                        <option value="<75">Below 75% Attendance</option>
+                        <option value="75-90">75% - 90% Attendance</option>
+                        <option value=">90">Above 90% Attendance</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Course Progress</label>
+                      <select 
+                        value={emailCompletionFilter}
+                        onChange={(e) => setEmailCompletionFilter(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 bg-slate-50 dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350"
+                      >
+                        <option value="">All Completion Rates</option>
+                        <option value="<50">Below 50% Completion</option>
+                        <option value="50-90">50% - 90% Completion</option>
+                        <option value=">90">Above 90% Completion</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Bulk Selection Helpers */}
+                  <div className="flex gap-2 mb-3 bg-slate-50 dark:bg-[#161822] p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllMatched}
+                      className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 text-[10px] font-bold rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors uppercase tracking-wider"
+                    >
+                      Select All Matched ({targetedStudents.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeselectAllMatched}
+                      className="px-2.5 py-1 border border-slate-255 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors uppercase tracking-wider"
+                    >
+                      Deselect All Matched
+                    </button>
+                  </div>
+
+                  {/* Recipients List grid */}
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-[300px] overflow-y-auto flex-1 bg-slate-50/30 dark:bg-slate-900/10">
+                    {targetedStudents.length > 0 ? (
+                      <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-800/80 text-left">
+                        <thead className="bg-slate-50 dark:bg-[#161822] text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10 border-b border-slate-150 dark:border-slate-800">
+                          <tr>
+                            <th className="px-4 py-2 w-10">
+                              <input 
+                                type="checkbox"
+                                checked={targetedStudents.length > 0 && targetedStudents.every(s => selectedRecipients.includes(s.student))}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    handleSelectAllMatched();
+                                  } else {
+                                    handleDeselectAllMatched();
+                                  }
+                                }}
+                                className="rounded text-indigo-650 accent-indigo-600 focus:ring-indigo-500 pointer-events-auto cursor-pointer"
+                              />
+                            </th>
+                            <th className="px-4 py-2">Student</th>
+                            <th className="px-4 py-2">Attendance</th>
+                            <th className="px-4 py-2 text-right">Progress</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100/50 dark:divide-slate-800/40 text-xs">
+                          {targetedStudents.map(prg => {
+                            const isChecked = selectedRecipients.includes(prg.student);
+                            return (
+                              <tr 
+                                key={prg.id} 
+                                className={`hover:bg-slate-100/40 dark:hover:bg-slate-900/30 transition-colors ${isChecked ? 'bg-indigo-50/20 dark:bg-indigo-950/5' : ''}`}
+                              >
+                                <td className="px-4 py-2.5">
+                                  <input 
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => handleToggleRecipient(prg.student)}
+                                    className="rounded text-indigo-650 accent-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                  />
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <div className="font-semibold text-slate-800 dark:text-slate-200">
+                                    {prg.student_details?.name || 'Student'}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {prg.student_details?.email}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <span className={`font-bold ${
+                                    (prg.attendance_percent || 0) < 75 
+                                      ? 'text-red-500' 
+                                      : (prg.attendance_percent || 0) < 90 
+                                      ? 'text-amber-500' 
+                                      : 'text-emerald-500'
+                                  }`}>
+                                    {prg.attendance_percent || 0}%
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5 text-right font-bold text-slate-700 dark:text-slate-300">
+                                  {prg.completion_percent || 0}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="text-center py-16 text-slate-400 dark:text-slate-500">
+                        <AlertCircle size={28} className="mx-auto mb-2 text-slate-300 dark:text-slate-700" />
+                        <p className="font-semibold text-xs">No students match current filters.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ================================================================== */}
           {/* CERTIFICATES TAB */}
