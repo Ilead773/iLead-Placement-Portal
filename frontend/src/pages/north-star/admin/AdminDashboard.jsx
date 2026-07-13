@@ -110,13 +110,22 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Lightweight refresh: only re-fetches the classes list
+  // Smart refresh: merges server data with local state.
+  // Preserves locally-injected classes not yet confirmed by server (Supabase read-after-write lag).
   const refreshClasses = async () => {
     try {
       console.log('[NS-DEBUG] refreshClasses: firing...');
       const res = await northStarAPI.getClasses();
       console.log('[NS-DEBUG] refreshClasses: got', res.data.length, 'classes from server:', res.data.map(c => c.title));
-      setClasses(res.data);
+      setClasses(prev => {
+        const serverIds = new Set(res.data.map(c => c.id));
+        // Keep any locally-injected classes the server hasn't confirmed yet
+        const localOnly = prev.filter(c => !serverIds.has(c.id));
+        if (localOnly.length > 0) {
+          console.log('[NS-DEBUG] refreshClasses: preserving', localOnly.length, 'local-only classes not yet on server:', localOnly.map(c => c.title));
+        }
+        return [...localOnly, ...res.data];
+      });
     } catch (err) {
       console.error('[NS-DEBUG] refreshClasses: FAILED', err);
     }
@@ -149,7 +158,13 @@ export default function AdminDashboard() {
         }
       }
       if (classesResult.status === 'fulfilled') {
-        setClasses(classesResult.value.data);
+        // Smart merge: preserve locally-injected classes not yet confirmed by server
+        setClasses(prev => {
+          const serverData = classesResult.value.data;
+          const serverIds = new Set(serverData.map(c => c.id));
+          const localOnly = prev.filter(c => !serverIds.has(c.id));
+          return [...localOnly, ...serverData];
+        });
       }
       if (reconcResult.status === 'fulfilled') {
         setReconciliationQueue(reconcResult.value.data);
