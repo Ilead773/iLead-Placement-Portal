@@ -362,8 +362,8 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
         scheduled_class.end_time = timezone.now()
         scheduled_class.save()
         
-        # Trigger attendance finalization immediately
-        finalize_attendance(scheduled_class.id)
+        # Trigger attendance finalization asynchronously in background
+        finalize_attendance.apply_async(args=[scheduled_class.id], countdown=5)
         return Response({"detail": "Class ended successfully and attendance calculation started."})
 
 

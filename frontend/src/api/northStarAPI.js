@@ -9,7 +9,7 @@ export const northStarAPI = {
   getCourseDetail: (courseId) => api.get(`${NORTH_STAR_BASE}/courses/${courseId}/`),
 
   // Classes
-  getClasses: () => api.get(`${NORTH_STAR_BASE}/classes/`),
+  getClasses: () => api.get(`${NORTH_STAR_BASE}/classes/?_t=${Date.now()}`),
   scheduleClass: (data) => api.post(`${NORTH_STAR_BASE}/schedule-class/`, data),
   joinClass: (classId) => api.get(`${NORTH_STAR_BASE}/classes/${classId}/join/`),
   startClass: (classId) => api.get(`${NORTH_STAR_BASE}/classes/${classId}/start/`),
@@ -44,8 +44,8 @@ export const northStarAPI = {
   getProgressMe: () => api.get(`${NORTH_STAR_BASE}/progress/me/`),
 
   // Dashboard
-  getStudentDashboard: () => api.get(`${NORTH_STAR_BASE}/dashboard/student/`),
-  getAdminDashboard: () => api.get(`${NORTH_STAR_BASE}/dashboard/admin/`),
+  getStudentDashboard: () => api.get(`${NORTH_STAR_BASE}/dashboard/student/?_t=${Date.now()}`),
+  getAdminDashboard: () => api.get(`${NORTH_STAR_BASE}/dashboard/admin/?_t=${Date.now()}`),
 
   // Certificate Trigger
   generateCertificate: (studentId, courseId) => api.post(`${NORTH_STAR_BASE}/certificates/${studentId}/${courseId}/generate/`),
