@@ -86,6 +86,72 @@ export default function AdminDashboard() {
     setAsmQuestions(updated);
   };
 
+  const [bulkPasteMode, setBulkPasteMode] = useState(false);
+  const [bulkPasteText, setBulkPasteText] = useState('');
+
+  // Parse pasted text format into question objects.
+  // Supported format:
+  //   Q: What is the capital of France?
+  //   A: Berlin
+  //   B: Madrid
+  //   C: Paris
+  //   D: Rome
+  //   ANS: C
+  //   PTS: 2          ← optional, defaults to 1
+  //   (blank line between questions)
+  const parseBulkPaste = () => {
+    const blocks = bulkPasteText.trim().split(/\n{2,}/);
+    const parsed = [];
+    const errors = [];
+
+    blocks.forEach((block, i) => {
+      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+      const qLine = lines.find(l => /^Q:/i.test(l));
+      const aLine = lines.find(l => /^A:/i.test(l));
+      const bLine = lines.find(l => /^B:/i.test(l));
+      const cLine = lines.find(l => /^C:/i.test(l));
+      const dLine = lines.find(l => /^D:/i.test(l));
+      const ansLine = lines.find(l => /^ANS:/i.test(l));
+      const ptsLine = lines.find(l => /^PTS:/i.test(l));
+
+      if (!qLine || !aLine || !bLine || !cLine || !dLine || !ansLine) {
+        errors.push(`Block ${i + 1}: Missing required fields (Q, A, B, C, D, ANS).`);
+        return;
+      }
+
+      const prompt = qLine.replace(/^Q:/i, '').trim();
+      const opts = [
+        aLine.replace(/^A:/i, '').trim(),
+        bLine.replace(/^B:/i, '').trim(),
+        cLine.replace(/^C:/i, '').trim(),
+        dLine.replace(/^D:/i, '').trim(),
+      ];
+      const ansLetter = ansLine.replace(/^ANS:/i, '').trim().toUpperCase();
+      const ansIdx = ['A', 'B', 'C', 'D'].indexOf(ansLetter);
+      const pts = ptsLine ? parseInt(ptsLine.replace(/^PTS:/i, '').trim(), 10) || 1 : 1;
+
+      if (ansIdx === -1) {
+        errors.push(`Block ${i + 1}: ANS must be A, B, C, or D.`);
+        return;
+      }
+      parsed.push({ prompt, options: opts, correct_option: ansIdx, points: pts });
+    });
+
+    if (errors.length > 0) {
+      toast.error(errors[0], { duration: 4000 });
+      return;
+    }
+    if (parsed.length === 0) {
+      toast.error('No valid questions found. Check the format.');
+      return;
+    }
+
+    setAsmQuestions(parsed);
+    setBulkPasteMode(false);
+    setBulkPasteText('');
+    toast.success(`Imported ${parsed.length} question${parsed.length > 1 ? 's' : ''} successfully!`);
+  };
+
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [emailCourse, setEmailCourse] = useState('');
@@ -114,20 +180,15 @@ export default function AdminDashboard() {
   // Preserves locally-injected classes not yet confirmed by server (Supabase read-after-write lag).
   const refreshClasses = async () => {
     try {
-      console.log('[NS-DEBUG] refreshClasses: firing...');
       const res = await northStarAPI.getClasses();
-      console.log('[NS-DEBUG] refreshClasses: got', res.data.length, 'classes from server:', res.data.map(c => c.title));
       setClasses(prev => {
         const serverIds = new Set(res.data.map(c => c.id));
         // Keep any locally-injected classes the server hasn't confirmed yet
         const localOnly = prev.filter(c => !serverIds.has(c.id));
-        if (localOnly.length > 0) {
-          console.log('[NS-DEBUG] refreshClasses: preserving', localOnly.length, 'local-only classes not yet on server:', localOnly.map(c => c.title));
-        }
         return [...localOnly, ...res.data];
       });
     } catch (err) {
-      console.error('[NS-DEBUG] refreshClasses: FAILED', err);
+      console.error('Failed to refresh classes:', err);
     }
   };
 
@@ -195,7 +256,6 @@ export default function AdminDashboard() {
 
     const tid = toast.loading('Creating class & generating Zoom meeting...');
     try {
-      console.log('[NS-DEBUG] handleScheduleClass: sending request...');
       const res = await northStarAPI.scheduleClass({
         course_ids: selectedCourses,
         course_id: selectedCourses[0],
@@ -203,20 +263,12 @@ export default function AdminDashboard() {
         start_time: classStart,
         end_time: classEnd
       });
-      console.log('[NS-DEBUG] handleScheduleClass: API SUCCESS. Response:', res.data);
       toast.dismiss(tid);
       toast.success('Class scheduled! Zoom meeting created ✅');
 
       // INSTANT UPDATE: inject the new class directly into state
       if (res.data && res.data.id) {
-        console.log('[NS-DEBUG] handleScheduleClass: injecting new class into state. id=', res.data.id, 'title=', res.data.title);
-        setClasses(prev => {
-          const updated = [res.data, ...prev];
-          console.log('[NS-DEBUG] handleScheduleClass: classes state now has', updated.length, 'items:', updated.map(c => c.title));
-          return updated;
-        });
-      } else {
-        console.warn('[NS-DEBUG] handleScheduleClass: res.data missing or has no id!', res.data);
+        setClasses(prev => [res.data, ...prev]);
       }
 
       // Show the join link to admin so they can share it
@@ -244,11 +296,10 @@ export default function AdminDashboard() {
       }
       // Delay the server refresh by 2s so the DB write has committed before we re-fetch.
       // The instant injection above shows the class immediately in the UI.
-      console.log('[NS-DEBUG] handleScheduleClass: scheduling delayed refreshClasses in 2s...');
       setTimeout(() => refreshClasses(), 2000);
     } catch (err) {
       toast.dismiss(tid);
-      console.error('[NS-DEBUG] handleScheduleClass: ERROR', err);
+      console.error(err);
       const detail = err?.response?.data?.detail || '';
       toast.error(detail || 'Failed to schedule class. Check Zoom S2S credentials.');
     }
@@ -1151,69 +1202,111 @@ export default function AdminDashboard() {
 
                     {/* MCQ Builder */}
                     <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-slate-800">
-                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">MCQ Questions</h4>
-                      
-                      {asmQuestions.map((question, qIdx) => (
-                        <div key={qIdx} className="p-3 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800/80 rounded-lg space-y-2.5 relative">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Question {qIdx + 1}</span>
-                            <div className="flex items-center gap-2">
-                              <label className="text-[9px] font-bold text-slate-550 flex items-center gap-1.5 uppercase">
-                                Points
-                                <input 
-                                  type="number" 
-                                  min="1" 
-                                  value={question.points} 
-                                  onChange={(e) => updateQuestion(qIdx, 'points', Number(e.target.value))}
-                                  className="w-10 px-1 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
-                                />
-                              </label>
-                              {asmQuestions.length > 1 && (
-                                <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-650 transition-colors">
-                                  <Trash size={12} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">MCQ Questions ({asmQuestions.length})</h4>
+                        <button
+                          type="button"
+                          onClick={() => setBulkPasteMode(v => !v)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors border ${
+                            bulkPasteMode
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/30'
+                          }`}
+                        >
+                          <ClipboardList size={11} />
+                          {bulkPasteMode ? 'Back to Builder' : 'Paste Import'}
+                        </button>
+                      </div>
 
-                          <input 
-                            type="text" 
-                            placeholder="Enter question prompt..." 
-                            value={question.prompt} 
-                            onChange={(e) => updateQuestion(qIdx, 'prompt', e.target.value)}
-                            className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-800 dark:text-slate-350"
+                      {/* ── Bulk Paste Mode ── */}
+                      {bulkPasteMode ? (
+                        <div className="space-y-3">
+                          {/* Format guide */}
+                          <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-[10px] font-mono text-slate-500 dark:text-slate-400 leading-relaxed">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">📋 Paste Format — one blank line between questions</p>
+                            <pre className="whitespace-pre-wrap">{'Q: What is 2 + 2?\nA: 3\nB: 4\nC: 5\nD: 6\nANS: B\nPTS: 1\n\nQ: Capital of France?\nA: Berlin\nB: Madrid\nC: Paris\nD: Rome\nANS: C\nPTS: 2'}</pre>
+                          </div>
+                          <textarea
+                            value={bulkPasteText}
+                            onChange={(e) => setBulkPasteText(e.target.value)}
+                            rows={14}
+                            placeholder={`Q: Your question here?\nA: Option A\nB: Option B\nC: Option C\nD: Option D\nANS: B\nPTS: 1\n\nQ: Next question...`}
+                            className="w-full px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-xs text-slate-800 dark:text-slate-350 placeholder:text-slate-300 dark:placeholder:text-slate-600 font-mono leading-relaxed"
+                            spellCheck={false}
                           />
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-1.5">
-                            {question.options.map((opt, oIdx) => (
-                              <div key={oIdx} className={`flex items-center gap-2 p-1.5 rounded border ${question.correct_option === oIdx ? 'border-green-500/50 bg-green-500/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'}`}>
-                                <input 
-                                  type="radio" 
-                                  name={`correct-${qIdx}`} 
-                                  checked={question.correct_option === oIdx} 
-                                  onChange={() => updateQuestion(qIdx, 'correct_option', oIdx)}
-                                  className="accent-green-600"
-                                />
-                                <input 
-                                  type="text" 
-                                  placeholder={`Option ${oIdx + 1}`} 
-                                  value={opt} 
-                                  onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
-                                  className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-355"
-                                />
-                              </div>
-                            ))}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={parseBulkPaste}
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors uppercase tracking-wider flex items-center justify-center gap-2"
+                          >
+                            <ClipboardList size={13} /> Parse &amp; Import Questions
+                          </button>
                         </div>
-                      ))}
+                      ) : (
+                        <>
+                          {asmQuestions.map((question, qIdx) => (
+                            <div key={qIdx} className="p-3 bg-slate-50/50 dark:bg-[#161822] border border-slate-200 dark:border-slate-800/80 rounded-lg space-y-2.5 relative">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Question {qIdx + 1}</span>
+                                <div className="flex items-center gap-2">
+                                  <label className="text-[9px] font-bold text-slate-550 flex items-center gap-1.5 uppercase">
+                                    Points
+                                    <input 
+                                      type="number" 
+                                      min="1" 
+                                      value={question.points} 
+                                      onChange={(e) => updateQuestion(qIdx, 'points', Number(e.target.value))}
+                                      className="w-10 px-1 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950"
+                                    />
+                                  </label>
+                                  {asmQuestions.length > 1 && (
+                                    <button type="button" onClick={() => removeQuestion(qIdx)} className="text-red-500 hover:text-red-650 transition-colors">
+                                      <Trash size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
 
-                      <button 
-                        type="button" 
-                        onClick={addQuestion}
-                        className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-100/40 transition-colors"
-                      >
-                        <Plus size={12} /> Add Question
-                      </button>
+                              <input 
+                                type="text" 
+                                placeholder="Enter question prompt..." 
+                                value={question.prompt} 
+                                onChange={(e) => updateQuestion(qIdx, 'prompt', e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-950 focus:border-indigo-500 outline-none text-slate-800 dark:text-slate-350"
+                              />
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mt-1.5">
+                                {question.options.map((opt, oIdx) => (
+                                  <div key={oIdx} className={`flex items-center gap-2 p-1.5 rounded border ${question.correct_option === oIdx ? 'border-green-500/50 bg-green-500/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950'}`}>
+                                    <input 
+                                      type="radio" 
+                                      name={`correct-${qIdx}`} 
+                                      checked={question.correct_option === oIdx} 
+                                      onChange={() => updateQuestion(qIdx, 'correct_option', oIdx)}
+                                      className="accent-green-600"
+                                    />
+                                    <input 
+                                      type="text" 
+                                      placeholder={`Option ${oIdx + 1}`} 
+                                      value={opt} 
+                                      onChange={(e) => updateOption(qIdx, oIdx, e.target.value)}
+                                      className="w-full text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-700 dark:text-slate-355"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+
+                          <button 
+                            type="button" 
+                            onClick={addQuestion}
+                            className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-100/40 transition-colors"
+                          >
+                            <Plus size={12} /> Add Question
+                          </button>
+                        </>
+                      )}
                     </div>
 
                     <button
