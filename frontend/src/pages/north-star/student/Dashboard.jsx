@@ -154,18 +154,25 @@ export default function StudentDashboard() {
       const res = await northStarAPI.getStudentDashboard();
       setDashboardData(res.data);
       
-      // Also fetch classes, assignments, submissions, and attendance history in background
-      const [classesRes, assignmentsRes, submissionsRes, attendanceRes] = await Promise.all([
+      const results = await Promise.allSettled([
         northStarAPI.getClasses(),
         northStarAPI.getAssignments(),
         northStarAPI.mySubmissions(),
         northStarAPI.getAttendanceMe()
       ]);
       
-      setClasses(classesRes.data);
-      setAssignments(assignmentsRes.data);
-      setSubmissions(submissionsRes.data);
-      setAttendanceRecords(attendanceRes.data.records || []);
+      if (results[0].status === 'fulfilled') {
+        setClasses(results[0].value.data);
+      }
+      if (results[1].status === 'fulfilled') {
+        setAssignments(results[1].value.data);
+      }
+      if (results[2].status === 'fulfilled') {
+        setSubmissions(results[2].value.data);
+      }
+      if (results[3].status === 'fulfilled') {
+        setAttendanceRecords(results[3].value.data.records || []);
+      }
     } catch (err) {
       console.error(err);
       if (!silent) toast.error('Failed to load dashboard data.');

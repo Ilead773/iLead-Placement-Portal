@@ -105,7 +105,7 @@ export default function AdminDashboard() {
       const statsRes = await northStarAPI.getAdminDashboard();
       setStats(statsRes.data);
 
-      const [coursesRes, classesRes, reconciliationRes, progressRes, submissionsRes] = await Promise.all([
+      const results = await Promise.allSettled([
         northStarAPI.getCourses(),
         northStarAPI.getClasses(),
         northStarAPI.getReconciliation(),
@@ -113,16 +113,26 @@ export default function AdminDashboard() {
         northStarAPI.getSubmissions()
       ]);
 
-      setCourses(coursesRes.data);
-      setClasses(classesRes.data);
-      setReconciliationQueue(reconciliationRes.data);
-      setProgressList(progressRes.data);
-      setSubmissions(submissionsRes.data);
-
-      if (coursesRes.data.length > 0) {
-        setClassCourse(coursesRes.data[0].id);
-        setSelectedCourses([coursesRes.data[0].id]);
-        setAsmCourse(coursesRes.data[0].id);
+      if (results[0].status === 'fulfilled') {
+        const coursesData = results[0].value.data;
+        setCourses(coursesData);
+        if (coursesData.length > 0) {
+          setClassCourse(coursesData[0].id);
+          setSelectedCourses([coursesData[0].id]);
+          setAsmCourse(coursesData[0].id);
+        }
+      }
+      if (results[1].status === 'fulfilled') {
+        setClasses(results[1].value.data);
+      }
+      if (results[2].status === 'fulfilled') {
+        setReconciliationQueue(results[2].value.data);
+      }
+      if (results[3].status === 'fulfilled') {
+        setProgressList(results[3].value.data);
+      }
+      if (results[4].status === 'fulfilled') {
+        setSubmissions(results[4].value.data);
       }
     } catch (err) {
       console.error(err);
