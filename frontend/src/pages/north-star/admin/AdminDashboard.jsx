@@ -217,8 +217,9 @@ export default function AdminDashboard() {
       } else {
         setSelectedCourses([]);
       }
-      // Also do a background refresh to confirm server state
-      refreshClasses();
+      // Delay the server refresh by 2s so the DB write has committed before we re-fetch.
+      // The instant injection above shows the class immediately in the UI.
+      setTimeout(() => refreshClasses(), 2000);
     } catch (err) {
       toast.dismiss(tid);
       console.error(err);

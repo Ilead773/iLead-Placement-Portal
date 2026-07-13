@@ -807,27 +807,21 @@ export default function StudentDashboard() {
                           </a>
                         </div>
                       )}
-                    </div>
-
                     <div className="border-t border-slate-200 dark:border-slate-700/60 pt-6 flex-1 flex flex-col justify-end">
                       {getSubmissionForAssignment(selectedAssignment.id) ? (
                         <div className="space-y-4">
                           {getSubmissionForAssignment(selectedAssignment.id).status === 'graded' ? (
                             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/15 dark:to-teal-950/15 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl p-5 relative overflow-hidden shadow-sm">
-                              {/* Trophy background watermark */}
                               <div className="absolute -right-6 -bottom-6 opacity-5 dark:opacity-10 text-emerald-600">
                                 <Award size={120} />
                               </div>
-                              
                               <span className="text-slate-405 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest block">Assessment Score</span>
                               <div className="text-3xl font-black text-emerald-650 dark:text-emerald-400 mt-2">
                                 {getSubmissionForAssignment(selectedAssignment.id).score} <span className="text-sm text-slate-400 dark:text-slate-500 font-normal">/ {selectedAssignment.max_score} pts</span>
                               </div>
-                              
                               <div className="flex items-center gap-1.5 mt-3 text-xs text-emerald-650 dark:text-emerald-400 font-extrabold">
-                                <CheckCircle size={14} /> Graded & Verified
+                                <CheckCircle size={14} /> Graded &amp; Verified
                               </div>
-
                               {getSubmissionForAssignment(selectedAssignment.id).feedback && (
                                 <div className="mt-4 border-t border-emerald-500/10 dark:border-emerald-500/20 pt-3 z-10 relative">
                                   <span className="text-slate-405 dark:text-slate-500 text-[9px] font-bold uppercase tracking-wider block">Feedback</span>
@@ -836,13 +830,12 @@ export default function StudentDashboard() {
                                   </p>
                                 </div>
                               )}
-
                               {selectedAssignment.questions && selectedAssignment.questions.length > 0 && (
                                 <button
                                   onClick={() => navigate(`/student/take-test/${selectedAssignment.id}`)}
                                   className="mt-4 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 shadow-sm"
                                 >
-                                  Review Test Details & Answers
+                                  Review Test Details &amp; Answers
                                 </button>
                               )}
                             </div>
@@ -853,22 +846,12 @@ export default function StudentDashboard() {
                                 <Clock size={16} /> Awaiting Evaluation
                               </div>
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                                Your work has been submitted successfully and is currently in the queue for manual grading by the course instructor.
+                                Your work has been submitted and is in the queue for manual grading by the course instructor.
                               </p>
-                              
-                              {(!selectedAssignment.questions || selectedAssignment.questions.length === 0) && (
-                                <button
-                                  onClick={() => {
-                                    setSubmissions(submissions.filter(s => s.assignment !== selectedAssignment.id));
-                                  }}
-                                  className="mt-4 w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs border border-slate-200 dark:border-slate-850 shadow-sm transition-all duration-300"
-                                >
-                                  Replace File & Re-Submit
-                                </button>
-                              )}
                             </div>
                           )}
-                                              ) : (
+                        </div>
+                      ) : (
                         <div className="space-y-6 flex-1 flex flex-col justify-end">
                           <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/15 dark:to-violet-950/15 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-5 shadow-sm space-y-4">
                             <div className="flex items-center gap-3">
@@ -880,7 +863,6 @@ export default function StudentDashboard() {
                                 <span className="text-sm font-extrabold text-slate-850 dark:text-white">Multiple Choice Test</span>
                               </div>
                             </div>
-
                             <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                               <div className="flex justify-between">
                                 <span>Total Questions:</span>
@@ -891,44 +873,46 @@ export default function StudentDashboard() {
                                 <span className="font-bold">{selectedAssignment.max_score} pts</span>
                               </div>
                             </div>
-
                             <button
                               onClick={() => navigate(`/student/take-test/${selectedAssignment.id}`)}
                               className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
                             >
                               Take Assessment Test
                             </button>
-                    )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
-                  <div className="relative overflow-hidden border border-dashed border-slate-200 dark:border-slate-800/80 rounded-3xl p-8 flex-1 flex flex-col items-center justify-center text-center bg-slate-50/20 dark:bg-slate-900/10">
-                    <div className="relative mb-4">
-                      <div className="absolute inset-0 bg-indigo-500/20 dark:bg-indigo-500/10 blur-xl rounded-full scale-150 animate-pulse" />
-                      <div className="relative p-5 bg-gradient-to-tr from-indigo-500/10 to-violet-500/10 text-indigo-500 dark:text-indigo-400 rounded-full border border-indigo-500/20 shadow-sm">
-                        <BookOpen size={36} className="animate-pulse" />
-                      </div>
-                    </div>
-                    <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Select an Assignment</h3>
-                    <p className="text-xs text-slate-450 dark:text-slate-400 mt-2 max-w-xs leading-relaxed">
-                      Choose an assignment from the list to view specifications, download learning materials, and submit your assessments.
-                    </p>
-                    <div className="mt-6 space-y-2.5 w-full max-w-[220px] text-[10px] text-slate-400 font-semibold text-left border-t border-slate-200/50 dark:border-slate-800/50 pt-5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        <span>Review detailed instructions</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        <span>Download reference resources</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        <span>Submit files or take MCQ tests</span>
-                      </div>
+                <div className="relative overflow-hidden border border-dashed border-slate-200 dark:border-slate-800/80 rounded-3xl p-8 flex-1 flex flex-col items-center justify-center text-center bg-slate-50/20 dark:bg-slate-900/10">
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 bg-indigo-500/20 dark:bg-indigo-500/10 blur-xl rounded-full scale-150 animate-pulse" />
+                    <div className="relative p-5 bg-gradient-to-tr from-indigo-500/10 to-violet-500/10 text-indigo-500 dark:text-indigo-400 rounded-full border border-indigo-500/20 shadow-sm">
+                      <BookOpen size={36} className="animate-pulse" />
                     </div>
                   </div>
-                )}
+                  <h3 className="font-extrabold text-slate-800 dark:text-white text-base">Select an Assignment</h3>
+                  <p className="text-xs text-slate-450 dark:text-slate-400 mt-2 max-w-xs leading-relaxed">
+                    Choose an assignment from the list to view specifications, download learning materials, and take your MCQ assessment.
+                  </p>
+                  <div className="mt-6 space-y-2.5 w-full max-w-[220px] text-[10px] text-slate-400 font-semibold text-left border-t border-slate-200/50 dark:border-slate-800/50 pt-5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <span>Review detailed instructions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <span>Download reference resources</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <span>Take MCQ assessments</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           )}
