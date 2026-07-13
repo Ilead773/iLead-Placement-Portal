@@ -4,7 +4,7 @@ const NORTH_STAR_BASE = '/north-star';
 
 export const northStarAPI = {
   // Courses
-  getCourses: () => api.get(`${NORTH_STAR_BASE}/courses/`),
+  getCourses: () => api.get(`${NORTH_STAR_BASE}/courses/?_t=${Date.now()}`),
   createCourse: (data) => api.post(`${NORTH_STAR_BASE}/courses/`, data),
   getCourseDetail: (courseId) => api.get(`${NORTH_STAR_BASE}/courses/${courseId}/`),
 
@@ -19,10 +19,10 @@ export const northStarAPI = {
   getAttendance: (params) => api.get(`${NORTH_STAR_BASE}/attendance/`, { params }),
   getAttendanceMe: () => api.get(`${NORTH_STAR_BASE}/attendance/me/`),
   overrideAttendance: (id, status) => api.patch(`${NORTH_STAR_BASE}/attendance/${id}/override/`, { status }),
-  getReconciliation: () => api.get(`${NORTH_STAR_BASE}/attendance/reconciliation/`),
+  getReconciliation: () => api.get(`${NORTH_STAR_BASE}/attendance/reconciliation/?_t=${Date.now()}`),
 
   // Assignments
-  getAssignments: () => api.get(`${NORTH_STAR_BASE}/assignments/`),
+  getAssignments: () => api.get(`${NORTH_STAR_BASE}/assignments/?_t=${Date.now()}`),
   getAssignmentDetail: (id) => api.get(`${NORTH_STAR_BASE}/assignments/${id}/`),
   createAssignment: (data) => {
     // If we have file uploads, we use FormData
@@ -31,7 +31,7 @@ export const northStarAPI = {
   },
 
   // Submissions
-  getSubmissions: () => api.get(`${NORTH_STAR_BASE}/submissions/`),
+  getSubmissions: () => api.get(`${NORTH_STAR_BASE}/submissions/?_t=${Date.now()}`),
   mySubmissions: () => api.get(`${NORTH_STAR_BASE}/submissions/my_submissions/`),
   submitAssignment: (data) => {
     const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
@@ -40,7 +40,7 @@ export const northStarAPI = {
   gradeSubmission: (id, data) => api.patch(`${NORTH_STAR_BASE}/submissions/${id}/grade/`, data),
 
   // Progress
-  getProgress: () => api.get(`${NORTH_STAR_BASE}/progress/`),
+  getProgress: () => api.get(`${NORTH_STAR_BASE}/progress/?_t=${Date.now()}`),
   getProgressMe: () => api.get(`${NORTH_STAR_BASE}/progress/me/`),
 
   // Dashboard

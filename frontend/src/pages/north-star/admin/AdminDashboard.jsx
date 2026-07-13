@@ -19,7 +19,8 @@ import {
   Plus,
   Search,
   Square,
-  X
+  X,
+  ClipboardList
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../store/authStore';
@@ -109,13 +110,22 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Lightweight refresh: only re-fetches the classes list
+  const refreshClasses = async () => {
+    try {
+      const res = await northStarAPI.getClasses();
+      setClasses(res.data);
+    } catch (err) {
+      console.error('Failed to refresh classes:', err);
+    }
+  };
+
   const fetchAdminData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const statsRes = await northStarAPI.getAdminDashboard();
-      setStats(statsRes.data);
-
-      const results = await Promise.allSettled([
+      // Run all fetches in parallel — none blocks the others
+      const [statsResult, coursesResult, classesResult, reconcResult, progressResult, submissionsResult, assignmentsResult] = await Promise.allSettled([
+        northStarAPI.getAdminDashboard(),
         northStarAPI.getCourses(),
         northStarAPI.getClasses(),
         northStarAPI.getReconciliation(),
@@ -124,29 +134,32 @@ export default function AdminDashboard() {
         northStarAPI.getAssignments()
       ]);
 
-      if (results[0].status === 'fulfilled') {
-        const coursesData = results[0].value.data;
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value.data);
+      }
+      if (coursesResult.status === 'fulfilled') {
+        const coursesData = coursesResult.value.data;
         setCourses(coursesData);
-        if (coursesData.length > 0) {
+        if (coursesData.length > 0 && !asmCourse) {
           setClassCourse(coursesData[0].id);
           setSelectedCourses([coursesData[0].id]);
           setAsmCourse(coursesData[0].id);
         }
       }
-      if (results[1].status === 'fulfilled') {
-        setClasses(results[1].value.data);
+      if (classesResult.status === 'fulfilled') {
+        setClasses(classesResult.value.data);
       }
-      if (results[2].status === 'fulfilled') {
-        setReconciliationQueue(results[2].value.data);
+      if (reconcResult.status === 'fulfilled') {
+        setReconciliationQueue(reconcResult.value.data);
       }
-      if (results[3].status === 'fulfilled') {
-        setProgressList(results[3].value.data);
+      if (progressResult.status === 'fulfilled') {
+        setProgressList(progressResult.value.data);
       }
-      if (results[4].status === 'fulfilled') {
-        setSubmissions(results[4].value.data);
+      if (submissionsResult.status === 'fulfilled') {
+        setSubmissions(submissionsResult.value.data);
       }
-      if (results[5] && results[5].status === 'fulfilled') {
-        setAssignments(results[5].value.data);
+      if (assignmentsResult && assignmentsResult.status === 'fulfilled') {
+        setAssignments(assignmentsResult.value.data);
       }
     } catch (err) {
       console.error(err);
@@ -175,6 +188,12 @@ export default function AdminDashboard() {
       toast.dismiss(tid);
       toast.success('Class scheduled! Zoom meeting created ✅');
 
+      // INSTANT UPDATE: inject the new class directly into state so the list
+      // updates immediately without waiting for a full fetchAdminData cycle.
+      if (res.data && res.data.id) {
+        setClasses(prev => [res.data, ...prev]);
+      }
+
       // Show the join link to admin so they can share it
       const joinUrl = res.data.zoom_join_url || '';
       if (joinUrl) {
@@ -198,7 +217,8 @@ export default function AdminDashboard() {
       } else {
         setSelectedCourses([]);
       }
-      fetchAdminData();
+      // Also do a background refresh to confirm server state
+      refreshClasses();
     } catch (err) {
       toast.dismiss(tid);
       console.error(err);

@@ -868,89 +868,40 @@ export default function StudentDashboard() {
                               )}
                             </div>
                           )}
-                        </div>
-                      ) : (
+                                              ) : (
                         <div className="space-y-6 flex-1 flex flex-col justify-end">
-                          {selectedAssignment.questions && selectedAssignment.questions.length > 0 ? (
-                            <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/15 dark:to-violet-950/15 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-5 shadow-sm space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl">
-                                  <HelpCircle size={20} />
-                                </div>
-                                <div>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assessment Type</span>
-                                  <span className="text-sm font-extrabold text-slate-850 dark:text-white">Multiple Choice Test</span>
-                                </div>
+                          <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/15 dark:to-violet-950/15 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-5 shadow-sm space-y-4">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl">
+                                <HelpCircle size={20} />
                               </div>
-
-                              <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                                <div className="flex justify-between">
-                                  <span>Total Questions:</span>
-                                  <span className="font-bold">{selectedAssignment.questions.length} items</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Max Obtainable Score:</span>
-                                  <span className="font-bold">{selectedAssignment.max_score} pts</span>
-                                </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assessment Type</span>
+                                <span className="text-sm font-extrabold text-slate-850 dark:text-white">Multiple Choice Test</span>
                               </div>
-
-                              <button
-                                onClick={() => navigate(`/student/take-test/${selectedAssignment.id}`)}
-                                className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
-                              >
-                                Take Assessment Test
-                              </button>
                             </div>
-                          ) : (
-                            <form onSubmit={handleAssignmentSubmit} className="space-y-4 flex-1 flex flex-col justify-end">
-                              <div 
-                                onClick={() => fileInputRef.current.click()}
-                                onDragEnter={handleDrag}
-                                onDragOver={handleDrag}
-                                onDragLeave={handleDrag}
-                                onDrop={handleDrop}
-                                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer flex-1 flex flex-col items-center justify-center min-h-[160px] transition-all duration-300 ${
-                                  dragActive 
-                                    ? 'border-indigo-500 bg-indigo-500/5 scale-[1.02]' 
-                                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 hover:border-indigo-500'
-                                }`}
-                              >
-                                <input 
-                                  type="file" 
-                                  ref={fileInputRef} 
-                                  onChange={handleFileChange}
-                                  className="hidden" 
-                                />
-                                <UploadCloud size={36} className={`mb-2 transition-transform duration-300 ${dragActive ? 'text-indigo-500 animate-bounce' : 'text-slate-400'}`} />
-                                {submitFile ? (
-                                  <div className="space-y-1">
-                                    <p className="font-bold text-sm text-indigo-500 truncate max-w-[200px]">{submitFile.name}</p>
-                                    <p className="text-xs text-slate-400 font-semibold">{(submitFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <p className="font-bold text-sm text-slate-750 dark:text-slate-350">Drag & Drop file here</p>
-                                    <p className="text-xs text-slate-400 mt-1">or click to upload PDF/Doc</p>
-                                  </div>
-                                )}
-                              </div>
 
-                              <button
-                                type="submit"
-                                disabled={uploading || !submitFile}
-                                className={`w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 ${
-                                  uploading ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              >
-                                {uploading ? 'Submitting...' : 'Submit Assessment'}
-                              </button>
-                            </form>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                              <div className="flex justify-between">
+                                <span>Total Questions:</span>
+                                <span className="font-bold">{(selectedAssignment.questions || []).length} items</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Max Obtainable Score:</span>
+                                <span className="font-bold">{selectedAssignment.max_score} pts</span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => navigate(`/student/take-test/${selectedAssignment.id}`)}
+                              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
+                            >
+                              Take Assessment Test
+                            </button>
+                    )}
                   </div>
-                ) : (
+                </div>
+              ) : (
                   <div className="relative overflow-hidden border border-dashed border-slate-200 dark:border-slate-800/80 rounded-3xl p-8 flex-1 flex flex-col items-center justify-center text-center bg-slate-50/20 dark:bg-slate-900/10">
                     <div className="relative mb-4">
                       <div className="absolute inset-0 bg-indigo-500/20 dark:bg-indigo-500/10 blur-xl rounded-full scale-150 animate-pulse" />
