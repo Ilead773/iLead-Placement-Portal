@@ -96,3 +96,30 @@ def test_certificate_eligibility_new_thresholds(mock_storage_factory):
     progress.refresh_from_db()
     assert progress.certificate_unlocked is True
     assert progress.certificate_url == "http://storage.com/cert.pdf"
+
+@pytest.mark.django_db
+@patch('apps.north_star.tasks.StorageFactory')
+def test_force_generate_certificate(mock_storage_factory):
+    mock_storage = mock_storage_factory.get_backend.return_value
+    mock_storage.save.return_value = "certificates/cert_force.pdf"
+    mock_storage.url.return_value = "http://storage.com/cert_force.pdf"
+
+    course = Course.objects.create(name="BSc DS Force", category="Tech")
+    student = User.objects.create_user(login_id="student_force", email="stud_force@example.com", password="pass")
+
+    # Below thresholds (0% attendance, 0% completion)
+    progress = CourseProgress.objects.create(
+        student=student,
+        course=course,
+        attendance_percent=0.0,
+        completion_percent=0.0,
+        certificate_unlocked=False
+    )
+    
+    # Run with force=True
+    check_certificate_eligibility(student.id, course.id, force=True)
+    progress.refresh_from_db()
+    
+    assert progress.certificate_unlocked is True
+    assert progress.certificate_url == "http://storage.com/cert_force.pdf"
+

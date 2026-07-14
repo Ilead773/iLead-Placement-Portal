@@ -312,6 +312,8 @@ def update_course_progress(self, student_id, course_id):
             f"Completion {progress.completion_percent}%, Attendance {progress.attendance_percent}%"
         )
 
+
+
     except Exception as exc:
         logger.error(
             f"update_course_progress: Error computing/saving progress for student {student_id}, "
@@ -322,7 +324,7 @@ def update_course_progress(self, student_id, course_id):
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=30, name='apps.north_star.tasks.check_certificate_eligibility')
-def check_certificate_eligibility(self, student_id, course_id):
+def check_certificate_eligibility(self, student_id, course_id, force=False):
     """
     Unlocks and generates certificate if student has >=75% attendance and 100% completion.
     Retries up to 2 times on transient DB or storage errors.
@@ -342,7 +344,7 @@ def check_certificate_eligibility(self, student_id, course_id):
         raise self.retry(exc=exc)
 
     # Check conditions
-    attendance_threshold = getattr(settings, 'NORTH_STAR_MIN_ATTENDANCE_PERCENT', 80.0)
+    attendance_threshold = getattr(settings, 'NORTH_STAR_MIN_ATTENDANCE_PERCENT', 75.0)
     completion_threshold = getattr(settings, 'NORTH_STAR_MIN_COMPLETION_PERCENT', 100.0)
     marks_threshold = getattr(settings, 'NORTH_STAR_MIN_ASSIGNMENT_MARKS_PERCENT', 70.0)
     
@@ -356,14 +358,18 @@ def check_certificate_eligibility(self, student_id, course_id):
     total_max_score = sum(sub.assignment.max_score for sub in submissions if sub.score is not None)
     average_marks_percent = (total_score * 100.0 / total_max_score) if total_max_score > 0 else 100.0
     
-    is_eligible = (
+    is_eligible = force or (
         progress.attendance_percent >= attendance_threshold and
         progress.completion_percent >= completion_threshold and
         average_marks_percent >= marks_threshold
     )
     
-    if is_eligible and not progress.certificate_unlocked:
-        logger.info(f"Student {student_user.email} qualified for certificate in course {course.name}! Attendance: {progress.attendance_percent}%, Completion: {progress.completion_percent}%, Avg Marks: {average_marks_percent:.1f}%")
+    if is_eligible and (force or not progress.certificate_unlocked):
+        if force:
+            logger.info(f"Force generating certificate for student {student_user.email} in course {course.name}.")
+        else:
+            logger.info(f"Student {student_user.email} qualified for certificate in course {course.name}! Attendance: {progress.attendance_percent}%, Completion: {progress.completion_percent}%, Avg Marks: {average_marks_percent:.1f}%")
+
         
         # HTML certificate template
         html_content = f"""

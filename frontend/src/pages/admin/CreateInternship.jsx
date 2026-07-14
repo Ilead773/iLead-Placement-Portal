@@ -6,7 +6,7 @@ import { ILEAD_COURSES_OBJ } from '../../constants/courses';
 import { 
   Building2, Briefcase, MapPin, GraduationCap, Users, 
   Mail, Settings, DollarSign, Calendar, ListOrdered, FileText,
-  ChevronDown, Check, CheckCircle2, Clock
+  ChevronDown, Check, CheckCircle2, Clock, Plus, Trash2
 } from 'lucide-react';
 
 const CreateInternship = () => {
@@ -166,6 +166,7 @@ const CreateInternship = () => {
     }
     return {
       company_name: '',
+      company_website: '',
       role: '',
       description: '',
       package: '', // Stored as stipend/package
@@ -191,100 +192,57 @@ const CreateInternship = () => {
     };
   });
 
-  const [salaryAmount, setSalaryAmount] = useState(() => {
+  // ── Multi-Salary Entries ──
+  const [salaryEntries, setSalaryEntries] = useState(() => {
     try {
       const savedDraft = localStorage.getItem('autosave_internship_form');
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        if (parsed.salaryAmount !== undefined) return parsed.salaryAmount;
+        if (parsed.salaryEntries) return parsed.salaryEntries;
       }
     } catch (e) {}
-    return '';
+    return [{ amount: '', unit: '/ month', description: '' }];
   });
 
-  const [salaryUnit, setSalaryUnit] = useState(() => {
-    try {
-      const savedDraft = localStorage.getItem('autosave_internship_form');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.salaryUnit !== undefined) return parsed.salaryUnit;
-      }
-    } catch (e) {}
-    return '/ month';
-  });
+  const buildPackageString = (entries) => {
+    return entries
+      .filter(e => e.amount || e.unit === 'Unpaid')
+      .map(e => {
+        const val = e.unit === 'Unpaid' ? 'Unpaid' : e.unit === 'Custom' ? e.amount : `${e.amount} ${e.unit}`;
+        return e.description ? `${val} (${e.description})` : val;
+      })
+      .join(' | ');
+  };
 
-  const [ppoStipend, setPpoStipend] = useState(() => {
-    try {
-      const savedDraft = localStorage.getItem('autosave_internship_form');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.ppoStipend !== undefined) return parsed.ppoStipend;
-      }
-    } catch (e) {}
-    return '';
-  });
+  const handleSalaryEntryChange = (index, field, value) => {
+    setSalaryEntries(prev => {
+      const updated = prev.map((entry, i) => i === index ? { ...entry, [field]: value } : entry);
+      setFormData(fd => ({ ...fd, package: buildPackageString(updated) }));
+      return updated;
+    });
+  };
 
-  const [ppoDuration, setPpoDuration] = useState(() => {
-    try {
-      const savedDraft = localStorage.getItem('autosave_internship_form');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.ppoDuration !== undefined) return parsed.ppoDuration;
-      }
-    } catch (e) {}
-    return '3 months';
-  });
+  const addSalaryEntry = () => {
+    setSalaryEntries(prev => [...prev, { amount: '', unit: '/ month', description: '' }]);
+  };
 
-  const [ppoCtc, setPpoCtc] = useState(() => {
-    try {
-      const savedDraft = localStorage.getItem('autosave_internship_form');
-      if (savedDraft) {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.ppoCtc !== undefined) return parsed.ppoCtc;
-      }
-    } catch (e) {}
-    return '';
-  });
+  const removeSalaryEntry = (index) => {
+    setSalaryEntries(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      setFormData(fd => ({ ...fd, package: buildPackageString(updated) }));
+      return updated;
+    });
+  };
 
   // ── Auto-save Draft on State Changes ──
   useEffect(() => {
     try {
-      const dataToSave = {
-        formData,
-        salaryAmount,
-        salaryUnit,
-        ppoStipend,
-        ppoDuration,
-        ppoCtc
-      };
+      const dataToSave = { formData, salaryEntries };
       localStorage.setItem('autosave_internship_form', JSON.stringify(dataToSave));
     } catch (err) {
       console.error('Failed to autosave draft', err);
     }
-  }, [formData, salaryAmount, salaryUnit, ppoStipend, ppoDuration, ppoCtc]);
-
-  const handlePpoChange = (stipend, duration, ctc) => {
-    setPpoStipend(stipend);
-    setPpoDuration(duration);
-    setPpoCtc(ctc);
-    const stipendStr = stipend ? `${stipend} / month` : 'Unpaid';
-    const combined = `${stipendStr} (${duration} Internship) + ${ctc} LPA (PPO)`;
-    setFormData(prev => ({ ...prev, package: combined }));
-  };
-
-  const handleSalaryChange = (amount, unit) => {
-    setSalaryAmount(amount);
-    setSalaryUnit(unit);
-    if (unit === 'Unpaid') {
-      setFormData(prev => ({ ...prev, package: unit }));
-    } else if (unit === 'Custom') {
-      setFormData(prev => ({ ...prev, package: amount }));
-    } else if (unit === 'Internship + PPO') {
-      handlePpoChange(ppoStipend, ppoDuration, ppoCtc);
-    } else {
-      setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
-    }
-  };
+  }, [formData, salaryEntries]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -486,6 +444,10 @@ const CreateInternship = () => {
                 <input required type="text" name="company_name" value={formData.company_name} onChange={handleInputChange} className="input-field shadow-sm" placeholder="e.g. Google, Microsoft" />
               </div>
               <div className="input-group">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2">Company Website</label>
+                <input type="url" name="company_website" value={formData.company_website} onChange={handleInputChange} className="input-field shadow-sm" placeholder="https://example.com" />
+              </div>
+              <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
                   Role / Position <span className="text-danger">*</span>
                 </label>
@@ -544,88 +506,69 @@ const CreateInternship = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="input-group">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
-                  <DollarSign size={14} /> Stipend (Flexible) <span className="text-danger">*</span>
+              {/* ── Multi-Salary Entries ── */}
+              <div className="input-group col-span-1 md:col-span-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-3 flex items-center gap-2">
+                  <DollarSign size={14} /> Stipend / Salary Packages
+                  <span className="text-[10px] font-normal text-[var(--text-muted)] normal-case ml-1">(optional — add as many as you want)</span>
                 </label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {salaryUnit !== 'Internship + PPO' && (
-                    <input 
-                      required={salaryUnit !== 'Unpaid'} 
-                      disabled={salaryUnit === 'Unpaid'} 
-                      type="text" 
-                      value={salaryAmount} 
-                      onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
-                      className="input-field shadow-sm font-semibold text-[var(--accent-primary)]" 
-                      placeholder={salaryUnit === 'Custom' ? "e.g. 15000 + PPO" : "e.g. 15000 or 5000-10000"} 
-                      style={{ flex: 1 }} 
-                    />
-                  )}
-                  {salaryUnit === 'Internship + PPO' && (
-                    <div style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      Configure Internship + PPO details below:
-                    </div>
-                  )}
-                  <select 
-                    value={salaryUnit} 
-                    onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
-                    className="input-field shadow-sm font-semibold text-[var(--text-primary)]" 
-                    style={{ width: '150px', minWidth: '150px' }}
-                  >
-                    <option value="/ month">/ month</option>
-                    <option value="Total Stipend">Total Stipend</option>
-                    <option value="Unpaid">Unpaid</option>
-                    <option value="Internship + PPO">Internship + PPO</option>
-                    <option value="Custom">Custom</option>
-                  </select>
-                </div>
-                {salaryUnit === 'Internship + PPO' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', width: '100%', marginTop: '8px', padding: '12px', background: 'var(--bg-card-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
-                    <div className="input-group">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Stipend (Rupees)</label>
-                      <input 
-                        type="text" 
-                        value={ppoStipend} 
-                        onChange={(e) => handlePpoChange(e.target.value, ppoDuration, ppoCtc)} 
-                        className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]" 
-                        placeholder="e.g. 15000 (or blank for Unpaid)" 
-                        style={{ width: '100%' }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {salaryEntries.map((entry, index) => (
+                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 1fr auto', gap: '8px', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-card-hover)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <input
+                        type="text"
+                        value={entry.amount}
+                        disabled={entry.unit === 'Unpaid'}
+                        onChange={(e) => handleSalaryEntryChange(index, 'amount', e.target.value)}
+                        className="input-field shadow-sm font-semibold text-[var(--accent-primary)]"
+                        placeholder={entry.unit === 'Custom' ? 'e.g. 15000 + PPO' : entry.unit === 'Unpaid' ? '' : 'e.g. 15000'}
+                        style={{ margin: 0 }}
                       />
-                    </div>
-                    <div className="input-group">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Duration</label>
-                      <select 
-                        value={ppoDuration} 
-                        onChange={(e) => handlePpoChange(ppoStipend, e.target.value, ppoCtc)} 
-                        className="input-field shadow-sm text-xs font-semibold text-[var(--text-primary)]"
-                        style={{ width: '100%' }}
+                      <select
+                        value={entry.unit}
+                        onChange={(e) => handleSalaryEntryChange(index, 'unit', e.target.value)}
+                        className="input-field shadow-sm font-semibold text-[var(--text-primary)]"
+                        style={{ margin: 0 }}
                       >
-                        <option value="2 months">2 months</option>
-                        <option value="3 months">3 months</option>
-                        <option value="6 months">6 months</option>
-                        <option value="9 months">9 months</option>
+                        <option value="/ month">/ month</option>
+                        <option value="Total Stipend">Total Stipend</option>
+                        <option value="LPA">LPA</option>
+                        <option value="Unpaid">Unpaid</option>
+                        <option value="Custom">Custom</option>
                       </select>
-                    </div>
-                    <div className="input-group">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>CTC (LPA)</label>
-                      <input 
-                        required 
-                        type="text" 
-                        value={ppoCtc} 
-                        onChange={(e) => handlePpoChange(ppoStipend, ppoDuration, e.target.value)} 
-                        className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]" 
-                        placeholder="e.g. 6.5" 
-                        style={{ width: '100%' }}
+                      <input
+                        type="text"
+                        value={entry.description}
+                        onChange={(e) => handleSalaryEntryChange(index, 'description', e.target.value)}
+                        className="input-field shadow-sm text-[var(--text-primary)]"
+                        placeholder="Description (e.g. Base Stipend, PPO CTC, Bonus)"
+                        style={{ margin: 0 }}
                       />
+                      <button
+                        type="button"
+                        onClick={() => removeSalaryEntry(index)}
+                        disabled={salaryEntries.length === 1}
+                        style={{ background: 'none', border: 'none', cursor: salaryEntries.length === 1 ? 'not-allowed' : 'pointer', color: salaryEntries.length === 1 ? 'var(--text-muted)' : 'var(--danger)', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                        title="Remove this entry"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
-                  </div>
-                )}
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addSalaryEntry}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: '1.5px dashed var(--accent-primary)', background: 'var(--accent-soft)', color: 'var(--accent-primary)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', width: 'fit-content' }}
+                  >
+                    <Plus size={14} /> Add Another Salary Entry
+                  </button>
+                </div>
               </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
-                  <Clock size={14} /> Duration <span className="text-danger">*</span>
+                  <Clock size={14} /> Duration
                 </label>
-                <input required type="text" name="duration" value={formData.duration} onChange={handleInputChange} className="input-field shadow-sm" placeholder="e.g. 3 Months" />
+                <input type="text" name="duration" value={formData.duration} onChange={handleInputChange} className="input-field shadow-sm" placeholder="e.g. 3 Months" />
               </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">

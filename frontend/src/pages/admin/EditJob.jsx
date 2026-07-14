@@ -563,7 +563,7 @@ Return only the JSON object.`;
                 {formData.listing_type === 'internship' && (
                   <div className="input-group">
                     <label>Duration (e.g. 3 Months)</label>
-                    <input required type="text" name="duration" value={formData.duration} onChange={handleInputChange} className="input-field" />
+                    <input type="text" name="duration" value={formData.duration} onChange={handleInputChange} className="input-field" />
                   </div>
                 )}
                 <div className="input-group">

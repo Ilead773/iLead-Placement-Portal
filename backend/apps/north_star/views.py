@@ -655,13 +655,21 @@ class AssignmentSubmissionViewSet(viewsets.ModelViewSet):
 
 def ensure_student_progress_records():
     """
-    Ensures that all existing students who belong to a course registered in LMS (Course)
-    have a corresponding CourseProgress record.
+    Ensures that all existing students have a corresponding CourseProgress record.
+    If a student belongs to a course name that doesn't yet exist as an LMS Course,
+    we auto-create the Course object first to keep overall student numbers consistent.
     """
     from core.models import Student
     
     existing_pairs = set(CourseProgress.objects.values_list('student_id', 'course_id'))
     students = Student.objects.exclude(course='')
+    
+    # Auto-create missing Course records
+    for student in students:
+        course_name = student.course.strip()
+        if course_name:
+            Course.objects.get_or_create(name=course_name)
+            
     courses = {c.name.lower(): c for c in Course.objects.all()}
     
     missing_progress = []
@@ -728,9 +736,17 @@ def generate_certificate(request, student_id, course_id):
     Manual certificate generation trigger.
     """
     from .tasks import check_certificate_eligibility
-    # Call the Celery task synchronously for immediate response or run in background
-    check_certificate_eligibility.delay(student_id, course_id)
-    return Response({"detail": "Certificate generation task queued successfully."}, status=status.HTTP_202_ACCEPTED)
+    # Run the task synchronously to give immediate feedback to the UI
+    result = check_certificate_eligibility.apply(args=[student_id, course_id], kwargs={'force': True})
+    
+    if result.successful():
+        return Response({"detail": "Certificate generated successfully."}, status=status.HTTP_200_OK)
+    else:
+        return Response(
+            {"detail": "Failed to generate certificate.", "error": str(result.result)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 
 
 @api_view(['GET'])
