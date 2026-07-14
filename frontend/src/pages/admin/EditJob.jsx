@@ -73,70 +73,106 @@ const EditJob = () => {
     rounds: []
   });
 
-  const [salaryAmount, setSalaryAmount] = useState('');
-  const [salaryUnit, setSalaryUnit] = useState('LPA');
+  const [salaryEntries, setSalaryEntries] = useState([{ amount: '', unit: 'LPA', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }]);
 
-  const [ppoStipend, setPpoStipend] = useState('');
-  const [ppoDuration, setPpoDuration] = useState('3 months');
-  const [ppoCtc, setPpoCtc] = useState('');
-
-  const parsePackageValue = (pkg, listingType) => {
-    if (!pkg) return { amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA' };
-    const pkgStr = String(pkg).trim();
-
-    if (pkgStr.includes('Internship') && pkgStr.includes('PPO')) {
-      const match = pkgStr.match(/(?:([\d,]+)\s*\/|Unpaid).*?\((.*?)\s+Internship\).*?\+\s*([\d.]+)\s*LPA/i);
-      if (match) {
-        const stipendVal = match[1] ? match[1].replace(/,/g, '') : '';
-        const durationVal = match[2];
-        const ctcVal = match[3];
-        setPpoStipend(stipendVal);
-        setPpoDuration(durationVal);
-        setPpoCtc(ctcVal);
-        return { amount: '', unit: 'Internship + PPO' };
+  const parsePackageString = (pkg, listingType) => {
+    if (!pkg) {
+      return [{ amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }];
+    }
+    const parts = String(pkg).split(/\s*\|\s*/);
+    const entries = parts.map(part => {
+      let rawValue = part.trim();
+      let description = '';
+      
+      const dashIdx = rawValue.lastIndexOf(' — ');
+      if (dashIdx !== -1) {
+        description = rawValue.substring(dashIdx + 3).trim();
+        rawValue = rawValue.substring(0, dashIdx).trim();
       }
-    }
 
-    if (pkgStr === 'Unpaid') {
-      return { amount: '', unit: pkgStr };
-    }
-    if (pkgStr.endsWith('/month') || pkgStr.endsWith('/ month') || pkgStr.endsWith('/mo') || pkgStr.endsWith('/ mo')) {
-      const amount = pkgStr.replace(/\s*\/\s*(month|mo)$/, '').trim();
-      return { amount, unit: '/ month' };
-    }
-    if (pkgStr.endsWith('Total Stipend') || pkgStr.endsWith('total stipend')) {
-      const amount = pkgStr.replace(/\s*total stipend$/i, '').trim();
-      return { amount, unit: 'Total Stipend' };
-    }
-    if (pkgStr.endsWith('LPA') || pkgStr.endsWith(' lpa')) {
-      const amount = pkgStr.replace(/\s*LPA$/i, '').trim();
-      return { amount, unit: 'LPA' };
-    }
-    return { amount: pkgStr, unit: 'Custom' };
+      // Check if it's Internship + PPO
+      if (rawValue.includes('Internship') || rawValue.includes('PPO')) {
+        const ppoMatch = rawValue.match(/(?:([\d,]+)\s*\/|Unpaid).*?\((.*?)\s*Internship\)(?:\s*\+\s*([\d.]+)\s*LPA)?/i);
+        if (ppoMatch) {
+          return {
+            amount: '',
+            unit: 'Internship + PPO',
+            description,
+            ppoStipend: ppoMatch[1] || '',
+            ppoDuration: ppoMatch[2] || '',
+            ppoCtc: ppoMatch[3] || ''
+          };
+        }
+      }
+
+      if (rawValue === 'Unpaid') {
+        return { amount: '', unit: 'Unpaid', description, ppoStipend: '', ppoDuration: '', ppoCtc: '' };
+      }
+
+      if (rawValue.toLowerCase().endsWith('lpa')) {
+        const amount = rawValue.substring(0, rawValue.length - 3).trim();
+        return { amount, unit: 'LPA', description, ppoStipend: '', ppoDuration: '', ppoCtc: '' };
+      }
+
+      if (rawValue.toLowerCase().endsWith('/ month') || rawValue.toLowerCase().endsWith('/month')) {
+        const suffixLen = rawValue.toLowerCase().endsWith('/ month') ? 7 : 6;
+        const amount = rawValue.substring(0, rawValue.length - suffixLen).trim();
+        return { amount, unit: '/ month', description, ppoStipend: '', ppoDuration: '', ppoCtc: '' };
+      }
+
+      return {
+        amount: rawValue,
+        unit: listingType === 'internship' ? '/ month' : 'LPA',
+        description,
+        ppoStipend: '',
+        ppoDuration: '',
+        ppoCtc: ''
+      };
+    });
+
+    return entries.length > 0 ? entries : [{ amount: '', unit: listingType === 'internship' ? '/ month' : 'LPA', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }];
   };
 
-  const handlePpoChange = (stipend, duration, ctc) => {
-    setPpoStipend(stipend);
-    setPpoDuration(duration);
-    setPpoCtc(ctc);
-    const stipendStr = stipend ? `${stipend} / month` : 'Unpaid';
-    const combined = `${stipendStr} (${duration} Internship) + ${ctc} LPA (PPO)`;
-    setFormData(prev => ({ ...prev, package: combined }));
+  const buildPackageString = (entries) => {
+    return entries
+      .filter(e => e.unit === 'Unpaid' || e.unit === 'Internship + PPO' || e.amount)
+      .map(e => {
+        let val;
+        if (e.unit === 'Unpaid') {
+          val = 'Unpaid';
+        } else if (e.unit === 'Internship + PPO') {
+          const stipendStr = e.ppoStipend ? `${e.ppoStipend} / month` : 'Unpaid';
+          const durStr = e.ppoDuration ? `${e.ppoDuration} Internship` : 'Internship';
+          const ctcStr = e.ppoCtc ? `${e.ppoCtc} LPA (PPO)` : '';
+          val = ctcStr ? `${stipendStr} (${durStr}) + ${ctcStr}` : `${stipendStr} (${durStr})`;
+        } else {
+          val = `${e.amount} ${e.unit}`;
+        }
+        return e.description ? `${val} — ${e.description}` : val;
+      })
+      .join(' | ');
   };
 
-  const handleSalaryChange = (amount, unit) => {
-    setSalaryAmount(amount);
-    setSalaryUnit(unit);
-    if (unit === 'Unpaid') {
-      setFormData(prev => ({ ...prev, package: unit }));
-    } else if (unit === 'Custom') {
-      setFormData(prev => ({ ...prev, package: amount }));
-    } else if (unit === 'Internship + PPO') {
-      handlePpoChange(ppoStipend, ppoDuration, ppoCtc);
-    } else {
-      setFormData(prev => ({ ...prev, package: amount ? `${amount} ${unit}` : '' }));
-    }
+  const handleSalaryEntryChange = (index, field, value) => {
+    setSalaryEntries(prev => {
+      const updated = prev.map((entry, i) => i === index ? { ...entry, [field]: value } : entry);
+      setFormData(fd => ({ ...fd, package: buildPackageString(updated) }));
+      return updated;
+    });
   };
+
+  const addSalaryEntry = () => {
+    setSalaryEntries(prev => [...prev, { amount: '', unit: formData.listing_type === 'internship' ? '/ month' : 'LPA', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }]);
+  };
+
+  const removeSalaryEntry = (index) => {
+    setSalaryEntries(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      setFormData(fd => ({ ...fd, package: buildPackageString(updated) }));
+      return updated;
+    });
+  };
+
 
   useEffect(() => {
     fetchJob();
@@ -149,9 +185,7 @@ const EditJob = () => {
       });
       const data = response.data;
       
-      const parsedPkg = parsePackageValue(data.package, data.listing_type || 'job');
-      setSalaryAmount(parsedPkg.amount);
-      setSalaryUnit(parsedPkg.unit);
+      setSalaryEntries(parsePackageString(data.package, data.listing_type || 'job'));
 
       // format datetime-local
       if (data.application_deadline) {
@@ -474,93 +508,105 @@ Return only the JSON object.`;
                   )}
                 </div>
 
-                <div className="input-group">
-                  <label>{formData.listing_type === 'internship' ? 'Stipend (Flexible)' : 'Package / Salary (Flexible)'}</label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
-                    {salaryUnit !== 'Internship + PPO' && (
-                      <input 
-                        required={salaryUnit !== 'Unpaid'} 
-                        disabled={salaryUnit === 'Unpaid'} 
-                        type="text" 
-                        value={salaryAmount} 
-                        onChange={(e) => handleSalaryChange(e.target.value, salaryUnit)} 
-                        className="input-field" 
-                        placeholder={salaryUnit === 'Custom' ? "e.g. 15k/mo + 6.5 LPA" : "e.g. 6.5 or 5000-10000"} 
-                        style={{ flex: 1 }} 
-                      />
-                    )}
-                    {salaryUnit === 'Internship + PPO' && (
-                      <div style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        Configure Internship + PPO details below:
+                <div className="input-group col-span-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-3 flex items-center gap-2">
+                    <DollarSign size={14} /> {formData.listing_type === 'internship' ? 'Stipend / Salary Packages' : 'Package / Salary'}
+                    <span className="text-[10px] font-normal text-[var(--text-muted)] normal-case ml-1">(optional — add as many as you want)</span>
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {salaryEntries.map((entry, index) => (
+                      <div key={index} style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 1fr auto', gap: '8px', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-card-hover)', borderRadius: entry.unit === 'Internship + PPO' ? '10px 10px 0 0' : '10px', border: '1px solid var(--border-color)' }}>
+                          <input
+                            type="text"
+                            value={entry.amount}
+                            disabled={entry.unit === 'Unpaid' || entry.unit === 'Internship + PPO'}
+                            onChange={(e) => handleSalaryEntryChange(index, 'amount', e.target.value)}
+                            className="input-field shadow-sm font-semibold text-[var(--accent-primary)]"
+                            placeholder={entry.unit === 'Internship + PPO' ? '(configure below)' : entry.unit === 'Unpaid' ? '' : 'e.g. 6.5'}
+                            style={{ margin: 0 }}
+                          />
+                          <select
+                            value={entry.unit}
+                            onChange={(e) => handleSalaryEntryChange(index, 'unit', e.target.value)}
+                            className="input-field shadow-sm font-semibold text-[var(--text-primary)]"
+                            style={{ margin: 0 }}
+                          >
+                            <option value="LPA">LPA</option>
+                            <option value="/ month">/ month</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Internship + PPO">Internship + PPO</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={entry.description}
+                            onChange={(e) => handleSalaryEntryChange(index, 'description', e.target.value)}
+                            className="input-field shadow-sm text-[var(--text-primary)]"
+                            placeholder="Description (e.g. Base CTC, Bonus, Variable Pay)"
+                            style={{ margin: 0 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeSalaryEntry(index)}
+                            disabled={salaryEntries.length === 1}
+                            style={{ background: 'none', border: 'none', cursor: salaryEntries.length === 1 ? 'not-allowed' : 'pointer', color: salaryEntries.length === 1 ? 'var(--text-muted)' : 'var(--danger)', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                            title="Remove this entry"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                        {/* PPO sub-panel */}
+                        {entry.unit === 'Internship + PPO' && (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', padding: '12px 14px', background: 'var(--accent-soft)', borderRadius: '0 0 10px 10px', border: '1px solid var(--accent-primary)', borderTop: 'none' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stipend (₹ / month)</label>
+                              <input
+                                type="text"
+                                value={entry.ppoStipend}
+                                onChange={(e) => handleSalaryEntryChange(index, 'ppoStipend', e.target.value)}
+                                className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]"
+                                placeholder="e.g. 15000 (blank = Unpaid)"
+                                style={{ width: '100%', margin: 0 }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</label>
+                              <input
+                                type="text"
+                                value={entry.ppoDuration}
+                                onChange={(e) => handleSalaryEntryChange(index, 'ppoDuration', e.target.value)}
+                                className="input-field shadow-sm text-xs font-semibold text-[var(--text-primary)]"
+                                placeholder="e.g. 3 months, 6 weeks"
+                                style={{ width: '100%', margin: 0 }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CTC (LPA) — PPO</label>
+                              <input
+                                type="text"
+                                value={entry.ppoCtc}
+                                onChange={(e) => handleSalaryEntryChange(index, 'ppoCtc', e.target.value)}
+                                className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]"
+                                placeholder="e.g. 6.5"
+                                style={{ width: '100%', margin: 0 }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <select 
-                      value={salaryUnit} 
-                      onChange={(e) => handleSalaryChange(salaryAmount, e.target.value)} 
-                      className="input-field" 
-                      style={{ width: '150px', minWidth: '150px' }}
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addSalaryEntry}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', border: '1.5px dashed var(--accent-primary)', background: 'var(--accent-soft)', color: 'var(--accent-primary)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', width: 'fit-content' }}
                     >
-                      {formData.listing_type === 'internship' ? (
-                        <>
-                          <option value="/ month">/ month</option>
-                          <option value="Total Stipend">Total Stipend</option>
-                          <option value="Unpaid">Unpaid</option>
-                          <option value="Internship + PPO">Internship + PPO</option>
-                          <option value="Custom">Custom</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="LPA">LPA</option>
-                          <option value="/ month">/ month</option>
-                          <option value="Internship + PPO">Internship + PPO</option>
-                          <option value="Custom">Custom</option>
-                        </>
-                      )}
-                    </select>
+                      <Plus size={14} /> Add Another Salary Entry
+                    </button>
                   </div>
-                  {salaryUnit === 'Internship + PPO' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', width: '100%', marginTop: '8px', padding: '12px', background: 'var(--bg-card-hover)', borderRadius: '8px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
-                      <div className="input-group">
-                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Stipend (Rupees)</label>
-                        <input 
-                          type="text" 
-                          value={ppoStipend} 
-                          onChange={(e) => handlePpoChange(e.target.value, ppoDuration, ppoCtc)} 
-                          className="input-field text-xs font-semibold text-[var(--accent-primary)]" 
-                          placeholder="e.g. 15000 (or blank for Unpaid)" 
-                          style={{ width: '100%' }}
-                        />
-                      </div>
-                      <div className="input-group">
-                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>Duration</label>
-                        <select 
-                          value={ppoDuration} 
-                          onChange={(e) => handlePpoChange(ppoStipend, e.target.value, ppoCtc)} 
-                          className="input-field text-xs font-semibold text-[var(--text-primary)]"
-                          style={{ width: '100%' }}
-                        >
-                          <option value="2 months">2 months</option>
-                          <option value="3 months">3 months</option>
-                          <option value="6 months">6 months</option>
-                          <option value="9 months">9 months</option>
-                        </select>
-                      </div>
-                      <div className="input-group">
-                        <label className="text-[10px] font-bold text-[var(--text-secondary)] mb-1" style={{ display: 'block' }}>CTC (LPA)</label>
-                        <input 
-                          required 
-                          type="text" 
-                          value={ppoCtc} 
-                          onChange={(e) => handlePpoChange(ppoStipend, ppoDuration, e.target.value)} 
-                          className="input-field text-xs font-semibold text-[var(--accent-primary)]" 
-                          placeholder="e.g. 6.5" 
-                          style={{ width: '100%' }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
+
                 {formData.listing_type === 'internship' && (
+
                   <div className="input-group">
                     <label>Duration (e.g. 3 Months)</label>
                     <input type="text" name="duration" value={formData.duration} onChange={handleInputChange} className="input-field" />

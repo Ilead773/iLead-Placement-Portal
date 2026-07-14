@@ -201,15 +201,27 @@ const CreateInternship = () => {
         if (parsed.salaryEntries) return parsed.salaryEntries;
       }
     } catch (e) {}
-    return [{ amount: '', unit: '/ month', description: '' }];
+    return [{ amount: '', unit: '/ month', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }];
   });
 
   const buildPackageString = (entries) => {
     return entries
-      .filter(e => e.amount || e.unit === 'Unpaid')
+      .filter(e => e.unit === 'Unpaid' || e.unit === 'Internship + PPO' || e.amount)
       .map(e => {
-        const val = e.unit === 'Unpaid' ? 'Unpaid' : e.unit === 'Custom' ? e.amount : `${e.amount} ${e.unit}`;
-        return e.description ? `${val} (${e.description})` : val;
+        let val;
+        if (e.unit === 'Unpaid') {
+          val = 'Unpaid';
+        } else if (e.unit === 'Internship + PPO') {
+          const stipendStr = e.ppoStipend ? `${e.ppoStipend} / month` : 'Unpaid';
+          const durStr = e.ppoDuration ? `${e.ppoDuration} Internship` : 'Internship';
+          const ctcStr = e.ppoCtc ? `${e.ppoCtc} LPA (PPO)` : '';
+          val = ctcStr ? `${stipendStr} (${durStr}) + ${ctcStr}` : `${stipendStr} (${durStr})`;
+        } else if (e.unit === 'Custom') {
+          val = e.amount;
+        } else {
+          val = `${e.amount} ${e.unit}`;
+        }
+        return e.description ? `${val} — ${e.description}` : val;
       })
       .join(' | ');
   };
@@ -223,7 +235,7 @@ const CreateInternship = () => {
   };
 
   const addSalaryEntry = () => {
-    setSalaryEntries(prev => [...prev, { amount: '', unit: '/ month', description: '' }]);
+    setSalaryEntries(prev => [...prev, { amount: '', unit: '/ month', description: '', ppoStipend: '', ppoDuration: '', ppoCtc: '' }]);
   };
 
   const removeSalaryEntry = (index) => {
@@ -514,47 +526,87 @@ const CreateInternship = () => {
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {salaryEntries.map((entry, index) => (
-                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 1fr auto', gap: '8px', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-card-hover)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <input
-                        type="text"
-                        value={entry.amount}
-                        disabled={entry.unit === 'Unpaid'}
-                        onChange={(e) => handleSalaryEntryChange(index, 'amount', e.target.value)}
-                        className="input-field shadow-sm font-semibold text-[var(--accent-primary)]"
-                        placeholder={entry.unit === 'Custom' ? 'e.g. 15000 + PPO' : entry.unit === 'Unpaid' ? '' : 'e.g. 15000'}
-                        style={{ margin: 0 }}
-                      />
-                      <select
-                        value={entry.unit}
-                        onChange={(e) => handleSalaryEntryChange(index, 'unit', e.target.value)}
-                        className="input-field shadow-sm font-semibold text-[var(--text-primary)]"
-                        style={{ margin: 0 }}
-                      >
-                        <option value="/ month">/ month</option>
-                        <option value="Total Stipend">Total Stipend</option>
-                        <option value="LPA">LPA</option>
-                        <option value="Unpaid">Unpaid</option>
-                        <option value="Custom">Custom</option>
-                      </select>
-                      <input
-                        type="text"
-                        value={entry.description}
-                        onChange={(e) => handleSalaryEntryChange(index, 'description', e.target.value)}
-                        className="input-field shadow-sm text-[var(--text-primary)]"
-                        placeholder="Description (e.g. Base Stipend, PPO CTC, Bonus)"
-                        style={{ margin: 0 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSalaryEntry(index)}
-                        disabled={salaryEntries.length === 1}
-                        style={{ background: 'none', border: 'none', cursor: salaryEntries.length === 1 ? 'not-allowed' : 'pointer', color: salaryEntries.length === 1 ? 'var(--text-muted)' : 'var(--danger)', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
-                        title="Remove this entry"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                    <div key={index} style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px 1fr auto', gap: '8px', alignItems: 'center', padding: '10px 12px', background: 'var(--bg-card-hover)', borderRadius: entry.unit === 'Internship + PPO' ? '10px 10px 0 0' : '10px', border: '1px solid var(--border-color)' }}>
+                        <input
+                          type="text"
+                          value={entry.amount}
+                          disabled={entry.unit === 'Unpaid' || entry.unit === 'Internship + PPO'}
+                          onChange={(e) => handleSalaryEntryChange(index, 'amount', e.target.value)}
+                          className="input-field shadow-sm font-semibold text-[var(--accent-primary)]"
+                          placeholder={entry.unit === 'Internship + PPO' ? '(configure below)' : entry.unit === 'Unpaid' ? '' : 'e.g. 15000'}
+                          style={{ margin: 0 }}
+                        />
+                        <select
+                          value={entry.unit}
+                          onChange={(e) => handleSalaryEntryChange(index, 'unit', e.target.value)}
+                          className="input-field shadow-sm font-semibold text-[var(--text-primary)]"
+                          style={{ margin: 0 }}
+                        >
+                          <option value="/ month">/ month</option>
+                          <option value="LPA">LPA</option>
+                          <option value="Unpaid">Unpaid</option>
+                          <option value="Internship + PPO">Internship + PPO</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={entry.description}
+                          onChange={(e) => handleSalaryEntryChange(index, 'description', e.target.value)}
+                          className="input-field shadow-sm text-[var(--text-primary)]"
+                          placeholder="Description (e.g. Base Stipend, Bonus)"
+                          style={{ margin: 0 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSalaryEntry(index)}
+                          disabled={salaryEntries.length === 1}
+                          style={{ background: 'none', border: 'none', cursor: salaryEntries.length === 1 ? 'not-allowed' : 'pointer', color: salaryEntries.length === 1 ? 'var(--text-muted)' : 'var(--danger)', padding: '4px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}
+                          title="Remove this entry"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                      {/* PPO sub-panel — shown only when unit is Internship + PPO */}
+                      {entry.unit === 'Internship + PPO' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', padding: '12px 14px', background: 'var(--accent-soft)', borderRadius: '0 0 10px 10px', border: '1px solid var(--accent-primary)', borderTop: 'none' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stipend (₹ / month)</label>
+                            <input
+                              type="text"
+                              value={entry.ppoStipend}
+                              onChange={(e) => handleSalaryEntryChange(index, 'ppoStipend', e.target.value)}
+                              className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]"
+                              placeholder="e.g. 15000 (blank = Unpaid)"
+                              style={{ width: '100%', margin: 0 }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</label>
+                            <input
+                              type="text"
+                              value={entry.ppoDuration}
+                              onChange={(e) => handleSalaryEntryChange(index, 'ppoDuration', e.target.value)}
+                              className="input-field shadow-sm text-xs font-semibold text-[var(--text-primary)]"
+                              placeholder="e.g. 3 months, 6 weeks"
+                              style={{ width: '100%', margin: 0 }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CTC (LPA) — PPO</label>
+                            <input
+                              type="text"
+                              value={entry.ppoCtc}
+                              onChange={(e) => handleSalaryEntryChange(index, 'ppoCtc', e.target.value)}
+                              className="input-field shadow-sm text-xs font-semibold text-[var(--accent-primary)]"
+                              placeholder="e.g. 6.5"
+                              style={{ width: '100%', margin: 0 }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
+
                   <button
                     type="button"
                     onClick={addSalaryEntry}

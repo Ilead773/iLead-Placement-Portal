@@ -540,7 +540,7 @@ export default function AdminDashboard() {
           {/* ================================================================== */}
           {/* OVERVIEW TAB */}
           {/* ================================================================== */}
-          {activeTab === 'dashboard' && stats && (
+          {activeTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Top stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -548,7 +548,7 @@ export default function AdminDashboard() {
                 <div className="bg-white dark:bg-[#12131a] border border-slate-200 dark:border-slate-800/80 rounded-xl p-5 shadow-sm hover:border-slate-350 dark:hover:border-slate-700 transition-colors flex items-center justify-between">
                   <div>
                     <span className="text-slate-400 dark:text-slate-500 text-xs font-semibold uppercase tracking-wider">Enrolled Students</span>
-                    <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white tracking-tight">{stats.total_enrolled_students}</h3>
+                    <h3 className="text-3xl font-bold mt-1 text-slate-900 dark:text-white tracking-tight">{stats?.total_enrolled_students ?? 0}</h3>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                       Active student accounts
@@ -608,7 +608,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {stats.course_stats.map(c => (
+                      {(stats?.course_stats ?? []).map(c => (
                         <tr key={c.course_id} className="border-b border-slate-100/50 dark:border-slate-800/50 text-xs hover:bg-slate-50/80 dark:hover:bg-[#161822] transition-colors">
                           <td className="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{c.course_name}</td>
                           <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{c.enrollments} students</td>

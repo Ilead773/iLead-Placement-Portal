@@ -233,7 +233,7 @@ class ScheduledClassViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'student':
             student_profile = getattr(user, 'student_profile', None)
-            student_course = student_profile.course if student_profile else ""
+            student_course = student_profile.course.strip() if (student_profile and student_profile.course) else ""
             # Filter classes by matching course name (case-insensitive)
             from django.db.models import Q
             return self.queryset.filter(
@@ -547,7 +547,7 @@ class NorthStarAssignmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'student':
             student_profile = getattr(user, 'student_profile', None)
-            student_course = student_profile.course if student_profile else ""
+            student_course = student_profile.course.strip() if (student_profile and student_profile.course) else ""
             return self.queryset.filter(course__name__iexact=student_course)
         return self.queryset
 
@@ -660,32 +660,40 @@ def ensure_student_progress_records():
     we auto-create the Course object first to keep overall student numbers consistent.
     """
     from core.models import Student
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
     
     existing_pairs = set(CourseProgress.objects.values_list('student_id', 'course_id'))
-    students = Student.objects.exclude(course='')
+    students = Student.objects.exclude(course='').exclude(course__isnull=True).exclude(user_id__isnull=True)
+    
+    # Ensure we only include students whose corresponding User records actually exist
+    valid_user_ids = set(User.objects.filter(id__in=students.values_list('user_id', flat=True)).values_list('id', flat=True))
     
     # Auto-create missing Course records
     for student in students:
-        course_name = student.course.strip()
-        if course_name:
-            Course.objects.get_or_create(name=course_name)
+        if student.course:
+            course_name = student.course.strip()
+            if course_name:
+                Course.objects.get_or_create(name=course_name)
             
     courses = {c.name.lower(): c for c in Course.objects.all()}
     
     missing_progress = []
     for student in students:
-        course_obj = courses.get(student.course.lower())
-        if course_obj and student.user_id:
-            pair = (student.user_id, course_obj.id)
-            if pair not in existing_pairs:
-                missing_progress.append(
-                    CourseProgress(
-                        student_id=student.user_id,
-                        course=course_obj,
-                        completion_percent=0.0,
-                        attendance_percent=0.0
+        if student.course and student.user_id in valid_user_ids:
+            course_obj = courses.get(student.course.strip().lower())
+            if course_obj:
+                pair = (student.user_id, course_obj.id)
+                if pair not in existing_pairs:
+                    missing_progress.append(
+                        CourseProgress(
+                            student_id=student.user_id,
+                            course=course_obj,
+                            completion_percent=0.0,
+                            attendance_percent=0.0
+                        )
                     )
-                )
+                    existing_pairs.add(pair)
                 
     if missing_progress:
         CourseProgress.objects.bulk_create(missing_progress)
@@ -708,8 +716,8 @@ class CourseProgressViewSet(viewsets.ReadOnlyModelViewSet):
         if user.role == 'student':
             # Ensure student progress record exists
             student_profile = getattr(user, 'student_profile', None)
-            if student_profile and student_profile.course:
-                course = Course.objects.filter(name__iexact=student_profile.course).first()
+            if student_profile and student_profile.course and student_profile.course.strip():
+                course = Course.objects.filter(name__iexact=student_profile.course.strip()).first()
                 if course:
                     CourseProgress.objects.get_or_create(student=user, course=course)
             return self.queryset.filter(student=user)
@@ -758,7 +766,7 @@ def student_dashboard(request):
     """
     user = request.user
     student_profile = getattr(user, 'student_profile', None)
-    student_course = student_profile.course if student_profile else ""
+    student_course = student_profile.course.strip() if (student_profile and student_profile.course) else ""
     
     # Auto-initialize progress if missing
     if student_profile and student_course:
