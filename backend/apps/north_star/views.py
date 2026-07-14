@@ -673,8 +673,11 @@ def ensure_student_progress_records():
     for student in students:
         if student.course:
             course_name = student.course.strip()
-            if course_name:
-                Course.objects.get_or_create(name=course_name)
+            if course_name and not Course.objects.filter(name=course_name).exists():
+                try:
+                    Course.objects.create(name=course_name)
+                except Exception:
+                    pass
             
     courses = {c.name.lower(): c for c in Course.objects.all()}
     
