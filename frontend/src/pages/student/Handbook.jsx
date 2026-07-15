@@ -33,95 +33,95 @@ const SECTIONS_DATA = [
         id: 'dashboard',
         title: 'Dashboard',
         icon: <LayoutDashboard size={20} />,
-        description: 'The centralized Student Command Center. Offers an overview of application counts, profile completeness, interview timelines, and active notices.',
+        description: 'Your main page. Here you can see how many jobs you applied for, if your profile is complete, when your next interviews are, and new announcements.',
         metrics: [
-          { name: 'Total Applications', desc: 'The count of job/internship profiles you have applied for.' },
-          { name: 'Active Processes', desc: 'Applications currently in review or actively undergoing recruitment rounds.' },
-          { name: 'Placement Status', desc: 'Your portal status: Unplaced (actively looking), Placed (received offer), or Accepted (accepted offer).' },
-          { name: 'Profile Completion Meter', desc: 'Visual indicator of your profile completeness (0-100%). Keep this at 100% to remain eligible!' }
+          { name: 'Total Applications', desc: 'The number of jobs and internships you have applied for.' },
+          { name: 'Active Processes', desc: 'Jobs where you are currently doing interviews or waiting for results.' },
+          { name: 'Placement Status', desc: 'Your status: Unplaced (looking for a job), Placed (got a job offer), or Accepted (you accepted a job offer).' },
+          { name: 'Profile Completion Meter', desc: 'Shows how much of your profile is filled out. Keep this at 100% so you can apply for jobs!' }
         ],
         steps: [
-          'Scan the overview cards at the top of the page for quick stats.',
-          'Review the upcoming interviews timeline to prepare for the day.',
-          'Check the recent notifications feed for urgent announcements from the Placement Cell.',
-          'Click any summary card to navigate to its respective details.'
+          'Look at the cards at the top for quick numbers.',
+          'Check the interview timeline to see when your next interviews are.',
+          'Read the latest news from the placement team.',
+          'Click on any card to go directly to that section.'
         ],
-        tips: 'Keep your Profile Completion Meter at 100%. Some recruiters filter students by completion score before even reading resumes.',
+        tips: 'Make sure your profile is 100% complete. Some companies will not read your resume if your profile is incomplete.',
         type: 'info'
       },
       {
         id: 'profile',
         title: 'My Profile',
         icon: <User size={20} />,
-        description: 'Your academic portfolio and digital resume. This is what recruiters see when you apply to placements.',
+        description: 'Your school details and resume. This is what companies see when you apply.',
         metrics: [
-          { name: 'CGPA', desc: 'Cumulative Grade Point Average. Auto-verified against university databases for company cut-offs.' },
-          { name: 'Active Backlogs', desc: 'Count of uncleared papers. Crucial metric, as most top-tier companies require zero active backlogs.' },
-          { name: 'Stream & Course', desc: 'Your academic program (e.g. BCA, B.Sc. IT). Automatically filters job postings.' },
-          { name: 'Skills & Projects', desc: 'Your tech-stack keywords and details of personal or academic projects.' }
+          { name: 'CGPA', desc: 'Your college marks. Verified by the college and used to check if you can apply for a job.' },
+          { name: 'Active Backlogs', desc: 'Number of exams you failed and need to clear. Most companies only hire students with zero backlogs.' },
+          { name: 'Stream & Course', desc: 'Your course (like BCA or B.Sc. IT). This decides which jobs you can see.' },
+          { name: 'Skills & Projects', desc: 'The skills you know (like Java, Python) and the projects you have built.' }
         ],
         steps: [
-          'Navigate to My Profile from the sidebar menu.',
-          'Ensure Personal Details (phone, email) are updated and active.',
-          'Under Education, check that your CGPA and Class 10/12 details are correct.',
-          'Add your projects, internship experience, and technical skills.',
-          'Click the Save Profile button at the bottom of each section.'
+          'Go to My Profile in the menu.',
+          'Make sure your phone number and email are correct.',
+          'Check your marks for Class 10, Class 12, and CGPA.',
+          'Type in your projects, internships, and skills.',
+          'Click the Save button to save your changes.'
         ],
-        warnings: 'Falsifying grades or backlog status will lead to automatic disqualification and permanent blacklisting from all campus placement activities.',
+        warnings: 'Do not enter fake marks or hide backlogs. If you lie, you will be permanently blocked from all campus placements.',
         type: 'warning'
       },
       {
         id: 'notifications',
         title: 'Notifications',
         icon: <Bell size={20} />,
-        description: 'Real-time notifications, announcements, and feedback on your application stages from the Placement Cell.',
+        description: 'Announcements and updates from the placement office about your applications.',
         metrics: [
-          { name: 'Important Alert (Orange)', desc: 'Urgent notices, such as deadline changes or emergency schedules.' },
-          { name: 'Info Alert (Blue)', desc: 'General announcements and system/resource notifications.' },
-          { name: 'Shortlist Alert (Green)', desc: 'Notices indicating you have passed to a new interview stage or got selected.' }
+          { name: 'Important Alert (Orange)', desc: 'Important news, like new deadlines or schedule changes.' },
+          { name: 'Info Alert (Blue)', desc: 'General info and helpful tips.' },
+          { name: 'Shortlist Alert (Green)', desc: 'Good news showing you cleared an interview round or got selected.' }
         ],
         steps: [
-          'Click the Bell icon in the top header, or select Notifications from the sidebar.',
-          'Click a notification to read its details or visit the corresponding page.',
-          'Use the "Mark as Read" or "Mark All Read" options to keep your inbox organized.'
+          'Click the Bell icon at the top or click Notifications in the menu.',
+          'Click any message to read it or go to that page.',
+          'Click "Mark as Read" to clear old notifications.'
         ],
-        tips: 'Enable push notifications if prompted, or check this tab at least twice daily during active placement weeks.',
+        tips: 'Check this page at least twice a day during placement season.',
         type: 'info'
       },
       {
         id: 'sessions',
         title: 'My Sessions',
         icon: <Video size={20} />,
-        description: 'Access links to virtual placement classes, preparation bootcamps, and online Zoom interviews.',
+        description: 'Find links for online classes, training, and Zoom interviews.',
         metrics: [
-          { name: 'Join Button', desc: 'Becomes active exactly 15 minutes prior to the scheduled start time.' },
-          { name: 'Auto-Attendance logging', desc: 'The portal logs your check-in and check-out times automatically via Zoom webhooks.' }
+          { name: 'Join Button', desc: 'This button lights up 15 minutes before the meeting starts.' },
+          { name: 'Auto-Attendance logging', desc: 'The system automatically tracks when you join and leave the meeting.' }
         ],
         steps: [
-          'Go to the My Sessions page on the portal.',
-          'Locate the scheduled training session or Zoom interview for the day.',
-          'Click the blue "Join Session" button.',
-          'Stay logged in for the duration of the meeting to ensure your attendance is counted.'
+          'Go to the My Sessions page.',
+          'Find today\'s class or interview link.',
+          'Click the blue "Join" button.',
+          'Stay in the call until it ends to mark your attendance.'
         ],
-        warnings: 'Failure to join scheduled online interviews without a 24-hour advance medical notice results in automatic suspension from the next three placement drives.',
+        warnings: 'If you miss an interview without telling us 24 hours in advance, you will be blocked from the next 3 company drives.',
         type: 'danger'
       },
       {
         id: 'north-star',
         title: 'Project North Star',
         icon: <Star size={20} />,
-        description: 'iLEAD’s flag-ship Learning Management System (LMS) and student development track. Focuses on bridging industry gaps.',
+        description: 'iLEAD\'s special course website. Use this to learn coding, soft skills, and aptitude.',
         metrics: [
-          { name: 'Training Modules', desc: 'Interactive lessons on soft skills, coding, and aptitude preparation.' },
-          { name: 'Certifications', desc: 'Earn verified credentials upon module completion to showcase on your profile.' }
+          { name: 'Training Modules', desc: 'Short courses on coding, interview behavior, and math tests.' },
+          { name: 'Certifications', desc: 'Get certificates when you complete courses to show on your profile.' }
         ],
         steps: [
-          'Open Project North Star from the sidebar.',
-          'Browse the learning paths assigned to your course/batch.',
-          'Complete lessons, quizzes, and micro-projects at your own pace.',
-          'Download your certificates to automatically attach them to your resumes.'
+          'Click Project North Star in the menu.',
+          'Look at the list of courses for your batch.',
+          'Finish the lessons and quizzes when you have time.',
+          'Download your certificates to add them to your resume.'
         ],
-        tips: 'Completing North Star modules unlocks special recommendation tags on your student profile visible to premium employers.',
+        tips: 'Completing these courses adds a special recommendation tag to your profile that companies can see.',
         type: 'success'
       }
     ]
@@ -133,108 +133,108 @@ const SECTIONS_DATA = [
         id: 'resumes',
         title: 'My Resumes',
         icon: <FileText size={20} />,
-        description: 'Manage your professional resumes. Build standard profiles using our interactive builder templates or upload external PDFs.',
+        description: 'Add and manage your resumes. You can upload a PDF or build one inside the portal using templates.',
         metrics: [
-          { name: 'Primary Resume', desc: 'The default resume submitted when applying to any job. Marked with a yellow star.' },
-          { name: 'PDF Upload Limit', desc: 'Only standard PDF format is allowed. File size must not exceed 2MB.' },
-          { name: 'Resume Templates', desc: 'Clean, ATS-friendly designs built dynamically from your profile details.' }
+          { name: 'Primary Resume', desc: 'The main resume sent to companies when you apply. Marked with a star.' },
+          { name: 'PDF Upload Limit', desc: 'Only PDF files under 2MB are allowed.' },
+          { name: 'Resume Templates', desc: 'Simple, clean resumes created automatically from your profile info.' }
         ],
         steps: [
-          'Navigate to My Resumes.',
-          'To upload: Click "Upload PDF", drag and drop your file, and click upload.',
-          'To build: Click "Create Resume", fill in the interactive fields, and choose a template layout.',
-          'Ensure you click the Star icon next to your best resume to mark it as Primary.'
+          'Go to My Resumes.',
+          'To upload: Click "Upload PDF", choose your file, and upload it.',
+          'To build: Click "Create Resume", fill in the blanks, and pick a design.',
+          'Click the star next to your main resume to mark it as Primary.'
         ],
-        tips: 'Review your primary resume preview carefully. An ATS-friendly format increases your shortlisting chances by 40%.',
+        tips: 'Check your resume preview. A simple, clean design helps you get selected faster.',
         type: 'info'
       },
       {
         id: 'applications',
         title: 'My Applications',
         icon: <ClipboardList size={20} />,
-        description: 'Track the real-time status of all placement and internship applications you have submitted.',
+        description: 'Check the status of the jobs you applied for.',
         metrics: [
-          { name: 'Applied (Blue)', desc: 'Application successfully logged. Recruiter review pending.' },
-          { name: 'Shortlisted (Purple)', desc: 'Profile approved. Proceeding to tests/interviews.' },
-          { name: 'Interviewing (Orange)', desc: 'Active recruitment rounds scheduled.' },
-          { name: 'Selected (Green)', desc: 'Offer extended. Congratulations!' },
-          { name: 'Rejected (Red)', desc: 'Application did not clear a specific selection round.' }
+          { name: 'Applied (Blue)', desc: 'Applied successfully. The company is checking your profile.' },
+          { name: 'Shortlisted (Purple)', desc: 'You got shortlisted! Next are tests or interviews.' },
+          { name: 'Interviewing (Orange)', desc: 'You are currently doing interviews.' },
+          { name: 'Selected (Green)', desc: 'You got selected! Congratulations!' },
+          { name: 'Rejected (Red)', desc: 'You did not clear this round.' }
         ],
         steps: [
-          'Navigate to My Applications to view the list of companies.',
-          'Click "View Details" to see the step-by-step pipeline visualizer.',
-          'View round-wise evaluation status and recruiter feedback comments.'
+          'Go to My Applications to see your jobs list.',
+          'Click "View Details" to see where you stand in each round.',
+          'Read marks and feedback left by the interviewers.'
         ],
-        tips: 'Read recruiter feedback carefully in case of rejection; it contains valuable hints for future interviews.',
+        tips: 'If you do not get the job, read the feedback to do better next time.',
         type: 'info'
       },
       {
         id: 'jobs',
         title: 'Jobs',
         icon: <Briefcase size={20} />,
-        description: 'Explore active corporate campus job openings matching your eligibility criteria.',
+        description: 'Browse active jobs that match your marks and course.',
         metrics: [
-          { name: 'Compensation (CTC)', desc: 'Annual package offered (e.g. ₹6.5 LPA).' },
-          { name: 'Eligibility Status', desc: 'Real-time check on your CGPA, streams, and backlog count compared to company rules.' },
-          { name: 'Job Description (JD)', desc: 'Required tech-stack, job role details, and working terms.' }
+          { name: 'Compensation (CTC)', desc: 'The yearly salary offered by the company (e.g., ₹6.5 Lakhs per year).' },
+          { name: 'Eligibility Status', desc: 'Checks if your marks, backlogs, and course match what the company wants.' },
+          { name: 'Job Description (JD)', desc: 'What the job is about and what skills you need.' }
         ],
         steps: [
-          'Navigate to Jobs.',
-          'Use filters to narrow down roles by tech, location, or CTC range.',
-          'Click a job card to view eligibility criteria (red cross or green checkmarks).',
-          'If eligible, click "Apply Now", select a resume, and submit.'
+          'Go to the Jobs page.',
+          'Search for jobs by skill, location, or salary.',
+          'Click on a job card to see if you meet the requirements (green tick or red cross).',
+          'If you qualify, click "Apply Now", pick your resume, and submit.'
         ],
-        warnings: 'The portal enforces a One-Student-One-Job policy. Once you are marked "Selected" for a job, you cannot apply to other drives unless a special upgrade tier is approved by the placement cell.',
+        warnings: 'We have a One-Student-One-Job rule. Once you get a job, you cannot apply for other jobs. You can only apply again if the placement cell gives you special permission to upgrade.',
         type: 'warning'
       },
       {
         id: 'internships',
         title: 'Internships',
         icon: <Briefcase size={20} />,
-        description: 'Find internship postings to gain real-world industry experience during your academic tenure.',
+        description: 'Find short-term internships to get work experience while studying.',
         metrics: [
-          { name: 'Stipend', desc: 'Monthly compensation offered during the internship period.' },
-          { name: 'Duration', desc: 'Internship length, typically ranging from 2 to 6 months.' },
-          { name: 'PPO Opportunity', desc: 'Indicates whether high-performing interns can receive a Pre-Placement Offer (Full-time).' }
+          { name: 'Stipend', desc: 'The monthly money paid to you during the internship.' },
+          { name: 'Duration', desc: 'How long the internship lasts (usually 2 to 6 months).' },
+          { name: 'PPO Opportunity', desc: 'Check if the company will offer you a full-time job if you do well.' }
         ],
         steps: [
-          'Navigate to Internships from the sidebar.',
-          'Read the JD and ensure your availability matching the internship duration.',
-          'Click "Apply Now" with your primary resume.',
-          'Track selection rounds on your applications dashboard.'
+          'Go to Internships in the menu.',
+          'Make sure you can work for the full duration of the internship.',
+          'Click "Apply Now" using your main resume.',
+          'Track your rounds on the applications page.'
         ],
-        tips: 'If you secure an external or portal internship that converts to a PPO, you must report it to the coordinator within 24 hours.',
+        tips: 'If you get a full-time job offer (PPO) from your internship, you must tell the placement office within 24 hours.',
         type: 'info'
       },
       {
         id: 'job-feed',
         title: 'Job Feed',
         icon: <Rss size={20} />,
-        description: 'Aggregated external job opportunities crawled from verified public sources. Perfect for off-campus preparation.',
+        description: 'Jobs gathered from sites like LinkedIn and Indeed. Good for applying on your own.',
         metrics: [
-          { name: 'Source', desc: 'Verified jobs fetched from LinkedIn, Indeed, and top corporate career pages.' },
-          { name: 'External Link', desc: 'Direct link to apply on the company career portal.' }
+          { name: 'Source', desc: 'Jobs found on external sites.' },
+          { name: 'External Link', desc: 'Link to apply directly on the company website.' }
         ],
         steps: [
-          'Navigate to Job Feed.',
-          'Use keyword search to filter external jobs matching your skills.',
-          'Click "Apply on Company Site" to proceed to their official application portal.'
+          'Go to Job Feed.',
+          'Search for jobs that match your skills.',
+          'Click "Apply on Company Site" to go to their page.'
         ],
-        tips: 'Since external jobs do not auto-sync recruitment status, bookmark these to keep a manual checklist of your off-campus applications.',
+        tips: 'Since external job statuses do not update here, write them down or bookmark them to track your progress.',
         type: 'success'
       },
       {
         id: 'saved-jobs',
         title: 'Saved Jobs',
         icon: <Bookmark size={20} />,
-        description: 'Your personal clipboard of job and internship listings. Bookmark postings to review or apply to them later.',
+        description: 'A list of jobs you saved to check or apply to later.',
         metrics: [
-          { name: 'Bookmarks', desc: 'Quick links to active openings you want to monitor.' }
+          { name: 'Bookmarks', desc: 'Jobs you bookmarked.' }
         ],
         steps: [
-          'Browse Jobs or Internships on the portal.',
-          'Click the Bookmark ribbon icon on any card to save it.',
-          'Retrieve them anytime in the Saved Jobs page to apply before deadlines expire.'
+          'Look at jobs or internships.',
+          'Click the bookmark icon on any card to save it.',
+          'Open Saved Jobs in the menu to apply before they close.'
         ],
         type: 'info'
       }
@@ -247,40 +247,40 @@ const SECTIONS_DATA = [
         id: 'assignments',
         title: 'Assignments & Tests',
         icon: <GraduationCap size={20} />,
-        description: 'Mandatory online preparation tests, MCQs, and programming assignments assigned to your batch.',
+        description: 'Online tests, quizzes, and coding tasks given to your batch.',
         metrics: [
-          { name: 'Proctoring Strikes', desc: 'Anti-cheating detection count. Tracks tab-switching or escaping fullscreen.' },
-          { name: 'Fullscreen Mandate', desc: 'Tests run in forced fullscreen. Exiting fullscreen logs a strike.' },
-          { name: 'Automatic Submission', desc: 'If 3 strikes are logged, the test submits automatically and records a failing grade.' }
+          { name: 'Proctoring Strikes', desc: 'Number of times you try to switch tabs or close fullscreen.' },
+          { name: 'Fullscreen Mandate', desc: 'Tests must be done in fullscreen. Leaving fullscreen adds 1 strike.' },
+          { name: 'Automatic Submission', desc: 'If you get 3 strikes, the test closes and you get 0 marks.' }
         ],
         steps: [
-          'Navigate to Assignments.',
-          'Select an active test and read the instructions carefully.',
-          'Close all other browser tabs, messenger apps, and IDEs.',
-          'Click "Start Test" (it will trigger fullscreen mode).',
-          'Complete and submit the test within the timer limit.'
+          'Go to Assignments.',
+          'Pick a test and read the instructions.',
+          'Close all other tabs and chat apps.',
+          'Click "Start Test" (the screen will go fullscreen).',
+          'Finish and submit the test before time runs out.'
         ],
-        warnings: 'Strict anti-cheat is active. Switch tabs, minimize the browser, or exit fullscreen 3 times, and your test will terminate immediately with a score of 0.',
+        warnings: 'Strict anti-cheating is on. If you switch tabs or exit fullscreen 3 times, your test will close instantly and you will get 0 marks.',
         type: 'danger'
       },
       {
         id: 'mock-interview',
         title: 'Mock Interview',
         icon: <Mic size={20} />,
-        description: 'An AI-powered voice mock interview simulator. Practice interviews tailored to specific job roles.',
+        description: 'Practice speaking interviews with an AI bot.',
         metrics: [
-          { name: 'AI Interviewer', desc: 'Dynamic text-to-speech engine asking role-specific technical questions.' },
-          { name: 'Overall Score', desc: 'Percentage grading based on keyword relevance, communication, and correctness.' },
-          { name: 'Skill Gap Analysis', desc: 'Personalized recommendations of coding topics or concepts you need to revise.' }
+          { name: 'AI Interviewer', desc: 'An AI that asks you questions out loud.' },
+          { name: 'Overall Score', desc: 'Marks showing how well you answered and communicated.' },
+          { name: 'Skill Gap Analysis', desc: 'Topics you need to study more based on your answers.' }
         ],
         steps: [
-          'Navigate to Mock Interview.',
-          'Enter the Target Job Title (e.g. "React developer") and a sample Job Description.',
-          'Grant microphone permissions and click "Start Interview".',
-          'Listen to the AI question, record your voice response, and click Next.',
-          'After 5 questions, submit to receive your dashboard report and feedback.'
+          'Go to Mock Interview.',
+          'Type the job title (like "React Developer") and details.',
+          'Allow microphone access and click "Start".',
+          'Listen to the question, speak your answer, and click Next.',
+          'Answer 5 questions and click submit to see your marks.'
         ],
-        tips: 'Complete at least two mock interviews before your actual corporate round to significantly boost your confidence and speech clarity.',
+        tips: 'Do at least 2 mock interviews before your real company interview to practice your speaking.',
         type: 'success'
       }
     ]
@@ -289,20 +289,20 @@ const SECTIONS_DATA = [
     category: 'Support',
     items: [
       {
-        id: 'faq',
-        title: 'FAQ & Policy',
+        id: 'support-guide',
+        title: 'Support & PDF Guide',
         icon: <HelpCircle size={20} />,
-        description: 'The central knowledge base covering academic policies, eligibility rules, and contact information for queries.',
+        description: 'Get help with placements, read guidelines, and download the full handbook.',
         metrics: [
-          { name: 'Knowledge Base', desc: 'Categorized QA covering common questions about portal features.' },
-          { name: 'Policy Handbook', desc: 'Downloadable PDF handbook with official placement cell bylaws.' }
+          { name: 'Coordinators', desc: 'Contact names and emails of placement team members.' },
+          { name: 'Official Guide', desc: 'Detailed PDF with all placement cell rules and policies.' }
         ],
         steps: [
-          'Navigate to FAQ & Policy.',
-          'Use the Search Bar to find quick answers (e.g. searching "PPO").',
-          'Review the Placement Policies tabs to understand student obligations.'
+          'Read the tips on this page to solve common problems.',
+          'Click the "Download Offline PDF" button at the top to download the official book.',
+          'Contact your department placement coordinator if you have any questions.'
         ],
-        tips: 'If you have an urgent grievance or bug report, look for the coordinator contacts listed on the FAQ sidebar.',
+        tips: 'Always double-check deadlines and test links before reaching out for help.',
         type: 'info'
       }
     ]
@@ -314,7 +314,6 @@ export default function StudentHandbook() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Filter sections based on search and category
   const filteredData = useMemo(() => {
     return SECTIONS_DATA.map(cat => {
       const filteredItems = cat.items.filter(item => {
@@ -437,7 +436,7 @@ export default function StudentHandbook() {
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', mdFlexDirection: 'row', justifyContent: 'space-between', zIndex: 1, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ padding: '16px', borderRadius: '16px', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
+            <div style={{ padding: '16px', borderRadius: '16px', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <BookOpen size={32} />
             </div>
             <div>
@@ -450,10 +449,10 @@ export default function StudentHandbook() {
                 </span>
               </div>
               <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 850, margin: 0, background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Student Command Center Handbook
+                Student Portal Handbook
               </h1>
               <p style={{ margin: '6px 0 0 0', fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '750px', lineHeight: '1.5' }}>
-                Learn how to effectively use each sidebar feature of the placement portal, track your eligibility requirements, upload resumes, and clear evaluation stages.
+                A simple guide to help you use the placement portal, update your resume, apply for jobs, and clear your tests.
               </p>
             </div>
           </div>
@@ -526,7 +525,7 @@ export default function StudentHandbook() {
           <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
-            placeholder="Search guidelines & features..."
+            placeholder="Search guidelines..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -588,10 +587,10 @@ export default function StudentHandbook() {
           {/* Quick Notice Panel */}
           <div style={{ background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.02) 0%, rgba(16, 185, 129, 0.02) 100%)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 700, fontSize: '14.5px' }}>
-              <ShieldAlert size={18} /> Important Policy Reminder
+              <ShieldAlert size={18} /> Rules to Remember
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Students are strictly bound by the <strong>One-Student-One-Job</strong> directive and proctoring rules. Active academic updates (CGPA/Backlogs) are locked and verified by administrators.
+              You are bound by the <strong>One-Student-One-Job</strong> rule and exam integrity rules. Academic updates are checked and verified by administrators.
             </p>
           </div>
         </div>
@@ -601,8 +600,8 @@ export default function StudentHandbook() {
           {filteredData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--bg-card)', border: '1.5px dashed var(--border-color)', borderRadius: '24px' }}>
               <Search size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>No matching sections found</h3>
-              <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Try clearing your search or filtering by another category.</p>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>No results found</h3>
+              <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>Try searching for something else or changing categories.</p>
             </div>
           ) : (
             filteredData.map(category => (
@@ -635,14 +634,14 @@ export default function StudentHandbook() {
                               {item.title}
                             </h3>
                             <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Route: /student/{item.id === 'dashboard' ? '' : item.id}
+                              Route: /student/{item.id === 'dashboard' ? '' : item.id === 'support-guide' ? 'handbook' : item.id}
                             </span>
                           </div>
                         </div>
 
                         {item.warnings && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(239, 68, 68, 0.08)', color: 'var(--danger)', fontSize: '11px', fontWeight: 800, padding: '6px 12px', borderRadius: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            <AlertTriangle size={12} /> Compliance Required
+                            <AlertTriangle size={12} /> Rules Alert
                           </div>
                         )}
                       </div>
@@ -658,7 +657,7 @@ export default function StudentHandbook() {
                         {item.metrics && item.metrics.length > 0 && (
                           <div>
                             <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Key Terms & Metrics
+                              Key Terms & Info
                             </h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                               {item.metrics.map((metric, i) => (
@@ -678,7 +677,7 @@ export default function StudentHandbook() {
                         {/* Steps Column */}
                         <div>
                           <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            How to Use
+                            How to use
                           </h4>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {item.steps.map((step, idx) => (
@@ -710,7 +709,7 @@ export default function StudentHandbook() {
                           </div>
                           <div>
                             <strong style={{ color: item.warnings ? 'var(--danger)' : 'var(--success)', display: 'block', fontSize: '13.5px', marginBottom: '4px' }}>
-                              {item.warnings ? 'Compliance Warning' : 'Portal Pro-Tip'}
+                              {item.warnings ? 'Important Rule' : 'Helpful Tip'}
                             </strong>
                             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                               {item.warnings || item.tips}

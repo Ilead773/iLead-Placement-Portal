@@ -372,19 +372,23 @@ CSS_STYLES = """:root {
 
 @page {
     size: A4;
-    margin: 8mm 10mm 12mm 10mm;
+    margin: 10mm 12mm 14mm 12mm;
 }
 
 body {
     font-family: Arial, Helvetica, sans-serif;
     color: var(--text-color);
-    line-height: 1.3;
+    line-height: 1.35;
     margin: 0;
     padding: 0;
-    font-size: 9pt;
+    font-size: 9.5pt;
 }
 
 .resume-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 260mm;
     max-width: 100%;
 }
 
@@ -393,17 +397,17 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 3px;
-    margin-bottom: 4px;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 .header-left {
-    flex: 0 0 70px;
+    flex: 0 0 75px;
 }
 
 .photo-frame {
-    width: 70px;
-    height: 70px;
+    width: 75px;
+    height: 75px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
@@ -431,19 +435,19 @@ body {
 .header-center {
     flex: 1;
     text-align: center;
-    padding: 0 8px;
+    padding: 0 10px;
 }
 
 .candidate-name {
-    font-size: 13pt;
+    font-size: 15pt;
     font-weight: bold;
     color: var(--primary-color);
-    margin: 0 0 2px 0;
+    margin: 0 0 3px 0;
 }
 
 .linkedin-link, .portfolio-link {
-    font-size: 8.5pt;
-    margin-bottom: 1px;
+    font-size: 9pt;
+    margin-bottom: 2px;
 }
 
 .linkedin-link a, .portfolio-link a {
@@ -461,8 +465,8 @@ body {
 }
 
 .contact-row {
-    font-size: 8.5pt;
-    margin-top: 3px;
+    font-size: 9pt;
+    margin-top: 4px;
     color: #333333;
 }
 
@@ -470,18 +474,18 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     border-radius: 50%;
     border: 1px solid #333333;
-    margin-right: 2px;
+    margin-right: 3px;
     vertical-align: middle;
     background-color: transparent;
 }
 
 .icon-circle svg {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     color: #333333;
     vertical-align: middle;
     display: block;
@@ -505,16 +509,16 @@ body {
 }
 
 .resume-section {
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     page-break-inside: avoid;
 }
 
 .section-title {
-    font-size: 8.5pt;
+    font-size: 9pt;
     font-weight: bold;
     color: var(--primary-color);
     text-transform: uppercase;
-    margin: 0 0 1px 0;
+    margin: 0 0 3px 0;
     letter-spacing: 0.5px;
     border-bottom: 0.5px solid #c8d8e8;
     padding-bottom: 1px;
@@ -525,22 +529,22 @@ body {
 }
 
 .summary-text {
-    font-size: 8.5pt;
+    font-size: 9pt;
     text-align: justify;
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .education-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 5px;
-    font-size: 8pt;
+    margin-bottom: 10px;
+    font-size: 8.5pt;
 }
 
 .education-table th, .education-table td {
     border: 1px solid var(--border-color);
-    padding: 2px 4px;
+    padding: 3px 5px;
     text-align: center;
 }
 
@@ -568,7 +572,7 @@ body {
 .two-col-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .left-col {
@@ -585,19 +589,19 @@ body {
 }
 
 .sidebar-section, .main-section {
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     page-break-inside: avoid;
 }
 
 .bullet-list {
     margin: 2px 0 0 0;
     padding-left: 12px;
-    font-size: 8pt;
+    font-size: 8.5pt;
 }
 
 .bullet-list li {
-    margin-bottom: 0px;
-    line-height: 1.3;
+    margin-bottom: 2px;
+    line-height: 1.35;
 }
 
 .bullet-list li::marker {
@@ -613,14 +617,14 @@ body {
 }
 
 .experience-item {
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     page-break-inside: avoid;
 }
 
 .exp-header {
-    font-size: 8.5pt;
-    margin-bottom: 1px;
-    line-height: 1.3;
+    font-size: 9pt;
+    margin-bottom: 2px;
+    line-height: 1.35;
 }
 
 .company-name {
@@ -670,14 +674,16 @@ body {
 }
 
 .resume-footer {
+    position: fixed;
+    bottom: -10mm;
+    left: 0;
+    right: 0;
     text-align: center;
     font-size: 7.5pt;
     color: var(--muted-color);
-    margin-top: 15px;
     border-top: 1px solid var(--primary-color);
     padding-top: 4px;
     line-height: 1.3;
-    page-break-inside: avoid;
 }
 """
 

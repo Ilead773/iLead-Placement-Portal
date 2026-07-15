@@ -89,7 +89,6 @@ const STUDENT_NAV = [
     { to: '/student/mock-interview', icon: <Mic size={18} strokeWidth={2} />, label: 'Mock Interview', badge: 'NEW', featureKey: 'mock-interview' },
   ]},
   { section: 'Support', items: [
-    { to: '/student/faq', icon: <HelpCircle size={18} strokeWidth={2} />, label: 'FAQ & Policy' },
     { to: '/student/handbook', icon: <BookOpen size={18} strokeWidth={2} />, label: 'Student Handbook' },
   ]}
 ];
