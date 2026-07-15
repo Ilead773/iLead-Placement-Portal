@@ -32,7 +32,8 @@ import {
   Bell,
   HelpCircle,
   Star,
-  Video
+  Video,
+  BookOpen
 } from 'lucide-react';
 import useThemeStore from '../store/themeStore';
 import logo from '../logo.png';
@@ -89,6 +90,7 @@ const STUDENT_NAV = [
   ]},
   { section: 'Support', items: [
     { to: '/student/faq', icon: <HelpCircle size={18} strokeWidth={2} />, label: 'FAQ & Policy' },
+    { to: '/student/handbook', icon: <BookOpen size={18} strokeWidth={2} />, label: 'Student Handbook' },
   ]}
 ];
 

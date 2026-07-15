@@ -48,6 +48,7 @@ import StudentTakeTest from './pages/north-star/student/TakeTest.jsx';
 import AdminPlacementSessions from './pages/admin/PlacementSessions.jsx';
 import StudentPlacementSessions from './pages/student/PlacementSessions.jsx';
 import FeatureSettings from './pages/admin/FeatureSettings.jsx';
+import StudentHandbook from './pages/student/Handbook.jsx';
 
 import useThemeStore from './store/themeStore';
 
@@ -123,6 +124,7 @@ export default function App() {
           <Route path="/student/take-test/:assignmentId" element={<StudentTakeTest />} />
           <Route path="/student/notifications" element={<Notifications />} />
           <Route path="/student/faq" element={<FAQ />} />
+          <Route path="/student/handbook" element={<StudentHandbook />} />
           <Route path="/student/sessions" element={<PrivateRoute feature="sessions"><StudentPlacementSessions /></PrivateRoute>} />
         </Route>
 
