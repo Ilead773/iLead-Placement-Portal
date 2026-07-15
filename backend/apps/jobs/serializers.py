@@ -14,12 +14,13 @@ class JobRoundSerializer(serializers.ModelSerializer):
 class JobSerializer(serializers.ModelSerializer):
     rounds = serializers.SerializerMethodField()
     applications_count = serializers.SerializerMethodField()
+    placed_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Job
         fields = ['id', 'company_name', 'company_website', 'role', 'description', 'package', 'location', 
                   'job_type', 'listing_type', 'duration', 'external_link', 'eligibility_rules', 
-                  'application_deadline', 'status', 'rounds', 'applications_count',
+                  'application_deadline', 'status', 'rounds', 'applications_count', 'placed_count',
                   'category', 'openings_count', 'hr_email', 'created_at', 'updated_at']
 
     def get_rounds(self, obj):
@@ -30,6 +31,11 @@ class JobSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'applications_count_annotated'):
             return obj.applications_count_annotated
         return obj.applications.filter(is_deleted=False).count()
+
+    def get_placed_count(self, obj):
+        if hasattr(obj, 'placed_count_annotated'):
+            return obj.placed_count_annotated
+        return obj.applications.filter(status__in=['selected', 'accepted'], is_deleted=False).count()
 
 class JobCreateSerializer(serializers.ModelSerializer):
     rounds = JobRoundSerializer(many=True, required=False, default=[])

@@ -103,6 +103,7 @@ export default function Placements() {
     let maxSalary = 0;
     let salaryCount = 0;
     let totalAssignments = 0;
+    let totalPlaced = 0;
 
     filteredPlacements.forEach(p => {
       if (p.listing_type === 'internship') {
@@ -124,6 +125,11 @@ export default function Placements() {
       } else if (p.assignment_count) {
         totalAssignments += Number(p.assignment_count);
       }
+      if (p.placed_count) {
+        totalPlaced += Number(p.placed_count);
+      } else if (p.assignment_count) {
+        totalPlaced += Number(p.assignment_count);
+      }
     });
 
     const avgSalary = salaryCount > 0 ? Math.round(totalSalary / salaryCount) : 0;
@@ -134,7 +140,8 @@ export default function Placements() {
       internshipsCount,
       avgSalary,
       maxSalary,
-      totalAssignments
+      totalAssignments,
+      totalPlaced
     };
   }, [filteredPlacements]);
 
@@ -732,8 +739,8 @@ export default function Placements() {
             </div>
           </div>
           <div className="card-content-wrapper">
-            <div className="card-value">{stats.totalAssignments}</div>
-            <div className="card-footer-info">Active Applications / Shortlists</div>
+            <div className="card-value">{stats.totalPlaced}</div>
+            <div className="card-footer-info">Total Placed Candidates</div>
           </div>
         </div>
 
@@ -866,6 +873,7 @@ export default function Placements() {
                 
                 const positionName = p.role || p.position || '—';
                 const assignedCount = p.applications_count ?? p.assignment_count ?? 0;
+                const placedCount = p.placed_count ?? (p.assignment_count ? p.assignment_count : 0);
                 
                 // Format package to Lakhs Per Annum (LPA) presentation
                 let pkgValue = '—';
@@ -1002,7 +1010,7 @@ export default function Placements() {
                     <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       {p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
                     </td>
-                    <td style={{ color: 'var(--text-primary)' }}>
+                     <td style={{ color: 'var(--text-primary)' }}>
                       {assignedCount > 0 ? (
                         <button 
                           onClick={() => handleViewStudents(p)}
@@ -1016,14 +1024,14 @@ export default function Placements() {
                             padding: '0.35rem 0.75rem',
                             borderRadius: '8px',
                             fontWeight: 700,
-                            background: 'var(--accent-soft, rgba(37, 99, 235, 0.12))',
-                            color: 'var(--accent-primary, #1d4ed8)',
+                            background: placedCount > 0 ? 'var(--success-soft, rgba(16, 185, 129, 0.12))' : 'var(--accent-soft, rgba(37, 99, 235, 0.12))',
+                            color: placedCount > 0 ? 'var(--success-primary, #10b981)' : 'var(--accent-primary, #1d4ed8)',
                             transition: 'all 0.2s ease',
                           }}
-                          title="Click to view student list"
+                          title="Click to view candidate details"
                         >
                           <Users size={12} />
-                          {assignedCount} Students
+                          {placedCount} Placed{assignedCount > placedCount ? ` (${assignedCount - placedCount} Applied)` : ''}
                         </button>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', paddingLeft: '8px' }}>0</span>

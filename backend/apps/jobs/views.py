@@ -21,7 +21,8 @@ def get_serialized_job_data(job):
         return JobSerializer(job).data
 
     app_count = getattr(job, 'applications_count_annotated', 0)
-    cache_key = f"serialized_job_{job.id}_{job.updated_at.timestamp()}_{app_count}"
+    placed_count = getattr(job, 'placed_count_annotated', 0)
+    cache_key = f"serialized_job_{job.id}_{job.updated_at.timestamp()}_{app_count}_{placed_count}"
     
     data = cache.get(cache_key)
     if data is None:
@@ -57,7 +58,8 @@ class JobViewSet(viewsets.ModelViewSet):
         
         # Optimize queries by prefetching rounds and annotating applications count
         qs = qs.prefetch_related('rounds').annotate(
-            applications_count_annotated=Count('applications', filter=Q(applications__is_deleted=False))
+            applications_count_annotated=Count('applications', filter=Q(applications__is_deleted=False)),
+            placed_count_annotated=Count('applications', filter=Q(applications__is_deleted=False, applications__status__in=['selected', 'accepted']))
         )
         return qs
 
