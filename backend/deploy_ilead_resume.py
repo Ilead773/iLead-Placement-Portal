@@ -372,7 +372,7 @@ CSS_STYLES = """:root {
 
 @page {
     size: A4;
-    margin: 12mm 14mm 10mm 14mm;
+    margin: 8mm 10mm 12mm 10mm;
 }
 
 body {
@@ -393,24 +393,23 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
-    padding-bottom: 6px;
-    margin-bottom: 8px;
+    padding-bottom: 3px;
+    margin-bottom: 4px;
 }
 
 .header-left {
-    flex: 0 0 80px;
+    flex: 0 0 70px;
 }
 
 .photo-frame {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    border: 1.5px dashed #000000;
     background-color: #f8fafc;
 }
 
@@ -436,7 +435,7 @@ body {
 }
 
 .candidate-name {
-    font-size: 14pt;
+    font-size: 13pt;
     font-weight: bold;
     color: var(--primary-color);
     margin: 0 0 2px 0;
@@ -506,16 +505,16 @@ body {
 }
 
 .resume-section {
-    margin-bottom: 7px;
+    margin-bottom: 5px;
     page-break-inside: avoid;
 }
 
 .section-title {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: bold;
     color: var(--primary-color);
     text-transform: uppercase;
-    margin: 0 0 3px 0;
+    margin: 0 0 1px 0;
     letter-spacing: 0.5px;
     border-bottom: 0.5px solid #c8d8e8;
     padding-bottom: 1px;
@@ -526,7 +525,7 @@ body {
 }
 
 .summary-text {
-    font-size: 9pt;
+    font-size: 8.5pt;
     text-align: justify;
     margin: 0;
     line-height: 1.3;
@@ -535,13 +534,13 @@ body {
 .education-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 7px;
-    font-size: 8.5pt;
+    margin-bottom: 5px;
+    font-size: 8pt;
 }
 
 .education-table th, .education-table td {
     border: 1px solid var(--border-color);
-    padding: 3px 5px;
+    padding: 2px 4px;
     text-align: center;
 }
 
@@ -569,7 +568,7 @@ body {
 .two-col-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 7px;
+    margin-top: 4px;
 }
 
 .left-col {
@@ -586,18 +585,18 @@ body {
 }
 
 .sidebar-section, .main-section {
-    margin-bottom: 7px;
+    margin-bottom: 5px;
     page-break-inside: avoid;
 }
 
 .bullet-list {
     margin: 2px 0 0 0;
     padding-left: 12px;
-    font-size: 8.5pt;
+    font-size: 8pt;
 }
 
 .bullet-list li {
-    margin-bottom: 1.5px;
+    margin-bottom: 0px;
     line-height: 1.3;
 }
 
@@ -614,13 +613,13 @@ body {
 }
 
 .experience-item {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     page-break-inside: avoid;
 }
 
 .exp-header {
-    font-size: 9pt;
-    margin-bottom: 2px;
+    font-size: 8.5pt;
+    margin-bottom: 1px;
     line-height: 1.3;
 }
 
@@ -672,11 +671,11 @@ body {
 
 .resume-footer {
     text-align: center;
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: var(--muted-color);
-    margin-top: 20px;
+    margin-top: 15px;
     border-top: 1px solid var(--primary-color);
-    padding-top: 6px;
+    padding-top: 4px;
     line-height: 1.3;
     page-break-inside: avoid;
 }

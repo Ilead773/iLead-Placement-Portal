@@ -65,7 +65,7 @@ PROFILE_COMPLETION_RULES = {
         "weight": 0.05,
     },
     "resume_generation": {
-        "min_profile_completion": 0.80,  # 80% to allow resume generation
+        "min_profile_completion": 0.50,  # 50% to allow resume generation
     },
 }
 

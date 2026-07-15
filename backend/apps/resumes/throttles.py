@@ -13,6 +13,10 @@ class ResumeGenerationThrottle(SimpleRateThrottle):
     scope = 'resume_generation'
     rate = '10/hour'
 
+    def allow_request(self, request, view):
+        # Temporarily disabled rate limiting
+        return True
+
     def get_cache_key(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return None
@@ -23,6 +27,10 @@ class ResumeUploadThrottle(SimpleRateThrottle):
     """5 uploads per hour per user."""
     scope = 'resume_upload'
     rate = '5/hour'
+
+    def allow_request(self, request, view):
+        # Temporarily disabled rate limiting
+        return True
 
     def get_cache_key(self, request, view):
         if not request.user or not request.user.is_authenticated:
@@ -35,7 +43,12 @@ class ResumeDownloadThrottle(SimpleRateThrottle):
     scope = 'resume_download'
     rate = '30/hour'
 
+    def allow_request(self, request, view):
+        # Temporarily disabled rate limiting
+        return True
+
     def get_cache_key(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return None
         return f'throttle_download_{request.user.id}'
+

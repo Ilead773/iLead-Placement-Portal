@@ -1,5 +1,6 @@
 // src/pages/student/Profile.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
 import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote } from 'lucide-react';
@@ -14,6 +15,7 @@ const getFullImageUrl = (path) => {
 };
 
 export default function StudentProfile() {
+  const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completion, setCompletion] = useState(null);
@@ -195,6 +197,79 @@ export default function StudentProfile() {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    const focus = params.get('focus');
+
+    if (tab) {
+      if (tab === 'skills') setShowSkillModal(true);
+      if (tab === 'projects') setShowProjModal(true);
+      if (tab === 'experience') setShowExpModal(true);
+    }
+
+    if (focus) {
+      if (['strengths', 'languages_known', 'summary', 'linkedin', 'github'].includes(focus)) {
+        setShowBasicModal(true);
+        setTimeout(() => {
+          let inputId = 'strengths-input';
+          if (focus === 'languages_known') inputId = 'languages-input';
+          if (focus === 'summary') inputId = 'summary-input';
+          if (focus === 'linkedin') inputId = 'linkedin-input';
+          if (focus === 'github') inputId = 'github-input';
+
+          const el = document.getElementById(inputId);
+          if (el) el.focus();
+        }, 300);
+      }
+    }
+  }, [loading, location.search]);
+
+  const handleSuggestionClick = (suggestion) => {
+    const s = suggestion.toLowerCase();
+    if (s.includes('strength')) {
+      setShowBasicModal(true);
+      setTimeout(() => {
+        const el = document.getElementById('strengths-input');
+        if (el) el.focus();
+      }, 150);
+    } else if (s.includes('language')) {
+      setShowBasicModal(true);
+      setTimeout(() => {
+        const el = document.getElementById('languages-input');
+        if (el) el.focus();
+      }, 150);
+    } else if (s.includes('summary')) {
+      setShowBasicModal(true);
+      setTimeout(() => {
+        const el = document.getElementById('summary-input');
+        if (el) el.focus();
+      }, 150);
+    } else if (s.includes('linkedin')) {
+      setShowBasicModal(true);
+      setTimeout(() => {
+        const el = document.getElementById('linkedin-input');
+        if (el) el.focus();
+      }, 150);
+    } else if (s.includes('github')) {
+      setShowBasicModal(true);
+      setTimeout(() => {
+        const el = document.getElementById('github-input');
+        if (el) el.focus();
+      }, 150);
+    } else if (s.includes('experience') || s.includes('internship')) {
+      setShowExpModal(true);
+    } else if (s.includes('extracurricular')) {
+      setShowExtraModal(true);
+    } else if (s.includes('project')) {
+      setShowProjModal(true);
+    } else if (s.includes('skill')) {
+      setShowSkillModal(true);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -699,7 +774,21 @@ export default function StudentProfile() {
               {/* Strengths */}
               <div className="profile-info-item strengths mt-4">
                 <div className="profile-info-content w-full">
-                  <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-2">Strengths</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
+                    <button 
+                      onClick={() => {
+                        setShowBasicModal(true);
+                        setTimeout(() => {
+                          const el = document.getElementById('strengths-input');
+                          if (el) el.focus();
+                        }, 200);
+                      }} 
+                      className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                    >
+                      {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-1">
                     {profile?.strengths?.length > 0 ? (
                       profile.strengths.map((str, idx) => (
@@ -715,7 +804,21 @@ export default function StudentProfile() {
               {/* Languages Known */}
               <div className="profile-info-item languages mt-4">
                 <div className="profile-info-content w-full">
-                  <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-2">Languages Known</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="profile-info-label font-bold text-xs uppercase text-muted block">Languages Known</span>
+                    <button 
+                      onClick={() => {
+                        setShowBasicModal(true);
+                        setTimeout(() => {
+                          const el = document.getElementById('languages-input');
+                          if (el) el.focus();
+                        }, 200);
+                      }} 
+                      className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                    >
+                      {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-1">
                     {profile?.languages_known?.length > 0 ? (
                       profile.languages_known.map((lang, idx) => (
@@ -765,9 +868,13 @@ export default function StudentProfile() {
                 <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
                 <ul className="space-y-2.5">
                   {completion.suggestions.map((s, idx) => (
-                    <li key={idx} className="text-xs text-warning-muted flex items-start gap-2">
+                    <li 
+                      key={idx} 
+                      onClick={() => handleSuggestionClick(s)}
+                      className="text-xs text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
+                    >
                       <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
-                      <span className="leading-relaxed">{s}</span>
+                      <span className="leading-relaxed underline decoration-dotted decoration-warning/20 group-hover:decoration-warning">{s}</span>
                     </li>
                   ))}
                 </ul>
@@ -977,13 +1084,13 @@ export default function StudentProfile() {
       {/* Basic Info Modal */}
       {showBasicModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-lg">
             <div className="modal-header"><h2>Edit Basic Info</h2><button className="modal-close" onClick={() => setShowBasicModal(false)}>&times;</button></div>
             <form onSubmit={handleUpdateBasic}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
-                  <label>Location</label>
-                  <input className="input-field" value={basicInfo.location} onChange={e => setBasicInfo({...basicInfo, location: e.target.value})} />
+                  <label htmlFor="location-input">Location</label>
+                  <input id="location-input" className="input-field" value={basicInfo.location} onChange={e => setBasicInfo({...basicInfo, location: e.target.value})} />
                 </div>
                 <div className="input-group">
                   <label>Phone Number</label>
@@ -1010,13 +1117,25 @@ export default function StudentProfile() {
                   </div>
                 </div>
               </div>
-              <div className="input-group"><label>Professional Summary</label><textarea className="input-field" rows="3" value={basicInfo.professional_summary} onChange={e => setBasicInfo({...basicInfo, professional_summary: e.target.value})} /></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="input-group"><label>LinkedIn</label><input className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} /></div>
-                <div className="input-group"><label>GitHub</label><input className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} /></div>
+              <div className="input-group">
+                <label htmlFor="summary-input">Professional Summary</label>
+                <textarea id="summary-input" className="input-field" rows="3" value={basicInfo.professional_summary} onChange={e => setBasicInfo({...basicInfo, professional_summary: e.target.value})} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="input-group"><label>Portfolio Website</label><input className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} /></div>
+                <div className="input-group">
+                  <label htmlFor="linkedin-input">LinkedIn</label>
+                  <input id="linkedin-input" className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="github-input">GitHub</label>
+                  <input id="github-input" className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="input-group">
+                  <label htmlFor="portfolio-input">Portfolio Website</label>
+                  <input id="portfolio-input" className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} />
+                </div>
                 <div className="input-group flex flex-col justify-center">
                   <div className="flex items-center gap-2 mt-4 cursor-pointer">
                     <input 
@@ -1031,8 +1150,9 @@ export default function StudentProfile() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div className="input-group">
-                  <label>Strengths (comma separated)</label>
+                  <label htmlFor="strengths-input">Strengths (comma separated)</label>
                   <input 
+                    id="strengths-input"
                     placeholder="e.g. Leadership, Problem Solving, Public Speaking" 
                     className="input-field" 
                     value={basicInfo.strengths} 
@@ -1040,8 +1160,9 @@ export default function StudentProfile() {
                   />
                 </div>
                 <div className="input-group">
-                  <label>Languages Known (comma separated)</label>
+                  <label htmlFor="languages-input">Languages Known (comma separated)</label>
                   <input 
+                    id="languages-input"
                     placeholder="e.g. English (Fluent), Hindi (Native)" 
                     className="input-field" 
                     value={basicInfo.languages_known} 
@@ -1058,7 +1179,7 @@ export default function StudentProfile() {
       {/* Experience Modal */}
       {showExpModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header"><h2>{editingExpId ? 'Edit Experience' : 'Add Experience'}</h2><button className="modal-close" onClick={() => { setShowExpModal(false); setEditingExpId(null); setNewExp({ company: '', position: '', start_date: '', end_date: '', is_current: false, description: '' }); }}>&times;</button></div>
             <form onSubmit={handleAddExperience}>
               <div className="input-group"><label>Company</label><input className="input-field" required value={newExp.company} onChange={e => setNewExp({...newExp, company: e.target.value})} /></div>
@@ -1078,7 +1199,7 @@ export default function StudentProfile() {
       {/* Skill Modal */}
       {showSkillModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header"><h2>{editingSkillId ? 'Edit Skill' : 'Add New Skill'}</h2><button className="modal-close" onClick={() => { setShowSkillModal(false); setEditingSkillId(null); setNewSkill({ name: '', category: 'Technical', proficiency: 'Beginner' }); }}>&times;</button></div>
             <form onSubmit={handleAddSkill}>
               <div className="input-group"><label>Skill Name</label><input className="input-field" required value={newSkill.name} onChange={e => setNewSkill({...newSkill, name: e.target.value})} /></div>
@@ -1095,7 +1216,7 @@ export default function StudentProfile() {
       {/* Project Modal */}
       {showProjModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header"><h2>{editingProjId ? 'Edit Project' : 'Add Project'}</h2><button className="modal-close" onClick={() => { setShowProjModal(false); setEditingProjId(null); setNewProj({ title: '', description: '', technologies: '', link: '', date: '' }); }}>&times;</button></div>
             <form onSubmit={handleAddProject}>
               <div className="input-group"><label>Project Title</label><input className="input-field" required value={newProj.title} onChange={e => setNewProj({...newProj, title: e.target.value})} /></div>
@@ -1110,7 +1231,7 @@ export default function StudentProfile() {
       {/* Education Modal */}
       {showEduModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>{editingEduId ? 'Edit Education' : 'Add Education'}</h2>
               <button className="modal-close" onClick={() => {
@@ -1157,7 +1278,7 @@ export default function StudentProfile() {
       {/* Certification Modal */}
       {showCertModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>{editingCertId ? 'Edit Certification' : 'Add Certification'}</h2>
               <button className="modal-close" onClick={() => {
@@ -1196,7 +1317,7 @@ export default function StudentProfile() {
       {/* Awards & Achievements Modal */}
       {showAwardModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>{editingAwardId ? 'Edit Award' : 'Add Award / Achievement'}</h2>
               <button className="modal-close" onClick={() => {
@@ -1233,7 +1354,7 @@ export default function StudentProfile() {
       {/* Extracurricular Activities Modal */}
       {showExtraModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal modal-md">
             <div className="modal-header">
               <h2>{editingExtraId ? 'Edit Extracurricular Activity' : 'Add Extracurricular Activity'}</h2>
               <button className="modal-close" onClick={() => {

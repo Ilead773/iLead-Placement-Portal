@@ -476,8 +476,13 @@ export default function StudentDashboard() {
                 {completion.suggestions.map((sug, i) => {
                   let targetTab = "/student/profile";
                   if (sug.toLowerCase().includes("skill")) targetTab = "/student/profile?tab=skills";
-                  if (sug.toLowerCase().includes("project")) targetTab = "/student/profile?tab=projects";
-                  if (sug.toLowerCase().includes("experience") || sug.toLowerCase().includes("internship")) targetTab = "/student/profile?tab=experience";
+                  else if (sug.toLowerCase().includes("project")) targetTab = "/student/profile?tab=projects";
+                  else if (sug.toLowerCase().includes("experience") || sug.toLowerCase().includes("internship")) targetTab = "/student/profile?tab=experience";
+                  else if (sug.toLowerCase().includes("strength")) targetTab = "/student/profile?focus=strengths";
+                  else if (sug.toLowerCase().includes("language")) targetTab = "/student/profile?focus=languages_known";
+                  else if (sug.toLowerCase().includes("summary")) targetTab = "/student/profile?focus=summary";
+                  else if (sug.toLowerCase().includes("linkedin")) targetTab = "/student/profile?focus=linkedin";
+                  else if (sug.toLowerCase().includes("github")) targetTab = "/student/profile?focus=github";
                   
                   return (
                     <div key={i} className="boost-item p-3 border border-border-color rounded-xl flex justify-between items-center bg-slate-50/50 dark:bg-zinc-900/50">

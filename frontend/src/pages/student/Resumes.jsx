@@ -26,6 +26,7 @@ export default function StudentResumes() {
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [profileWarning, setProfileWarning] = useState("");
+  const [profileScore, setProfileScore] = useState(1.0);
   
   // Edit State
   const [editingResumeId, setEditingResumeId] = useState(null);
@@ -89,7 +90,11 @@ export default function StudentResumes() {
       // Check profile status (simulate profile check or use context if available)
       try {
         const profileRes = await api.get('profiles/me/');
-        if (!profileRes.data.phone || !profileRes.data.location) {
+        const score = profileRes.data.completion_score ?? 0;
+        setProfileScore(score);
+        if (score < 0.50) {
+          setProfileWarning(`Your profile completion is at ${Math.round(score * 100)}%. You must reach at least 50% completion before you can create or generate a resume.`);
+        } else if (!profileRes.data.phone || !profileRes.data.location) {
           setProfileWarning("Your profile is missing contact details. Generating a resume without them may look incomplete.");
         }
       } catch (e) {
@@ -265,6 +270,8 @@ export default function StudentResumes() {
     return <span className={`status-badge ${states[state] || 'badge-neutral'}`}>{state}</span>;
   };
 
+  const hasProcessing = resumes.some(r => ['processing', 'parsing', 'draft', 'pending'].includes(r.state));
+
   if (loading) return <div className="loading-state flex justify-center p-12">Loading Resume Engine...</div>;
 
   return (
@@ -412,11 +419,17 @@ export default function StudentResumes() {
                   <div className="template-overlay">
                      <button
                        onClick={() => handleGenerate(tpl.id)}
-                       disabled={isGenerating}
+                       disabled={isGenerating || hasProcessing || profileScore < 0.50}
                        className="btn btn-primary"
-                       style={{ background: 'white', color: '#ea580c', border: 'none', padding: '12px 24px' }}
+                       style={{ 
+                         background: (profileScore < 0.50) ? '#e2e8f0' : (isGenerating || hasProcessing) ? '#f1f5f9' : 'white', 
+                         color: (profileScore < 0.50) ? '#94a3b8' : (isGenerating || hasProcessing) ? '#94a3b8' : '#ea580c', 
+                         border: 'none', 
+                         padding: '12px 24px',
+                         cursor: (profileScore < 0.50 || isGenerating || hasProcessing) ? 'not-allowed' : 'pointer'
+                       }}
                      >
-                       {isGenerating ? 'Generating...' : 'Use This Template'}
+                       {isGenerating || hasProcessing ? 'Generating...' : (profileScore < 0.50) ? 'Profile Incomplete' : 'Use This Template'}
                      </button>
                   </div>
                 </div>

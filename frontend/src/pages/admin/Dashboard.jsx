@@ -1519,15 +1519,15 @@ export default function Dashboard() {
       )}
 
       {/* ──═════════════════════════════════════════════════════════── */}
-      {/* SECTION: ELIGIBILITY                                       */}
+      {/* SECTION: CATEGORIES & PACT PERFORMANCE                     */}
       {/* ──═════════════════════════════════════════════════════════── */}
       <div className="dashboard-section-header" onClick={() => toggleSection('eligibility')}>
         <div className="dashboard-section-left">
           <span className="dashboard-section-icon">
-            <CheckCircle size={18} />
+            <Award size={18} />
           </span>
           <h2 className="dashboard-section-title">
-            Eligibility & Compliance
+            Category & PACT Performance
           </h2>
         </div>
         <button 
@@ -1549,83 +1549,49 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Eligibility First Row Statistics (Always Visible) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
-        <KPICard title="Eligible Students"      value={eli.eligible_students ?? 0}        icon={UserCheck}   color={COLORS.success} />
-        <KPICard title="Ineligible Students"    value={eli.ineligible_students ?? 0}      icon={UserX}       color={COLORS.danger} />
-        <KPICard title="CGPA Not Met"           value={eli.cgpa_not_met ?? 0}             icon={AlertCircle} color={COLORS.warning} />
-        <KPICard title="Attendance Not Met"     value={eli.attendance_not_met ?? 0}       icon={Clock}       color={COLORS.warning} />
-        <KPICard title="Backlog Disqualified"   value={eli.backlog_disqualified ?? 0}     icon={XCircle}     color={COLORS.danger} />
-        <KPICard title="Course Not Eligible"    value={eli.course_not_eligible ?? 0}      icon={BookOpen}    color={COLORS.slate} />
-        <KPICard title="Eligibility Compliance" value={`${eli.eligibility_compliance_pct ?? 0}%`} icon={CheckCircle} color={COLORS.success} />
+      {/* Category & PACT First Row Statistics (Always Visible) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+        <KPICard 
+          title="Avg PACT Score" 
+          value={eli.avg_pact_score ?? 0} 
+          subtitle="Overall index score"
+          icon={Target}
+          color={COLORS.purple}
+        />
+        <KPICard 
+          title="Category A Students" 
+          value={eli.category_distribution?.A ?? 0} 
+          subtitle="Outstanding profiles"
+          icon={Award}
+          color={COLORS.success}
+        />
+        <KPICard 
+          title="Category B Students" 
+          value={eli.category_distribution?.B ?? 0} 
+          subtitle="Consistent performers"
+          icon={UserCheck}
+          color={COLORS.warning}
+        />
+        <KPICard 
+          title="Category C Students" 
+          value={eli.category_distribution?.C ?? 0} 
+          subtitle="Need improvement"
+          icon={UserX}
+          color={COLORS.danger}
+        />
       </div>
 
       {/* Eligibility Expanded Details */}
       {expanded.eligibility && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 20 }} className="animate-in">
-
-          {/* Eligibility Cards Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
-            <DetailMiniCard 
-              title="Avg PACT Score" 
-              value={eli.avg_pact_score ?? 0} 
-              subtitle="Overall index score"
-              icon={Target}
-              color={COLORS.purple}
-            />
-            <DetailMiniCard 
-              title="Category A Students" 
-              value={eli.category_distribution?.A ?? 0} 
-              subtitle="Outstanding profiles"
-              icon={Award}
-              color={COLORS.success}
-            />
-            <DetailMiniCard 
-              title="Category B Students" 
-              value={eli.category_distribution?.B ?? 0} 
-              subtitle="Consistent performers"
-              icon={UserCheck}
-              color={COLORS.warning}
-            />
-            <DetailMiniCard 
-              title="Category C Students" 
-              value={eli.category_distribution?.C ?? 0} 
-              subtitle="Need improvement"
-              icon={UserX}
-              color={COLORS.danger}
-            />
-          </div>
-
-          <div className="grid-responsive-2">
-            <ChartCard title="Eligible vs Ineligible" icon={PieChart} color={COLORS.success}>
-              <DonutChart data={{ 'Eligible': eli.eligible_students ?? 0, 'Ineligible': eli.ineligible_students ?? 0 }} />
-            </ChartCard>
-            <ChartCard title="Ineligibility Reasons" icon={AlertCircle} color={COLORS.danger}>
-              <DonutChart data={eli.ineligible_reasons} />
-            </ChartCard>
-          </div>
-
-          <ChartCard title="Eligibility Compliance Overview" icon={CheckCircle} color={COLORS.success}>
-            {[
-              { label: 'Eligible Students',    value: eli.eligible_students ?? 0,    color: COLORS.success },
-              { label: 'CGPA Not Met',         value: eli.cgpa_not_met ?? 0,         color: COLORS.warning },
-              { label: 'Attendance Not Met',   value: eli.attendance_not_met ?? 0,   color: COLORS.warning },
-              { label: 'Backlog Disqualified', value: eli.backlog_disqualified ?? 0, color: COLORS.danger },
-            ].map(row => (
-              <ProgressBar key={row.label} label={row.label} value={row.value} max={ov.total_students || 1} color={row.color} />
-            ))}
-          </ChartCard>
-
-          {/* Departmental Eligibility & PACT Performance Table */}
-          <ChartCard title="Departmental Eligibility & PACT Performance" icon={Building} color={COLORS.teal}>
+          {/* Departmental Category & PACT Performance Table */}
+          <ChartCard title="Departmental Category & PACT Performance" icon={Building} color={COLORS.teal}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 800 }}>DEPARTMENT / COURSE</th>
                     <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>TOTAL</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>ELIGIBLE</th>
-                    <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>ELIGIBILITY %</th>
                     <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>CAT A / B / C</th>
                     <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>AVG CGPA</th>
                     <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800 }}>AVG ATTENDANCE</th>
@@ -1637,12 +1603,6 @@ export default function Dashboard() {
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border-light)' }} className="hover-row">
                       <td style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--text-primary)' }}>{row.course}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 700 }}>{row.total_students}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', color: COLORS.success, fontWeight: 700 }}>{row.eligible_count}</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                        <span style={{ background: COLORS.success + '15', color: COLORS.success, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.75rem' }}>
-                          {row.eligibility_rate}%
-                        </span>
-                      </td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>
                         <span style={{ color: COLORS.success }}>{row.cat_a}</span> / <span style={{ color: COLORS.warning }}>{row.cat_b}</span> / <span style={{ color: COLORS.danger }}>{row.cat_c}</span>
                       </td>
