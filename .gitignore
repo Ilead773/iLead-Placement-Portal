@@ -18,9 +18,6 @@ frontend/.env.local
 !.env.example
 !backend/.env.example
 !frontend/.env.example
-!frontend/.env.development
-!frontend/.env.production
-!frontend/.env.staging
 
 # Python cache and artifacts
 __pycache__/
