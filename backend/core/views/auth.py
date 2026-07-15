@@ -92,14 +92,19 @@ class AuthViewSet(viewsets.ViewSet):
                 user = User.objects.select_for_update().get(id=user.id)
 
                 # Re-check lockout status inside transaction to prevent race conditions
-                if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-                    remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
-                    if remaining <= 0:
-                        remaining = 1
-                    return Response(
-                        {'error': f'Account locked. Try again in {remaining} minutes.'},
-                        status=status.HTTP_429_TOO_MANY_REQUESTS,
-                    )
+                if user.locked_until:
+                    if user.locked_until > datetime.now(timezone.utc):
+                        remaining = int((user.locked_until - datetime.now(timezone.utc)).total_seconds() // 60) + 1
+                        if remaining <= 0:
+                            remaining = 1
+                        return Response(
+                            {'error': f'Account locked. Try again in {remaining} minutes.'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS,
+                        )
+                    else:
+                        # Lockout has expired, reset attempts before evaluating this attempt
+                        user.failed_login_attempts = 0
+                        user.locked_until = None
 
                 if not password_correct:
                     user.failed_login_attempts += 1
@@ -107,20 +112,8 @@ class AuthViewSet(viewsets.ViewSet):
                     if user.failed_login_attempts >= 5:
                         if user.failed_login_attempts == 5:
                             lockout_mins = 1
-                        elif user.failed_login_attempts == 6:
-                            lockout_mins = 5
-                        elif user.failed_login_attempts == 7:
-                            lockout_mins = 30
                         else:
-                            # 8 or more failed attempts: permanently lock
-                            user.is_active = False
-                            user.locked_until = datetime.now(timezone.utc) + timedelta(days=36500) # 100 years
-                            user.save(update_fields=['failed_login_attempts', 'locked_until', 'is_active'])
-                            log_audit(user, 'account_disabled', 'Permanently locked after 8+ failed attempts', request)
-                            return Response(
-                                {'error': 'Account has been permanently locked due to too many failed login attempts. Please contact the administrator.'},
-                                status=status.HTTP_429_TOO_MANY_REQUESTS,
-                            )
+                            lockout_mins = 5
                         
                         user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_mins)
                         user.save(update_fields=['failed_login_attempts', 'locked_until'])
@@ -130,7 +123,7 @@ class AuthViewSet(viewsets.ViewSet):
                             status=status.HTTP_429_TOO_MANY_REQUESTS,
                         )
                     
-                    user.save(update_fields=['failed_login_attempts'])
+                    user.save(update_fields=['failed_login_attempts', 'locked_until'])
                     log_audit(user, 'login_failed', f'Attempt {user.failed_login_attempts}', request)
                     return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 

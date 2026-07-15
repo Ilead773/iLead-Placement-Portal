@@ -16,7 +16,15 @@ from django.conf import settings
 from ..models import User, Student, CSVUploadLog
 from ..serializers import StudentSerializer, CSVUploadLogSerializer
 from ..permissions import IsAdminOrCoordinator
-from ..csv_processor import process_csv
+from ..csv_processor import (
+    process_csv,
+    _validate_email,
+    _validate_phone,
+    _validate_cgpa,
+    _validate_semester,
+    _validate_attendance,
+    _validate_passing_year
+)
 from ..tasks import process_student_csv_task
 from .helpers import log_audit
 
@@ -227,51 +235,107 @@ class StudentViewSet(viewsets.ViewSet):
                     <html>
                     <head>
                         <meta charset="utf-8">
-                        <style>
-                            body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 0; -webkit-font-smoothing: antialiased; }}
-                            .container {{ max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }}
-                            .header {{ background: #1e3a8a; padding: 40px; text-align: center; color: #ffffff; }}
-                            .header h1 {{ margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }}
-                            .content {{ padding: 40px; color: #334155; line-height: 1.6; }}
-                            .content p {{ margin: 0 0 20px 0; font-size: 16px; }}
-                            .cred-box {{ background: #f1f5f9; padding: 24px; border-radius: 12px; margin: 24px 0; border: 1px dashed #cbd5e1; }}
-                            .cred-item {{ display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }}
-                            .cred-item:last-child {{ margin-bottom: 0; }}
-                            .cred-label {{ font-weight: 600; color: #64748b; }}
-                            .cred-value {{ font-family: monospace; font-weight: 700; color: #0f172a; font-size: 16px; background: #e2e8f0; padding: 2px 8px; border-radius: 4px; }}
-                            .btn-container {{ text-align: center; margin: 32px 0 20px 0; }}
-                            .btn {{ display: inline-block; background-color: #3b82f6; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s ease; }}
-                            .footer {{ background: #f8fafc; padding: 24px 40px; border-top: 1px solid #f1f5f9; text-align: center; font-size: 14px; color: #64748b; }}
-                        </style>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Welcome to iLEAD Placement Portal</title>
                     </head>
-                    <body>
-                        <div class="container">
-                            <div class="header">
-                                <h1>iLEAD Placement Portal</h1>
-                            </div>
-                            <div class="content">
-                                <p>Dear {name},</p>
-                                <p>Your student account has been successfully created on the official iLEAD Placement Portal. You can now log in to update your profile, upload your resume, and apply for recruitment drives.</p>
-                                <p>Please use the following credentials to access your account:</p>
-                                <div class="cred-box">
-                                    <div class="cred-item">
-                                        <span class="cred-label">Login ID:</span>
-                                        <span class="cred-value">{login_id}</span>
-                                    </div>
-                                    <div class="cred-item">
-                                        <span class="cred-label">Temporary Password:</span>
-                                        <span class="cred-value">{temp_password}</span>
-                                    </div>
-                                </div>
-                                <div class="btn-container">
-                                    <a href="{settings.FRONTEND_URL}/login" class="btn">Access Portal Login</a>
-                                </div>
-                                <p style="font-size: 14px; color: #64748b; margin-top: 24px;"><em>* For security reasons, you will be prompted to change your temporary password immediately upon your first login.</em></p>
-                            </div>
-                            <div class="footer">
-                                <p>Best regards,<br><strong>Placement Team</strong><br>iLEAD Institute of Leadership, Entrepreneurship and Development</p>
-                            </div>
-                        </div>
+                    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #fafafa; margin: 0; padding: 40px 0; -webkit-font-smoothing: antialiased;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fafafa;">
+                            <tr>
+                                <td align="center" style="padding: 0 16px;">
+                                    <!--[if mso]>
+                                    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="560">
+                                    <tr>
+                                    <td>
+                                    <![endif]-->
+                                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; border: 1px solid #eef2f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02); margin: 0 auto; text-align: left;">
+                                        
+                                        <!-- Header Banner (Subtle Top Accent Bar) -->
+                                        <tr>
+                                            <td height="4" style="background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); line-height: 4px; font-size: 4px; border-top-left-radius: 12px; border-top-right-radius: 12px;">&nbsp;</td>
+                                        </tr>
+                                        
+                                        <!-- Logo / Branding Header -->
+                                        <tr>
+                                            <td style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #f1f5f9;">
+                                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td>
+                                                            <span style="font-size: 22px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em;">iLEAD</span>
+                                                            <span style="font-size: 22px; font-weight: 400; color: #64748b; letter-spacing: -0.02em; margin-left: 4px;">Placement Portal</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Content -->
+                                        <tr>
+                                            <td style="padding: 32px 32px 24px 32px;">
+                                                <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155; font-weight: 600;">Dear {name},</p>
+                                                <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #475569;">Your student account has been successfully created on the official <strong>iLEAD Placement Portal</strong>. You can now log in to update your profile, upload your resume, and apply for recruitment drives.</p>
+                                                
+                                                <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em;">Your Login Credentials</p>
+                                                
+                                                <!-- Credentials card - Stripe style -->
+                                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 24px;">
+                                                    <tr>
+                                                        <td style="padding: 16px 20px;">
+                                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                                <tr>
+                                                                    <td width="35%" style="padding-bottom: 10px; font-size: 14px; color: #64748b; font-weight: 500;">Login ID:</td>
+                                                                    <td width="65%" style="padding-bottom: 10px; font-size: 14px; font-weight: 700; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">{login_id}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td style="font-size: 14px; color: #64748b; font-weight: 500;">Temp Password:</td>
+                                                                    <td style="font-size: 14px; font-weight: 700; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">{temp_password}</td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <!-- CTA Button - Left Aligned Stripe-style -->
+                                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 24px;">
+                                                    <tr>
+                                                        <td>
+                                                            <!--[if mso]>
+                                                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{settings.FRONTEND_URL}/login" style="height:44px;v-text-anchor:middle;width:200px;" arcsize="10%" stroke="f" fillcolor="#1e3a8a">
+                                                            <w:anchorlock/>
+                                                            <center>
+                                                            <![endif]-->
+                                                            <a href="{settings.FRONTEND_URL}/login" style="background-color: #1e3a8a; color: #ffffff; display: inline-block; font-size: 15px; font-weight: 600; line-height: 44px; text-align: center; text-decoration: none; padding: 0 24px; border-radius: 6px; -webkit-text-size-adjust: none;">Access Portal Login</a>
+                                                            <!--[if mso]>
+                                                            </center>
+                                                            </v:roundrect>
+                                                            <![endif]-->
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                
+                                                <!-- Security Notice -->
+                                                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #64748b; font-style: italic;">* For security reasons, you will be prompted to change your temporary password immediately upon your first login.</p>
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Footer -->
+                                        <tr>
+                                            <td style="padding: 24px 32px 32px 32px; background-color: #ffffff; border-top: 1px solid #f1f5f9;">
+                                                <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #1e293b;">iLEAD Placement &amp; Training Cell</p>
+                                                <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b; line-height: 1.4;">Institute of Leadership, Entrepreneurship and Development<br>113J, Matheswartola Road, Topsia, Kolkata - 700046</p>
+                                                <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 11px; color: #94a3b8; line-height: 1.4;">
+                                                    This is an automated notification from the iLEAD Placement Portal. Please do not reply directly to this email.
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <!--[if mso]>
+                                    </td>
+                                    </tr>
+                                    </table>
+                                    <![endif]-->
+                                </td>
+                            </tr>
+                        </table>
                     </body>
                     </html>
                     """
@@ -675,4 +739,235 @@ class StudentViewSet(viewsets.ViewSet):
             'message': 'Student details updated successfully.',
             'student': StudentSerializer(student, context={'request': request}).data
         })
+
+    def create_student(self, request):
+        """Admin or authorized coordinator manually creates a student user and profile."""
+        if not (request.user.role == 'admin' or (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_students', False))):
+            return Response({'error': 'Only admins or authorized coordinators can create students.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        data = request.data
+        
+        try:
+            # clean up inputs
+            name = data.get('name', '').strip()
+            reg_no = data.get('registration_number', '').strip()
+            email_raw = data.get('email', '').strip()
+            
+            if not name:
+                return Response({'error': 'Name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not reg_no:
+                return Response({'error': 'Registration number is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not email_raw:
+                return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            email = _validate_email(email_raw, 1)
+            
+            # course normalization
+            from apps.scraped_jobs.course_config import normalize_course_name
+            course_raw = data.get('course', '').strip()
+            if not course_raw:
+                return Response({'error': 'Course is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            course = normalize_course_name(course_raw)
+            
+            stream = data.get('stream', '').strip() or None
+            
+            # validators
+            semester_raw = data.get('semester')
+            semester = _validate_semester(semester_raw, 1) if semester_raw not in [None, ''] else None
+            
+            attendance_raw = data.get('attendance')
+            attendance = _validate_attendance(str(attendance_raw), 1) if attendance_raw not in [None, ''] else None
+            
+            training_attendance_raw = data.get('training_attendance')
+            training_attendance = _validate_attendance(str(training_attendance_raw), 1) if training_attendance_raw not in [None, ''] else 100.0
+            
+            cgpa_raw = data.get('cgpa')
+            cgpa = _validate_cgpa(cgpa_raw, 1) if cgpa_raw not in [None, ''] else None
+            
+            phone_raw = data.get('phone_number', '').strip()
+            phone = _validate_phone(phone_raw, 1) if phone_raw else ''
+            
+            passing_year_raw = data.get('passing_year')
+            passing_year = _validate_passing_year(passing_year_raw, 1) if passing_year_raw not in [None, ''] else None
+            
+            backlogs_count_raw = data.get('backlogs_count', 0)
+            try:
+                backlogs_count = int(backlogs_count_raw) if backlogs_count_raw not in [None, ''] else 0
+            except ValueError:
+                return Response({'error': 'Backlogs count must be a valid integer.'}, status=status.HTTP_400_BAD_REQUEST)
+            backlogs = backlogs_count > 0
+            
+            year = data.get('year') or None
+            if year and year not in ['1st', '2nd', '3rd', '4th']:
+                return Response({'error': "Year must be one of '1st', '2nd', '3rd', '4th'."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            category_raw = data.get('category') or 'auto'
+            
+        except ValueError as val_err:
+            err_msg = str(val_err).replace("Row 1: ", "")
+            return Response({'error': err_msg}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Check unique constraints
+        login_id = reg_no.lower()
+        if User.objects.filter(login_id=login_id).exists():
+            return Response({'error': f"Registration number '{reg_no}' (Login ID '{login_id}') is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if User.objects.filter(email=email).exists():
+            return Response({'error': f"Email '{email}' is already in use by another user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Student.objects.filter(registration_number=reg_no).exists():
+            return Response({'error': f"Registration number '{reg_no}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Student.objects.filter(email=email).exists():
+            return Response({'error': f"Email '{email}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Generate or get password
+        password = data.get('password', '').strip()
+        if not password:
+            import secrets
+            import string
+            alphabet = string.ascii_letters + string.digits
+            password = ''.join(secrets.choice(alphabet) for _ in range(10))
+
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    login_id=login_id,
+                    email=email,
+                    password=password,
+                    name=name,
+                    role='student',
+                    temp_password_flag=True
+                )
+                
+                student = Student(
+                    user=user,
+                    name=name,
+                    registration_number=reg_no,
+                    email=email,
+                    passing_year=passing_year,
+                    course=course,
+                    stream=stream,
+                    semester=semester,
+                    attendance=attendance,
+                    training_attendance=training_attendance,
+                    backlogs_count=backlogs_count,
+                    cgpa=cgpa,
+                    phone_number=phone,
+                    year=year,
+                    backlogs=backlogs
+                )
+                
+                # Category logic
+                if category_raw in ['A', 'B', 'C', 'Own']:
+                    student.category = category_raw
+                    student.is_category_manual = True
+                else:
+                    student.is_category_manual = False
+                    student.category = student.calculate_category()
+                    
+                student.full_clean()
+                student.save()
+        except Exception as e:
+            return Response({'error': f"Database error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        send_welcome_email = data.get('send_welcome_email', True)
+        if send_welcome_email:
+            try:
+                subject = "Welcome to iLEAD Placement Portal - Account Created"
+                message = (
+                    f"Dear {name},\n\n"
+                    f"Your student account has been successfully created on the iLEAD Placement Portal.\n\n"
+                    f"Here are your login credentials:\n"
+                    f"- Login ID: {login_id}\n"
+                    f"- Temporary Password: {password}\n\n"
+                    f"Please log in and update your password immediately at your first login: {settings.FRONTEND_URL}/login\n\n"
+                    f"Best regards,\n"
+                    f"Placement Team\n"
+                    f"iLEAD Institute of Leadership, Entrepreneurship and Development"
+                )
+                
+                html_message = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Welcome to iLEAD Placement Portal</title>
+                </head>
+                <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #fafafa; margin: 0; padding: 40px 0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fafafa;">
+                        <tr>
+                            <td align="center" style="padding: 0 16px;">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; border: 1px solid #eef2f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); margin: 0 auto; text-align: left;">
+                                    <tr>
+                                        <td height="4" style="background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); border-top-left-radius: 12px; border-top-right-radius: 12px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 32px 32px 24px 32px;">
+                                            <h2 style="color: #1e3a8a; margin: 0 0 16px 0; font-size: 20px;">Account Created</h2>
+                                            <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">
+                                                Dear {name},<br><br>
+                                                Your student account has been successfully created on the <strong>iLEAD Placement Portal</strong>.
+                                            </p>
+                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 24px;">
+                                                <tr>
+                                                    <td style="padding: 20px;">
+                                                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                            <tr>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Login ID:</strong></td>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{login_id}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{password}</td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                                                <tr>
+                                                    <td align="center">
+                                                        <a href="{settings.FRONTEND_URL}/login" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 12px 28px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);">Log In to Portal</a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <p style="color: #64748b; font-size: 13px; line-height: 20px; margin: 0;">
+                                                Please log in and update your password immediately at your first login.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="background-color: #f8fafc; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; padding: 24px 32px; border-top: 1px solid #eef2f6;">
+                                            <p style="color: #475569; font-size: 14px; font-weight: 600; margin: 0 0 4px 0;">iLEAD Placement Team</p>
+                                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">Institute of Leadership, Entrepreneurship and Development</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """
+                
+                from core.tasks import async_send_mail
+                async_send_mail.delay(
+                    subject,
+                    message,
+                    [email],
+                    html_message=html_message
+                )
+            except Exception as mail_err:
+                logger.error(f"Failed to send manual student welcome email: {mail_err}")
+
+        log_audit(request.user, 'student_created_manually', f"Created student {reg_no} ({name})", request)
+        
+        return Response({
+            'message': 'Student created successfully.',
+            'student': StudentSerializer(student, context={'request': request}).data,
+            'temporary_password': password
+        }, status=status.HTTP_201_CREATED)
 

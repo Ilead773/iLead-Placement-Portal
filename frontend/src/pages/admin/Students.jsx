@@ -82,6 +82,27 @@ export default function Students() {
     category: ''
   });
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [addForm, setAddForm] = useState({
+    name: '',
+    registration_number: '',
+    email: '',
+    phone_number: '',
+    course: '',
+    stream: '',
+    semester: '',
+    year: '',
+    passing_year: '',
+    cgpa: '',
+    attendance: '',
+    training_attendance: '100',
+    backlogs_count: '0',
+    category: 'auto',
+    password: '',
+    send_welcome_email: true
+  });
+
   useEffect(() => {
     if (selectedStudent) {
       setEditForm({
@@ -113,6 +134,56 @@ export default function Students() {
       fetchStudents(page);
     } catch (err) {
       const errMsg = err.response?.data?.error || 'Failed to update student details.';
+      showToast(errMsg, 'error');
+    }
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...addForm,
+        semester: addForm.semester !== '' ? parseInt(addForm.semester) : null,
+        passing_year: addForm.passing_year !== '' ? parseInt(addForm.passing_year) : null,
+        cgpa: addForm.cgpa !== '' ? parseFloat(addForm.cgpa) : null,
+        attendance: addForm.attendance !== '' ? parseFloat(addForm.attendance) : null,
+        training_attendance: addForm.training_attendance !== '' ? parseFloat(addForm.training_attendance) : 100.0,
+        backlogs_count: addForm.backlogs_count !== '' ? parseInt(addForm.backlogs_count) : 0,
+      };
+
+      const { data } = await api.post('/students/', payload);
+      showToast('Student created successfully!');
+      
+      setCreatedCredentials({
+        name: data.student.name,
+        registration_number: data.student.registration_number,
+        login_id: data.student.registration_number.toLowerCase(),
+        email: data.student.email,
+        password: data.temporary_password
+      });
+
+      setAddForm({
+        name: '',
+        registration_number: '',
+        email: '',
+        phone_number: '',
+        course: '',
+        stream: '',
+        semester: '',
+        year: '',
+        passing_year: '',
+        cgpa: '',
+        attendance: '',
+        training_attendance: '100',
+        backlogs_count: '0',
+        category: 'auto',
+        password: '',
+        send_welcome_email: true
+      });
+
+      fetchStudents(page);
+    } catch (err) {
+      const errMsg = err.response?.data?.error || 'Failed to create student.';
       showToast(errMsg, 'error');
     }
   };
@@ -454,7 +525,12 @@ export default function Students() {
       <div className="page-header">
         <h1>Students ({total})</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link to="/admin/csv-upload" className="btn btn-primary">📤 Import Students</Link>
+          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            👤 Add Student Manually
+          </button>
+          <Link to="/admin/csv-upload" className="btn btn-secondary">
+            📤 Import Students (Bulk)
+          </Link>
         </div>
       </div>
 
@@ -2927,6 +3003,337 @@ export default function Students() {
                   {/* Removed Block/Authorize Access button from modal footer per user request */}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)} style={{ zIndex: 1100 }}>
+          <div className="modal card animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 800, padding: 28 }}>
+            <div className="modal-header" style={{ marginBottom: 20 }}>
+              <h2 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                👤 Add Student Manually
+              </h2>
+              <button className="modal-close" onClick={() => setShowAddModal(false)}>×</button>
+            </div>
+            
+            <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+                
+                {/* Full Name */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name *</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    required 
+                    value={addForm.name} 
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. John Doe"
+                  />
+                </div>
+
+                {/* Registration Number */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registration Number *</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    required 
+                    value={addForm.registration_number} 
+                    onChange={(e) => setAddForm({ ...addForm, registration_number: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 123-1121-0001"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address *</label>
+                  <input 
+                    type="email" 
+                    className="input-field" 
+                    required 
+                    value={addForm.email} 
+                    onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. john.doe@example.com"
+                  />
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone Number</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={addForm.phone_number} 
+                    onChange={(e) => setAddForm({ ...addForm, phone_number: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 9876543210"
+                  />
+                </div>
+
+                {/* Course */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course *</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    required
+                    value={addForm.course} 
+                    onChange={(e) => setAddForm({ ...addForm, course: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. BCA or B.Sc"
+                  />
+                </div>
+
+                {/* Stream */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stream</label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    value={addForm.stream} 
+                    onChange={(e) => setAddForm({ ...addForm, stream: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. Computer Science"
+                  />
+                </div>
+
+                {/* Year */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Year</label>
+                  <select 
+                    className="input-field" 
+                    value={addForm.year} 
+                    onChange={(e) => setAddForm({ ...addForm, year: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                  >
+                    <option value="">Select Year</option>
+                    <option value="1st">1st Year</option>
+                    <option value="2nd">2nd Year</option>
+                    <option value="3rd">3rd Year</option>
+                    <option value="4th">4th Year</option>
+                  </select>
+                </div>
+
+                {/* Semester */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Semester</label>
+                  <input 
+                    type="number" 
+                    className="input-field" 
+                    min="1" 
+                    max="12" 
+                    value={addForm.semester} 
+                    onChange={(e) => setAddForm({ ...addForm, semester: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 4"
+                  />
+                </div>
+
+                {/* Passing Year */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Passing Year</label>
+                  <input 
+                    type="number" 
+                    className="input-field" 
+                    min="2000" 
+                    max="2100" 
+                    value={addForm.passing_year} 
+                    onChange={(e) => setAddForm({ ...addForm, passing_year: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 2026"
+                  />
+                </div>
+
+                {/* CGPA */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>CGPA (0 - 10.0)</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    max="10" 
+                    className="input-field" 
+                    value={addForm.cgpa} 
+                    onChange={(e) => setAddForm({ ...addForm, cgpa: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 8.5"
+                  />
+                </div>
+
+                {/* General Attendance */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>General Attendance %</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    min="0" 
+                    max="100" 
+                    className="input-field" 
+                    value={addForm.attendance} 
+                    onChange={(e) => setAddForm({ ...addForm, attendance: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 78.5"
+                  />
+                </div>
+
+                {/* Training Attendance */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Training Attendance %</label>
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    min="0" 
+                    max="100" 
+                    className="input-field" 
+                    value={addForm.training_attendance} 
+                    onChange={(e) => setAddForm({ ...addForm, training_attendance: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="e.g. 100"
+                  />
+                </div>
+
+                {/* Backlogs Count */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Backlogs Count</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    className="input-field" 
+                    value={addForm.backlogs_count} 
+                    onChange={(e) => setAddForm({ ...addForm, backlogs_count: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="0"
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Placement Category</label>
+                  <select 
+                    className="input-field" 
+                    value={addForm.category} 
+                    onChange={(e) => setAddForm({ ...addForm, category: e.target.value })}
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                  >
+                    <option value="auto">🔄 Auto-Calculate</option>
+                    <option value="A">Category A</option>
+                    <option value="B">Category B</option>
+                    <option value="C">Category C</option>
+                  </select>
+                </div>
+
+                {/* Custom Password */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Password (Optional)</label>
+                  <input 
+                    type="password" 
+                    className="input-field" 
+                    value={addForm.password} 
+                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} 
+                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                    placeholder="Leave blank to auto-generate"
+                  />
+                </div>
+
+                {/* Welcome Email Checkbox */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 40, marginTop: 22 }}>
+                  <input 
+                    type="checkbox" 
+                    id="send_welcome_email"
+                    checked={addForm.send_welcome_email} 
+                    onChange={(e) => setAddForm({ ...addForm, send_welcome_email: e.target.checked })} 
+                    style={{ width: 18, height: 18, cursor: 'pointer' }}
+                  />
+                  <label htmlFor="send_welcome_email" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    Send welcome email with credentials
+                  </label>
+                </div>
+
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12, borderTop: '1px solid var(--border-color)', paddingTop: 16 }}>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowAddModal(false)}
+                  style={{ minWidth: 100, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ minWidth: 140, background: 'var(--accent-primary)', color: 'white', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}
+                >
+                  Create Student
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {createdCredentials && (
+        <div className="modal-overlay" onClick={() => setCreatedCredentials(null)} style={{ zIndex: 1200 }}>
+          <div className="modal card animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500, padding: 28, textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 12 }}>🎉</div>
+            <h2 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>Student Account Created!</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 24 }}>
+              The student record has been added to the portal database.
+            </p>
+            
+            <div style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: 20, marginBottom: 24, textAlign: 'left' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px 0', fontSize: '0.9rem' }}>
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Name:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{createdCredentials.name}</span>
+                
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Roll / Reg No:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{createdCredentials.registration_number}</span>
+                
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Login ID:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{createdCredentials.login_id}</span>
+                
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Email:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{createdCredentials.email}</span>
+                
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Temp Password:</span>
+                <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontFamily: 'monospace', fontSize: '1.05rem', background: 'rgba(99, 102, 241, 0.08)', padding: '2px 8px', borderRadius: '4px', display: 'inline-block', width: 'fit-content' }}>
+                  {createdCredentials.password}
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button 
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  const txt = `Student Account Credentials:\nName: ${createdCredentials.name}\nLogin ID: ${createdCredentials.login_id}\nTemporary Password: ${createdCredentials.password}\nPortal Link: ${window.location.origin}/login`;
+                  navigator.clipboard.writeText(txt);
+                  showToast('Credentials copied to clipboard!');
+                }}
+                style={{ width: '100%' }}
+              >
+                📋 Copy Login Details
+              </button>
+              
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => {
+                  setCreatedCredentials(null);
+                  setShowAddModal(false);
+                }}
+                style={{ width: '100%' }}
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

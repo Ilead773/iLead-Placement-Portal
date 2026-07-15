@@ -1,0 +1,3 @@
+# Disallow all search engine crawlers to protect student privacy and secure data
+User-agent: *
+Disallow: /

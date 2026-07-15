@@ -1101,8 +1101,18 @@ table tbody tr:hover td:first-child::before {
 .rounded-lg { border-radius: 0.5rem; }
 
 /* ─── Forms ───────────────────────────────────────────────────────────── */
-.input-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-.input-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }
+.input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.input-group label { 
+  font-size: 0.74rem; 
+  font-weight: 700; 
+  text-transform: uppercase; 
+  letter-spacing: 0.06em; 
+  color: var(--text-secondary); 
+  transition: color 0.2s ease-in-out;
+}
+.input-group:focus-within label {
+  color: var(--accent-primary);
+}
 
 /* ─── Buttons ─────────────────────────────────────────────────────────── */
 .btn {
@@ -1213,16 +1223,68 @@ a.btn-outline:hover:not(:disabled) {
 
 /* ─── Forms ───────────────────────────────────────────────────────────── */
 .input-field {
-  width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-body); font-size: 0.9rem;
-  transition: border-color var(--transition);
+  width: 100%; 
+  padding: 11px 16px; 
+  background: var(--bg-input); 
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); /* 12px */
+  color: var(--text-primary); 
+  font-family: var(--font-body); 
+  font-size: 0.92rem;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
-.input-field:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-.input-field::placeholder { color: var(--text-muted); }
+.input-field:focus { 
+  outline: none; 
+  border-color: var(--accent-primary); 
+  box-shadow: 0 0 0 4px var(--accent-soft); 
+}
+.input-field::placeholder { 
+  color: var(--text-muted); 
+  opacity: 0.85;
+}
+.input-field:disabled,
+select.input-field:disabled {
+  background: var(--bg-disabled);
+  color: var(--text-secondary);
+  opacity: 0.75;
+  border-color: var(--border-color);
+  cursor: not-allowed;
+}
 .input-error { border-color: var(--danger) !important; }
-.error-text { font-size: 0.75rem; color: var(--danger); margin-top: 2px; }
-textarea.input-field { resize: vertical; min-height: 60px; }
-select.input-field { cursor: pointer; }
+.input-error:focus { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important; }
+.error-text { font-size: 0.75rem; color: var(--danger); margin-top: 4px; font-weight: 500; }
+textarea.input-field { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+/* Custom Styled Select Dropdown */
+select.input-field { 
+  cursor: pointer; 
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 42px;
+}
+[data-theme='dark'] select.input-field {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+}
+
+/* Custom Checkbox Styling */
+input[type="checkbox"] {
+  accent-color: var(--accent-primary);
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
 
 /* ─── Badges ──────────────────────────────────────────────────────────── */
 .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 600; text-transform: capitalize; }
@@ -1290,12 +1352,44 @@ select.input-field { cursor: pointer; }
 .page-info { font-size: 0.85rem; color: var(--text-secondary); }
 
 /* ─── Modal ───────────────────────────────────────────────────────────── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
-.modal { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.modal-header h2 { font-size: 1.15rem; }
-.modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0 4px; line-height: 1; }
+.modal-overlay { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(15, 23, 42, 0.45); 
+  backdrop-filter: blur(8px); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  z-index: 1000; 
+  padding: 24px; 
+}
+.modal { 
+  background: var(--bg-card); 
+  border: 1px solid var(--border-color); 
+  border-radius: var(--radius-lg); 
+  padding: 28px; 
+  width: 100%; 
+  max-width: 500px; 
+  max-height: 90vh; 
+  overflow-y: auto; 
+  box-shadow: var(--shadow-lg); 
+  animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+.modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.75rem; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.2s; }
 .modal-close:hover { color: var(--text-primary); }
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 /* ─── Toast ───────────────────────────────────────────────────────────── */
 .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius-md); font-size: 0.88rem; font-weight: 500; z-index: 2000; animation: slideInToast 0.3s ease; box-shadow: var(--shadow-lg); }

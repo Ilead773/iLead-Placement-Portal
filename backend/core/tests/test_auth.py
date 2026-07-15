@@ -76,3 +76,32 @@ class TestAuthentication:
         url = '/api/v1/students/'
         response = api_client.get(url)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_lockout_expiration_reset(self, api_client, admin_user):
+        url = '/api/v1/auth/login/'
+        data = {
+            'login_id': 'admin_test',
+            'password': 'WrongPassword'
+        }
+        
+        # Trigger lockout (5 failures)
+        for _ in range(5):
+            api_client.post(url, data)
+            
+        # Verify locked out
+        response = api_client.post(url, data)
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        
+        # Fast-forward lockout in DB
+        from datetime import datetime, timezone, timedelta
+        admin_user.refresh_from_db()
+        admin_user.locked_until = datetime.now(timezone.utc) - timedelta(minutes=1)
+        admin_user.save()
+        
+        # Next failed attempt should reset attempts counter (new attempt makes it 1) and not block
+        response = api_client.post(url, data)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        
+        admin_user.refresh_from_db()
+        assert admin_user.failed_login_attempts == 1
+        assert admin_user.locked_until is None
