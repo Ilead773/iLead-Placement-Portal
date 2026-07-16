@@ -1500,23 +1500,19 @@ ilead_kolkata_css = """:root {
 
 @page {
     size: A4;
-    margin: 10mm 12mm 14mm 12mm;
+    margin: 12mm 15mm 16mm 15mm;
 }
 
 body {
     font-family: Arial, Helvetica, sans-serif;
     color: var(--text-color);
-    line-height: 1.35;
+    line-height: 1.4;
     margin: 0;
     padding: 0;
-    font-size: 9.5pt;
+    font-size: 9.8pt;
 }
 
 .resume-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 260mm;
     max-width: 100%;
 }
 
@@ -1526,7 +1522,7 @@ body {
     align-items: center;
     border-bottom: 2px solid var(--primary-color);
     padding-bottom: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .header-left {
@@ -1567,14 +1563,14 @@ body {
 }
 
 .candidate-name {
-    font-size: 15pt;
+    font-size: 16pt;
     font-weight: bold;
     color: var(--primary-color);
     margin: 0 0 3px 0;
 }
 
 .linkedin-link, .portfolio-link {
-    font-size: 9pt;
+    font-size: 9.5pt;
     margin-bottom: 2px;
 }
 
@@ -1593,7 +1589,7 @@ body {
 }
 
 .contact-row {
-    font-size: 9pt;
+    font-size: 9.5pt;
     margin-top: 4px;
     color: #333333;
 }
@@ -1637,12 +1633,12 @@ body {
 }
 
 .resume-section {
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     page-break-inside: avoid;
 }
 
 .section-title {
-    font-size: 9pt;
+    font-size: 9.3pt;
     font-weight: bold;
     color: var(--primary-color);
     text-transform: uppercase;
@@ -1657,17 +1653,17 @@ body {
 }
 
 .summary-text {
-    font-size: 9pt;
+    font-size: 9.3pt;
     text-align: justify;
     margin: 0;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
 .education-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 10px;
-    font-size: 8.5pt;
+    margin-bottom: 14px;
+    font-size: 8.8pt;
 }
 
 .education-table th, .education-table td {
@@ -1681,7 +1677,7 @@ body {
     color: var(--primary-color);
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 8.5pt;
+    font-size: 8.8pt;
     text-decoration: underline;
 }
 
@@ -1700,7 +1696,7 @@ body {
 .two-col-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 6px;
+    margin-top: 8px;
 }
 
 .left-col {
@@ -1717,19 +1713,19 @@ body {
 }
 
 .sidebar-section, .main-section {
-    margin-bottom: 10px;
+    margin-bottom: 14px;
     page-break-inside: avoid;
 }
 
 .bullet-list {
     margin: 2px 0 0 0;
     padding-left: 12px;
-    font-size: 8.5pt;
+    font-size: 8.8pt;
 }
 
 .bullet-list li {
-    margin-bottom: 2px;
-    line-height: 1.35;
+    margin-bottom: 3px;
+    line-height: 1.4;
 }
 
 .bullet-list li::marker {
@@ -1745,14 +1741,14 @@ body {
 }
 
 .experience-item {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     page-break-inside: avoid;
 }
 
 .exp-header {
-    font-size: 9pt;
+    font-size: 9.3pt;
     margin-bottom: 2px;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
 .company-name {
@@ -1803,7 +1799,7 @@ body {
 
 .resume-footer {
     position: fixed;
-    bottom: -10mm;
+    bottom: -12mm;
     left: 0;
     right: 0;
     text-align: center;

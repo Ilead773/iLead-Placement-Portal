@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../api/axios';
 import { ILEAD_COURSES_OBJ } from '../../constants/courses';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, DollarSign } from 'lucide-react';
 
 const EditJob = () => {
   const { id } = useParams();
