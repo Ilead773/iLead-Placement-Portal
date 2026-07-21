@@ -28,14 +28,12 @@ def _detect_encoding(content_bytes):
         return 'utf-8'
 
 
-def _validate_email(email, row_num, reg_no=''):
-    """Pre-validate email format before hitting the DB. Auto-generates fallback email if missing."""
+def _validate_email(email, row_num):
+    """Pre-validate email format before hitting the DB."""
     if not email:
-        if reg_no:
-            return f"{reg_no.lower()}@student.ilead.edu"
-        raise ValueError(f"Row {row_num}: Email is required. Cannot create a student account without an email.")
+        raise ValueError(f"Email ID is missing.")
     if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
-        raise ValueError(f"Row {row_num}: Invalid email format: '{email}'")
+        raise ValueError(f"Invalid email format: '{email}'")
     return email.lower().strip()
 
 
@@ -362,7 +360,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 seen_reg_nos.add(reg_no_key)
 
                 # Validate all fields with human-readable errors
-                email = _validate_email(email_raw, total, reg_no=reg_no)
+                email = _validate_email(email_raw, total)
                 phone = _validate_phone(phone_raw, total)
                 cgpa = _validate_cgpa(marks_raw, total)
                 semester = _validate_semester(semester_raw, total)
