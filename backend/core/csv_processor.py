@@ -143,30 +143,43 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         try:
             wb = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
             sheet = wb.active
+            all_raw_rows = list(sheet.iter_rows(values_only=True))
+            
+            if not all_raw_rows:
+                raise ValueError("Excel file is empty.")
+
+            # Smart Header Detection: Scan top 20 rows for the row containing header keywords
+            header_idx = None
+            for idx, r in enumerate(all_raw_rows[:20]):
+                row_str = ' '.join([str(c).lower() for c in r if c is not None])
+                if ('name' in row_str or 'student' in row_str) and ('roll' in row_str or 'reg' in row_str or 'course' in row_str or 'email' in row_str or 'year' in row_str):
+                    header_idx = idx
+                    break
+            
+            if header_idx is None:
+                header_idx = 0  # Fallback to row 0
+
+            headers = [str(cell).strip() if cell is not None else '' for cell in all_raw_rows[header_idx]]
+            
             rows = []
-            headers = []
-            for i, row in enumerate(sheet.iter_rows(values_only=True)):
-                if i == 0:
-                    headers = [str(cell).strip() if cell is not None else '' for cell in row]
-                    continue
+            for row in all_raw_rows[header_idx + 1:]:
                 # Skip completely empty rows
                 if all(cell is None or str(cell).strip() == '' for cell in row):
                     continue
                 row_dict = {}
                 for col_idx, cell_value in enumerate(row):
                     if col_idx < len(headers) and headers[col_idx]:
-                        # Convert floats like 7.6 to '7.6' cleanly, or int 1 to '1'
                         if isinstance(cell_value, float) and cell_value.is_integer():
                             cell_value = int(cell_value)
                         row_dict[headers[col_idx]] = str(cell_value).strip() if cell_value is not None else ''
                 rows.append(row_dict)
             
-            if not headers:
-                raise ValueError("Excel file has no headers. Expected columns: Name, Registration Number, Email ID, etc.")
+            if not headers or not any(headers):
+                raise ValueError("Excel file has no headers. Expected columns: Student Name, Roll No., Email ID, etc.")
                 
             total_rows = len(rows)
             if total_rows == 0:
-                raise ValueError("Excel file contains no data rows. Please check that the file has student records below the header row.")
+                raise ValueError("Excel file contains no data rows below the header row.")
         except Exception as e:
             if isinstance(e, ValueError):
                 raise e
@@ -177,7 +190,6 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         try:
             decoded_file = content_bytes.decode(encoding)
         except (UnicodeDecodeError, LookupError):
-            # Last resort: decode with replacement characters
             decoded_file = content_bytes.decode('utf-8', errors='replace')
             logger.warning(f"CSV decoding fell back to utf-8 with replacement chars (original: {encoding})")
 
@@ -189,14 +201,25 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         if '\x00' in decoded_file[:1024]:
             raise ValueError("File appears to be binary, not a valid CSV text file. If it's an Excel file, ensure it has a .xlsx extension.")
 
-        # --- Step 3: Detect delimiter & parse ---
-        dialect = _detect_dialect(decoded_file)
-        io_string = io.StringIO(decoded_file)
+        # --- Step 3: Smart Header Detection for CSV ---
+        raw_lines = [l for l in decoded_file.splitlines() if l.strip()]
+        header_line_idx = 0
+        for idx, line in enumerate(raw_lines[:20]):
+            line_lower = line.lower()
+            if ('name' in line_lower or 'student' in line_lower) and ('roll' in line_lower or 'reg' in line_lower or 'course' in line_lower or 'email' in line_lower or 'year' in line_lower):
+                header_line_idx = idx
+                break
+
+        trimmed_content = '\n'.join(raw_lines[header_line_idx:])
+
+        # --- Step 4: Detect delimiter & parse ---
+        dialect = _detect_dialect(trimmed_content)
+        io_string = io.StringIO(trimmed_content)
         reader = csv.DictReader(io_string, dialect=dialect)
 
-        # --- Step 4: Validate we have headers ---
+        # Validate headers
         if reader.fieldnames is None or len(reader.fieldnames) == 0:
-            raise ValueError("CSV file has no headers. Expected columns: Name, Registration Number, Email ID, etc.")
+            raise ValueError("CSV file has no headers. Expected columns: Student Name, Roll No., Email ID, etc.")
 
         # Check for suspiciously few columns (likely wrong delimiter)
         if len(reader.fieldnames) == 1 and ',' in reader.fieldnames[0]:
@@ -205,12 +228,11 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 "The delimiter may be wrong. Please ensure the file is comma-separated."
             )
 
-        # Convert reader iterator to a list of dicts to know the total count beforehand
         rows = list(reader)
         total_rows = len(rows)
 
         if total_rows == 0:
-            raise ValueError("CSV file contains no data rows. Please check that the file has student records below the header row.")
+            raise ValueError("CSV file contains no data rows below the header row.")
 
     if upload_log_id:
         try:
