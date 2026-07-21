@@ -8,6 +8,10 @@ from .models import User, Student, CSVUploadLog
 logger = logging.getLogger('core')
 
 
+class _SkipRow(Exception):
+    """Sentinel raised to silently skip a row without counting it as an error."""
+    pass
+
 def _detect_encoding(content_bytes):
     """Auto-detect file encoding. Falls back to utf-8 with replacement."""
     try:
@@ -247,9 +251,11 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
     total = 0
     success = 0
     fail = 0
+    skipped_count = 0
     created_count = 0
     updated_count = 0
     error_details_list = []
+    skipped_list = []  # Students skipped due to missing email
     credentials = []
     new_students = []
     seen_reg_nos = set()  # Track duplicates within the same upload
@@ -358,6 +364,12 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                         "Each student should appear only once."
                     )
                 seen_reg_nos.add(reg_no_key)
+
+                # Skip students with no email — notify in summary but don't count as failure
+                if not email_raw:
+                    skipped_list.append(f"[SKIPPED] Row {total}: {name_raw} ({reg_no_raw}) - No Email ID provided.")
+                    skipped_count += 1
+                    raise _SkipRow()
 
                 # Validate all fields with human-readable errors
                 email = _validate_email(email_raw, total)
@@ -482,6 +494,8 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                     success += 1
                     created_count += 1
 
+        except _SkipRow:
+            pass  # Already tracked in skipped_list
         except Exception as e:
             fail += 1
             error_details_list.append(f"[ERROR] Row {total}: {name_raw or 'Unknown'} ({reg_no_raw or 'Unknown'}) - {str(e)}")
@@ -498,7 +512,8 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 logger.error(f"Failed to update CSVUploadLog intermediate progress: {log_err}")
 
     # Determine upload status correctly
-    if fail == total_rows:
+    processed = total - skipped_count
+    if fail > 0 and fail == processed:
         log_status = 'failed'
     elif fail > 0:
         log_status = 'partial'
@@ -513,8 +528,12 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         f"Successfully Processed: {success}",
         f"  - New Accounts Created: {created_count}",
         f"  - Existing Profiles Updated: {updated_count}",
+        f"Skipped (No Email): {skipped_count}",
         f"Failed/Rejected Records: {fail}",
     ]
+    if skipped_list:
+        summary_lines.append("\n=== SKIPPED (NO EMAIL ID) ===")
+        summary_lines.extend(skipped_list)
     if error_details_list:
         summary_lines.append("\n=== DETAILED ERRORS ===")
         summary_lines.extend(error_details_list)
