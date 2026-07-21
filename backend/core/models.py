@@ -393,6 +393,8 @@ class CSVUploadLog(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='success')
     emails_sent = models.BooleanField(default=False)
     emails_sent_at = models.DateTimeField(null=True, blank=True)
+    sent_emails_count = models.IntegerField(default=0)
+    sent_courses = models.JSONField(default=list, blank=True)
     error_details = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

@@ -10,8 +10,17 @@ export default function CSVUploadPage() {
   const [toast, setToast] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedLogSummary, setSelectedLogSummary] = useState(null);
+  const [defaultSemester, setDefaultSemester] = useState('');
   const fileInputRef = useRef(null);
   const [sendingEmails, setSendingEmails] = useState({});
+
+  // Smart Email Dispatch Modal State
+  const [emailModalLog, setEmailModalLog] = useState(null);
+  const [loadingEmailPreview, setLoadingEmailPreview] = useState(false);
+  const [emailPreviewData, setEmailPreviewData] = useState(null);
+  const [selectedCourses, setSelectedCourses] = useState([]);
+  const [emailLimit, setEmailLimit] = useState(300);
+  const [selectedSender, setSelectedSender] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -106,11 +115,17 @@ export default function CSVUploadPage() {
       return;
     }
 
+    if (!defaultSemester) {
+      showToast('Please select the default semester before uploading.', 'error');
+      return;
+    }
+
     setUploading(true);
     setUploadResult(null);
 
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('default_semester', defaultSemester);
 
     try {
       const { data } = await api.post('/students/import-csv/', fd, {
@@ -145,16 +160,43 @@ export default function CSVUploadPage() {
     }
   };
 
-  const handleSendEmails = async (logId) => {
-    if (!window.confirm("Are you sure you want to send welcome emails to newly created students for this upload?")) {
-      return;
+  const openEmailModal = async (logId) => {
+    setEmailModalLog(logId);
+    setLoadingEmailPreview(true);
+    setEmailPreviewData(null);
+    try {
+      const { data } = await api.get(`/students/upload-status/${logId}/preview-emails/`);
+      setEmailPreviewData(data);
+      setSelectedCourses(data.course_breakdown.map(c => c.course));
+      setEmailLimit(data.daily_limit || 300);
+      if (data.sender_options && data.sender_options.length > 0) {
+        setSelectedSender(data.sender_options[0]);
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to fetch email preview details.', 'error');
+      setEmailModalLog(null);
+    } finally {
+      setLoadingEmailPreview(false);
     }
+  };
+
+  const handleDispatchConfiguredEmails = async () => {
+    if (!emailModalLog) return;
+    const logId = emailModalLog;
     
     setSendingEmails(prev => ({ ...prev, [logId]: true }));
     try {
-      const { data } = await api.post(`/students/upload-status/${logId}/send-emails/`);
+      const payload = {
+        courses: selectedCourses,
+        limit: parseInt(emailLimit, 10) || undefined,
+        sender_email: selectedSender?.email,
+        sender_name: selectedSender?.name,
+      };
+
+      const { data } = await api.post(`/students/upload-status/${logId}/send-emails/`, payload);
       showToast(data.message, 'success');
-      
+      setEmailModalLog(null);
+
       // Update selected summary if open
       if (selectedLogSummary && selectedLogSummary.id === logId) {
         setSelectedLogSummary(prev => ({ ...prev, emails_sent: true, emails_sent_at: new Date().toISOString() }));
@@ -223,6 +265,29 @@ export default function CSVUploadPage() {
         {/* Upload Zone */}
         <div className="card" style={{ padding: 32 }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: 20 }}>Upload CSV or Excel File</h2>
+
+          {/* Default Semester Selector */}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+              Default Semester <span style={{ color: 'var(--accent-danger)' }}>*</span>
+              <span style={{ fontWeight: 400, marginLeft: 6, color: 'var(--text-muted)' }}>(applied to students with no semester in file)</span>
+            </label>
+            <select
+              value={defaultSemester}
+              onChange={e => setDefaultSemester(e.target.value)}
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: 8,
+                border: `1.5px solid ${defaultSemester ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                background: 'var(--bg-card)', color: 'var(--text-primary)',
+                fontSize: '0.95rem', outline: 'none', cursor: 'pointer'
+              }}
+            >
+              <option value="">— Select Semester —</option>
+              {[1,2,3,4,5,6,7,8].map(s => (
+                <option key={s} value={s}>Semester {s}</option>
+              ))}
+            </select>
+          </div>
           
           <div 
             style={{
@@ -390,12 +455,12 @@ export default function CSVUploadPage() {
                         <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.8rem' }}>✓ Sent</span>
                       ) : (
                         <button 
-                          onClick={() => handleSendEmails(uploadResult.upload_log.id)}
+                          onClick={() => openEmailModal(uploadResult.upload_log.id)}
                           className="btn btn-primary"
-                          style={{ padding: '6px 12px', fontSize: '0.8rem', border: 'none', background: 'var(--accent-primary)', color: '#fff', cursor: 'pointer', borderRadius: '4px' }}
+                          style={{ padding: '6px 14px', fontSize: '0.8rem', border: 'none', background: 'var(--accent-primary)', color: '#fff', cursor: 'pointer', borderRadius: '6px', fontWeight: 600 }}
                           disabled={sendingEmails[uploadResult.upload_log.id]}
                         >
-                          {sendingEmails[uploadResult.upload_log.id] ? 'Sending...' : '✉ Send Emails'}
+                          {sendingEmails[uploadResult.upload_log.id] ? 'Sending...' : '⚙️ Configure & Send'}
                         </button>
                       )}
                     </div>
@@ -515,31 +580,32 @@ export default function CSVUploadPage() {
                     <td style={{ color: '#ef4444', fontWeight: 600 }}>{log.failed_records}</td>
                     <td>
                       {log.status !== 'reverted' && log.status !== 'failed' && log.created_count > 0 ? (
-                        log.emails_sent ? (
-                          <span style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: 4, 
-                            color: '#10b981', 
-                            fontWeight: 600, 
-                            fontSize: '0.82rem', 
-                            background: 'rgba(16, 185, 129, 0.08)', 
-                            padding: '4px 10px', 
-                            borderRadius: '20px', 
-                            border: '1px solid rgba(16, 185, 129, 0.2)' 
-                          }} title={`Sent on ${new Date(log.emails_sent_at).toLocaleString()}`}>
-                            ✓ Emails Sent
-                          </span>
-                        ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {log.emails_sent && (
+                            <span style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: 4, 
+                              color: '#10b981', 
+                              fontWeight: 600, 
+                              fontSize: '0.82rem', 
+                              background: 'rgba(16, 185, 129, 0.08)', 
+                              padding: '4px 10px', 
+                              borderRadius: '20px', 
+                              border: '1px solid rgba(16, 185, 129, 0.2)' 
+                            }} title={`Sent ${log.sent_emails_count || ''} emails on ${log.emails_sent_at ? new Date(log.emails_sent_at).toLocaleString() : ''}`}>
+                              ✓ {log.sent_emails_count ? `${log.sent_emails_count} Sent` : 'Emails Sent'}
+                            </span>
+                          )}
                           <button 
-                            onClick={() => handleSendEmails(log.id)}
+                            onClick={() => openEmailModal(log.id)}
                             className="btn btn-secondary btn-sm"
                             style={{ 
                               display: 'inline-flex', 
                               alignItems: 'center', 
                               gap: 6, 
-                              padding: '5px 10px', 
-                              fontSize: '0.78rem', 
+                              padding: '4px 8px', 
+                              fontSize: '0.75rem', 
                               cursor: 'pointer', 
                               border: '1px solid var(--accent-primary)', 
                               color: 'var(--accent-primary)', 
@@ -549,9 +615,9 @@ export default function CSVUploadPage() {
                             }}
                             disabled={sendingEmails[log.id]}
                           >
-                            {sendingEmails[log.id] ? 'Sending...' : '✉ Send Emails'}
+                            {sendingEmails[log.id] ? 'Sending...' : log.emails_sent ? '⚙️ Send More' : '⚙️ Configure & Send'}
                           </button>
-                        )
+                        </div>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                           {log.status === 'reverted' ? 'Reverted' : log.status === 'failed' ? 'Failed' : 'No new accounts'}
@@ -706,6 +772,211 @@ export default function CSVUploadPage() {
                 </div>
               );
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Smart Email Dispatch Modal */}
+      {emailModalLog && (
+        <div className="modal-overlay" onClick={() => setEmailModalLog(null)} style={{ zIndex: 1200 }}>
+          <div className="modal card animate-in" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 580, padding: 24, borderRadius: 16 }}>
+            <div className="modal-header" style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                📧 Configure Welcome Email Dispatch
+              </h3>
+              <button className="modal-close" onClick={() => setEmailModalLog(null)} style={{ border: 'none', background: 'transparent', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
+            </div>
+
+            {loadingEmailPreview ? (
+              <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div className="spinner" style={{ width: 32, height: 32, border: '3px solid rgba(99, 102, 241, 0.1)', borderTop: '3px solid var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <span>Loading recipient courses and quota details...</span>
+              </div>
+            ) : emailPreviewData ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                
+                {/* Brevo Quota Banner */}
+                {(() => {
+                  const targetCount = emailPreviewData.course_breakdown
+                    .filter(c => selectedCourses.includes(c.course))
+                    .reduce((sum, c) => sum + c.count, 0);
+                  const effectiveCount = Math.min(targetCount, parseInt(emailLimit, 10) || 0);
+                  const dailyLimit = emailPreviewData.daily_limit || 300;
+                  const pct = Math.min(100, Math.round((effectiveCount / dailyLimit) * 100));
+
+                  return (
+                    <div style={{ padding: 16, borderRadius: 12, background: 'rgba(99, 102, 241, 0.06)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Brevo Daily Quota Utilization</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, color: effectiveCount > dailyLimit ? '#ef4444' : 'var(--accent-primary)' }}>
+                          {effectiveCount} / {dailyLimit} Emails ({pct}%)
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div style={{ width: '100%', height: 8, background: 'var(--bg-input, rgba(0,0,0,0.1))', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: effectiveCount > dailyLimit ? '#ef4444' : 'linear-gradient(90deg, #6366f1, #10b981)', borderRadius: 4, transition: 'width 0.3s ease' }} />
+                      </div>
+
+                      {emailPreviewData.sent_emails_count > 0 && (
+                        <div style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600, marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>✓ Previously Sent: <strong>{emailPreviewData.sent_emails_count} emails</strong> for this upload.</span>
+                        </div>
+                      )}
+
+                      {effectiveCount > dailyLimit && (
+                        <div style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600, marginTop: 6 }}>
+                          ⚠️ Exceeds Brevo free daily cap of {dailyLimit}! Lower your course selection or hard limit.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Course Selection Checkboxes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+                    Select Courses to Include:
+                  </label>
+                  {emailPreviewData.course_breakdown.length === 0 ? (
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', italic: 'true' }}>No pending student emails found for this import.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxH: 160, overflowY: 'auto', padding: 10, background: 'var(--bg-card-hover)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+                      {emailPreviewData.course_breakdown.map((item) => {
+                        const isChecked = selectedCourses.includes(item.course);
+                        const alreadySent = (emailPreviewData.sent_courses || []).includes(item.course);
+                        return (
+                          <label 
+                            key={item.course} 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 8, 
+                              fontSize: '0.82rem', 
+                              cursor: 'pointer',
+                              padding: '6px 8px',
+                              borderRadius: 6,
+                              background: alreadySent ? 'rgba(16, 185, 129, 0.05)' : isChecked ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                              border: alreadySent ? '1px solid rgba(16, 185, 129, 0.25)' : isChecked ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent'
+                            }}
+                          >
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCourses([...selectedCourses, item.course]);
+                                } else {
+                                  setSelectedCourses(selectedCourses.filter(c => c !== item.course));
+                                }
+                              }}
+                            />
+                            <span style={{ fontWeight: 600, flexGrow: 1, color: 'var(--text-primary)' }}>
+                              {item.course}
+                            </span>
+                            {alreadySent && (
+                              <span style={{ fontSize: '0.68rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '1px 6px', borderRadius: 8, fontWeight: 700 }}>
+                                Sent ✓
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 10, color: 'var(--text-secondary)' }}>{item.count}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Dispatch Controls Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  
+                  {/* Email Hard Limit */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+                      Send Limit Cap (Max):
+                    </label>
+                    <input 
+                      type="number"
+                      min="1"
+                      max={emailPreviewData.daily_limit || 300}
+                      value={emailLimit}
+                      onChange={(e) => setEmailLimit(e.target.value)}
+                      style={{
+                        width: '100%', padding: '8px 12px', borderRadius: 8,
+                        border: '1px solid var(--border-color)', background: 'var(--bg-card)',
+                        color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Stops sending once this limit is hit today.</span>
+                  </div>
+
+                  {/* Sender Account Picker */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+                      Sender Identity:
+                    </label>
+                    <select
+                      value={selectedSender?.email || ''}
+                      onChange={(e) => {
+                        const s = emailPreviewData.sender_options.find(opt => opt.email === e.target.value);
+                        if (s) setSelectedSender(s);
+                      }}
+                      style={{
+                        width: '100%', padding: '8px 12px', borderRadius: 8,
+                        border: '1px solid var(--border-color)', background: 'var(--bg-card)',
+                        color: 'var(--text-primary)', fontSize: '0.85rem', outline: 'none'
+                      }}
+                    >
+                      {(emailPreviewData.sender_options || []).map(opt => (
+                        <option key={opt.email} value={opt.email}>
+                          {opt.name} ({opt.email})
+                        </option>
+                      ))}
+                    </select>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Verified email address in Brevo.</span>
+                  </div>
+
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, paddingTop: 12, borderTop: '1px solid var(--border-color)' }}>
+                  <button 
+                    onClick={() => setEmailModalLog(null)}
+                    className="btn btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '0.85rem', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleDispatchConfiguredEmails}
+                    className="btn btn-primary"
+                    style={{ 
+                      padding: '8px 20px', fontSize: '0.85rem', fontWeight: 700, 
+                      background: 'var(--accent-primary)', border: 'none', color: '#fff', 
+                      borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 
+                    }}
+                    disabled={
+                      sendingEmails[emailModalLog] || 
+                      selectedCourses.length === 0 || 
+                      Math.min(
+                        emailPreviewData.course_breakdown
+                          .filter(c => selectedCourses.includes(c.course))
+                          .reduce((sum, c) => sum + c.count, 0),
+                        parseInt(emailLimit, 10) || 0
+                      ) === 0
+                    }
+                  >
+                    {sendingEmails[emailModalLog] ? 'Dispatching Emails...' : `✉️ Dispatch ${Math.min(
+                      emailPreviewData.course_breakdown
+                        .filter(c => selectedCourses.includes(c.course))
+                        .reduce((sum, c) => sum + c.count, 0),
+                      parseInt(emailLimit, 10) || 0
+                    )} Emails`}
+                  </button>
+                </div>
+
+              </div>
+            ) : null}
           </div>
         </div>
       )}

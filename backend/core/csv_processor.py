@@ -126,7 +126,7 @@ def _detect_dialect(decoded_file):
         return csv.excel  # fallback to standard comma-delimited
 
 
-def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_id=None):
+def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_id=None, default_semester=None):
     """
     Parses CSV content and creates User/Student records.
     Handles multiple encodings, delimiters, and validates all fields
@@ -237,6 +237,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
         name_raw = (row.get('Name') or row.get('name') or row.get('Full Name') or '').strip()
         reg_no_raw = (row.get('Registration Number') or row.get('registration_number') or 
                       row.get('Roll Number') or row.get('roll_number') or
+                      row.get('Roll No.') or row.get('Roll No') or row.get('roll_no') or
                       row.get('Reg No') or row.get('reg_no') or row.get('ID') or '').strip()
         try:
             with transaction.atomic():
@@ -247,10 +248,15 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 
                 email_raw = (row.get('Email ID') or row.get('email') or row.get('Email') or '').strip()
                 
-                course_raw = (row.get('Course') or row.get('course') or '').strip()
+                course_raw = (row.get('Course') or row.get('course') or
+                             row.get('Program / Course') or row.get('Program/Course') or
+                             row.get('Programme / Course') or row.get('Programme') or
+                             row.get('Program') or row.get('program') or '').strip()
                 from apps.scraped_jobs.course_config import normalize_course_name
                 course = normalize_course_name(course_raw)
-                stream = (row.get('Stream') or row.get('stream') or row.get('Department') or '').strip()
+                stream = (row.get('Stream') or row.get('stream') or
+                          row.get('Department') or row.get('department') or
+                          row.get('School') or row.get('school') or '').strip()
                 
                 semester_raw = (row.get('Semester') or row.get('semester') or '').strip()
                 attendance_raw = (row.get('Attendance') or row.get('attendance') or row.get('Attendanc') or '').strip()
@@ -276,6 +282,15 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                     year = '1st'
                 else:
                     year = None
+
+                # Auto-derive semester: use admin-selected default first,
+                # then fall back to year-based guess (1st→2, 2nd→4, 3rd→6, 4th→8)
+                if not semester_raw:
+                    if default_semester:
+                        semester_raw = str(default_semester)
+                    elif year:
+                        year_to_semester = {'1st': '2', '2nd': '4', '3rd': '6', '4th': '8'}
+                        semester_raw = year_to_semester.get(year, '')
 
                 category_raw = (row.get('Category') or row.get('category') or '').strip().upper()
                 if 'A' in category_raw:
@@ -367,6 +382,8 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                     student.phone_number = phone if phone else student.phone_number
                     student.year = year if year else student.year
                     student.category = category if category else student.category
+                    if category:
+                        student.is_category_manual = True
                     student.backlogs = backlogs if backlogs_raw else student.backlogs
                     student.full_clean()
                     student.save()
@@ -414,6 +431,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                         phone_number=phone,
                         year=year,
                         category=category,
+                        is_category_manual=True if category else False,
                         backlogs=backlogs
                     )
                     student.full_clean()

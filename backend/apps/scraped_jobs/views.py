@@ -236,7 +236,7 @@ class AdminScrapingDashboardView(APIView):
             'total_approved_jobs': total_approved,
             'jobs_by_course': list(jobs_by_course),
             'source_health': health,
-            'next_scheduled': '23:00 IST daily',
+            'next_scheduled': 'Manual trigger only',
         })
 
 

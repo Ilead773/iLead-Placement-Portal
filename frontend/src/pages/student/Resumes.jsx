@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import OnScreenResumeEditor from '../../components/OnScreenResumeEditor';
 import ConfirmModal from '../../components/ConfirmModal';
+import ResumeGeneratingOverlay from '../../components/ResumeGeneratingOverlay';
 
 export default function StudentResumes() {
   const navigate = useNavigate();
@@ -133,7 +134,13 @@ export default function StudentResumes() {
       fetchResumes();
     } catch (err) {
       if (err.response?.status === 429) {
-        toast.error('Rate limit exceeded. Please wait a few minutes before generating more resumes.');
+        const retryAfter = err.response?.data?.retry_after;
+        const detail    = err.response?.data?.detail;
+        toast.error(
+          detail ||
+          `Limit reached — you can generate 3 resumes per hour.${ retryAfter ? ` Try again in ${retryAfter}.` : '' }`,
+          { duration: 6000 }
+        );
       } else {
         toast.error(err.response?.data?.error || 'Failed to start generation');
       }
@@ -276,6 +283,8 @@ export default function StudentResumes() {
 
   return (
     <>
+    {/* Creative overlay shown while resume is processing */}
+    <ResumeGeneratingOverlay visible={isGenerating || hasProcessing} />
     <div className="resumes-container compact-layout p-4 md:p-6 animate-in">
       
       {profileWarning && (
@@ -606,7 +615,7 @@ export default function StudentResumes() {
               </h4>
               <p className="text-xs text-muted leading-relaxed">
                 Resume generation is a high-power operation. To ensure system stability, we limit 
-                generations to 10 per hour. Need more? Contact your coordinator.
+                generations to <strong>3 per hour</strong>. Need more? Contact your coordinator.
               </p>
             </div>
           </div>

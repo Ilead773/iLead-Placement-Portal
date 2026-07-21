@@ -61,8 +61,17 @@ class ResumeViewSet(viewsets.ViewSet):
         """POST — Generate a resume from profile data (one-click)."""
         throttle = ResumeGenerationThrottle()
         if not throttle.allow_request(request, self):
+            wait_time = throttle.get_wait_time()
             return Response(
-                {'error': 'Rate limit exceeded. Max 10 per hour.'},
+                {
+                    'error': 'Resume generation limit reached.',
+                    'detail': (
+                        f'You can only generate 3 resumes per hour. '
+                        f'Please wait {wait_time} before trying again.'
+                    ),
+                    'limit': 3,
+                    'retry_after': wait_time,
+                },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
@@ -127,8 +136,17 @@ class ResumeViewSet(viewsets.ViewSet):
         """POST — Create a new resume (rate-limited)."""
         throttle = ResumeGenerationThrottle()
         if not throttle.allow_request(request, self):
+            wait_time = throttle.get_wait_time()
             return Response(
-                {'error': 'Rate limit exceeded. Max 10 per hour.'},
+                {
+                    'error': 'Resume generation limit reached.',
+                    'detail': (
+                        f'You can only generate 3 resumes per hour. '
+                        f'Please wait {wait_time} before trying again.'
+                    ),
+                    'limit': 3,
+                    'retry_after': wait_time,
+                },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 

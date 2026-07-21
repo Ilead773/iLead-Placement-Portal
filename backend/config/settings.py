@@ -280,6 +280,24 @@ RESEND_TEST_REDIRECT_EMAIL = os.environ.get('RESEND_TEST_REDIRECT_EMAIL', '')
 BREVO_TEST_MODE = os.environ.get('BREVO_TEST_MODE', 'False') == 'True'
 BREVO_TEST_REDIRECT_EMAIL = os.environ.get('BREVO_TEST_REDIRECT_EMAIL', '')
 
+# Brevo Sender Options — list of verified sender emails the admin can pick from
+# Add more verified senders here as needed (each must be verified in Brevo dashboard)
+BREVO_SENDER_OPTIONS = []
+_raw_senders = os.environ.get('BREVO_SENDER_OPTIONS', '')
+if _raw_senders:
+    # Format: "Name1|email1,Name2|email2"
+    for entry in _raw_senders.split(','):
+        parts = entry.strip().split('|')
+        if len(parts) == 2:
+            BREVO_SENDER_OPTIONS.append({'name': parts[0].strip(), 'email': parts[1].strip()})
+# Always include the default from email as a fallback option
+_default_from = os.environ.get('DEFAULT_FROM_EMAIL', '')
+if _default_from and not any(s['email'] == _default_from for s in BREVO_SENDER_OPTIONS):
+    BREVO_SENDER_OPTIONS.insert(0, {'name': 'iLEAD Placement Cell', 'email': _default_from})
+
+# Brevo daily email limit (300 for free plan)
+BREVO_DAILY_LIMIT = int(os.environ.get('BREVO_DAILY_LIMIT', '300'))
+
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 

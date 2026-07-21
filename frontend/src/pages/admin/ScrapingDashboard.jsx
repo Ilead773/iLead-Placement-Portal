@@ -643,7 +643,7 @@ export default function ScrapingDashboard() {
             <Zap size={18} /> Trigger Scrape
           </h3>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 16, fontSize: '0.85rem' }}>
-            <Clock size={14} style={{ verticalAlign: 'middle' }} /> Next scheduled: <strong>23:00 IST daily</strong>
+            <Clock size={14} style={{ verticalAlign: 'middle' }} /> Next scheduled: <strong>{data?.next_scheduled || 'Manual trigger only'}</strong>
           </p>
           <button
             className="btn btn-primary"

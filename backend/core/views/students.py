@@ -110,7 +110,8 @@ class StudentViewSet(viewsets.ViewSet):
             log_audit(request.user, 'csv_upload_queued', f'Queued import for {file.name}', request)
             
             # Trigger Celery task
-            process_student_csv_task.delay(str(upload_log.id), path, str(request.user.id))
+            default_semester = request.data.get('default_semester', None)
+            process_student_csv_task.delay(str(upload_log.id), path, str(request.user.id), default_semester=default_semester)
             
             return Response({
                 'message': 'CSV upload successful. Processing in background.',
@@ -181,6 +182,63 @@ class StudentViewSet(viewsets.ViewSet):
         except CSVUploadLog.DoesNotExist:
             return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=True, methods=['get'], url_path='preview-emails')
+    def preview_emails(self, request, pk=None):
+        """Return a course-level breakdown of how many emails would be sent for this upload."""
+        if request.user.role not in ['admin', 'coordinator']:
+            return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            log = CSVUploadLog.objects.get(pk=pk)
+            credentials_file_path = f"private_credentials/credentials_{log.id}.xlsx"
+            if not default_storage.exists(credentials_file_path):
+                return Response({'error': 'Credentials file not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            import openpyxl
+            with default_storage.open(credentials_file_path, 'rb') as f:
+                wb = openpyxl.load_workbook(f)
+                ws = wb.active
+                rows = list(ws.iter_rows(min_row=2, values_only=True))
+
+            # Build course breakdown using registration numbers → students
+            from ..models import Student
+            course_counts = {}
+            eligible_rows = []
+            for row in rows:
+                if not row or len(row) < 5:
+                    continue
+                name, reg_no, login_id, email, temp_password = row
+                if temp_password and temp_password != '(UNCHANGED)' and email:
+                    eligible_rows.append({'name': name, 'reg_no': reg_no, 'email': email})
+                    # Look up student course
+                    try:
+                        student = Student.objects.get(registration_number=reg_no)
+                        course = student.course or 'Unknown'
+                    except Student.DoesNotExist:
+                        course = 'Unknown'
+                    course_counts[course] = course_counts.get(course, 0) + 1
+
+            course_breakdown = [
+                {'course': c, 'count': n}
+                for c, n in sorted(course_counts.items())
+            ]
+            total = sum(course_counts.values())
+
+            return Response({
+                'total': total,
+                'already_sent': log.emails_sent,
+                'sent_emails_count': getattr(log, 'sent_emails_count', 0),
+                'sent_courses': getattr(log, 'sent_courses', []) or [],
+                'emails_sent_at': log.emails_sent_at,
+                'course_breakdown': course_breakdown,
+                'daily_limit': getattr(settings, 'BREVO_DAILY_LIMIT', 300),
+                'sender_options': getattr(settings, 'BREVO_SENDER_OPTIONS', []),
+            })
+        except CSVUploadLog.DoesNotExist:
+            return Response({'error': 'Upload log not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.exception('Error generating email preview')
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['post'], url_path='send-emails')
     def send_welcome_emails(self, request, pk=None):
         """Manually trigger sending welcome emails to newly created students from this CSV upload."""
@@ -209,28 +267,57 @@ class StudentViewSet(viewsets.ViewSet):
                 
             from core.tasks import async_send_mail
             from django.utils import timezone
-            
+            from ..models import Student
+
+            # — Optional filters from request body —
+            filter_courses = request.data.get('courses', None)  # list of course names, None = all
+            email_limit = request.data.get('limit', None)       # int cap on total emails sent
+            sender_email = request.data.get('sender_email', None)
+            sender_name = request.data.get('sender_name', None)
+
+            if email_limit is not None:
+                try:
+                    email_limit = int(email_limit)
+                except (TypeError, ValueError):
+                    email_limit = None
+
             sent_emails_count = 0
             for row in rows:
                 if not row or len(row) < 5:
                     continue
                 name, reg_no, login_id, email, temp_password = row
-                
+
                 # Only send email if a temporary password exists and is not "(UNCHANGED)"
-                if temp_password and temp_password != '(UNCHANGED)' and email:
-                    subject = "Welcome to iLEAD Placement Portal - Account Created"
-                    message = (
-                        f"Dear {name},\n\n"
-                        f"Your student account has been successfully created on the iLEAD Placement Portal.\n\n"
-                        f"Here are your login credentials:\n"
-                        f"- Login ID: {login_id}\n"
-                        f"- Temporary Password: {temp_password}\n\n"
-                        f"Please log in and update your password immediately at your first login: {settings.FRONTEND_URL}/login\n\n"
-                        f"Best regards,\n"
-                        f"Placement Team\n"
-                        f"iLEAD Institute of Leadership, Entrepreneurship and Development"
-                    )
-                    html_message = f"""
+                if not (temp_password and temp_password != '(UNCHANGED)' and email):
+                    continue
+
+                # Course filter — only send if the student's course is in the selected list
+                if filter_courses:
+                    try:
+                        student = Student.objects.get(registration_number=reg_no)
+                        student_course = student.course or ''
+                    except Student.DoesNotExist:
+                        student_course = ''
+                    if student_course not in filter_courses:
+                        continue
+
+                # Respect hard limit
+                if email_limit is not None and sent_emails_count >= email_limit:
+                    break
+
+                subject = "Welcome to iLEAD Placement Portal - Account Created"
+                message = (
+                    f"Dear {name},\n\n"
+                    f"Your student account has been successfully created on the iLEAD Placement Portal.\n\n"
+                    f"Here are your login credentials:\n"
+                    f"- Login ID: {login_id}\n"
+                    f"- Temporary Password: {temp_password}\n\n"
+                    f"Please log in and update your password immediately at your first login: {settings.FRONTEND_URL}/login\n\n"
+                    f"Best regards,\n"
+                    f"Placement Team\n"
+                    f"iLEAD Institute of Leadership, Entrepreneurship and Development"
+                )
+                html_message = f"""
                     <!DOCTYPE html>
                     <html>
                     <head>
@@ -339,24 +426,36 @@ class StudentViewSet(viewsets.ViewSet):
                     </body>
                     </html>
                     """
-                    async_send_mail.delay(
-                        subject=subject,
-                        message=message,
-                        recipient_list=[email],
-                        html_message=html_message
-                    )
-                    sent_emails_count += 1
-            
+                # Allow overriding sender per-send if specified
+                extra_kwargs = {}
+                if sender_email:
+                    extra_kwargs['from_email'] = f'{sender_name} <{sender_email}>' if sender_name else sender_email
+
+                async_send_mail.delay(
+                    subject=subject,
+                    message=message,
+                    recipient_list=[email],
+                    html_message=html_message,
+                    **extra_kwargs
+                )
+                sent_emails_count += 1
+
             # Update log
             log.emails_sent = True
             log.emails_sent_at = timezone.now()
-            log.save(update_fields=['emails_sent', 'emails_sent_at'])
+            log.sent_emails_count = (log.sent_emails_count or 0) + sent_emails_count
+            existing_sent_courses = getattr(log, 'sent_courses', []) or []
+            new_courses_to_add = filter_courses if filter_courses else [c['course'] for c in course_counts.keys()] if 'course_counts' in locals() else []
+            updated_courses = list(set(existing_sent_courses + (filter_courses if filter_courses else [])))
+            log.sent_courses = updated_courses
+            log.save(update_fields=['emails_sent', 'emails_sent_at', 'sent_emails_count', 'sent_courses'])
             
             log_audit(request.user, 'emails_sent_manual', f'Sent welcome emails to {sent_emails_count} students for log {log.id}', request)
             
             return Response({
                 'message': f'Welcome emails have been sent successfully to {sent_emails_count} students.',
-                'emails_sent_count': sent_emails_count
+                'emails_sent_count': sent_emails_count,
+                'total_sent_so_far': log.sent_emails_count,
             })
             
         except CSVUploadLog.DoesNotExist:

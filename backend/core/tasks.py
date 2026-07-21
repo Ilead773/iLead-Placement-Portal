@@ -44,7 +44,7 @@ def async_send_mail(self, subject, message, recipient_list, from_email=None, **k
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=60, name='core.tasks.process_student_csv_task')
-def process_student_csv_task(self, log_id, temp_file_path, user_id):
+def process_student_csv_task(self, log_id, temp_file_path, user_id, default_semester=None):
     """
     Background Celery task to process student CSV imports.
     """
@@ -69,7 +69,7 @@ def process_student_csv_task(self, log_id, temp_file_path, user_id):
             content = f.read()
             
         # Process CSV
-        credentials, updated_log = process_csv(content, user, file_name=log.file_name, upload_log_id=log_id)
+        credentials, updated_log = process_csv(content, user, file_name=log.file_name, upload_log_id=log_id, default_semester=default_semester)
         
         # Generate credentials Excel in-memory
         wb = openpyxl.Workbook()
