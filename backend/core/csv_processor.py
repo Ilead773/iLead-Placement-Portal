@@ -28,9 +28,11 @@ def _detect_encoding(content_bytes):
         return 'utf-8'
 
 
-def _validate_email(email, row_num):
-    """Pre-validate email format before hitting the DB."""
+def _validate_email(email, row_num, reg_no=''):
+    """Pre-validate email format before hitting the DB. Auto-generates fallback email if missing."""
     if not email:
+        if reg_no:
+            return f"{reg_no.lower()}@student.ilead.edu"
         raise ValueError(f"Row {row_num}: Email is required. Cannot create a student account without an email.")
     if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
         raise ValueError(f"Row {row_num}: Invalid email format: '{email}'")
@@ -246,7 +248,13 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                       clean_row.get('roll no') or clean_row.get('roll number') or 
                       clean_row.get('reg no') or clean_row.get('reg_no') or 
                       clean_row.get('roll_no') or clean_row.get('registration_number') or 
-                      clean_row.get('id') or clean_row.get('reg. no.') or clean_row.get('sl no.') or '').strip()
+                      clean_row.get('id') or clean_row.get('reg. no.') or '').strip()
+
+        # Skip completely empty trailing rows (e.g. blank Excel rows at the end)
+        if not name_raw and not reg_no_raw:
+            total -= 1
+            continue
+
         try:
             with transaction.atomic():
                 name = name_raw
@@ -332,7 +340,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 seen_reg_nos.add(reg_no_key)
 
                 # Validate all fields with human-readable errors
-                email = _validate_email(email_raw, total)
+                email = _validate_email(email_raw, total, reg_no=reg_no)
                 phone = _validate_phone(phone_raw, total)
                 cgpa = _validate_cgpa(marks_raw, total)
                 semester = _validate_semester(semester_raw, total)
