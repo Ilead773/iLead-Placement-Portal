@@ -234,44 +234,51 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
 
     for row in rows:
         total += 1
-        name_raw = (row.get('Name') or row.get('name') or row.get('Full Name') or '').strip()
-        reg_no_raw = (row.get('Registration Number') or row.get('registration_number') or 
-                      row.get('Roll Number') or row.get('roll_number') or
-                      row.get('Roll No.') or row.get('Roll No') or row.get('roll_no') or
-                      row.get('Reg No') or row.get('reg_no') or row.get('ID') or '').strip()
+        # Build normalized key dictionary for case-insensitive and space-insensitive header matching
+        clean_row = {str(k).strip().lower(): (str(v).strip() if v is not None else '') for k, v in row.items() if k}
+
+        # Ultra-flexible field extraction
+        name_raw = (clean_row.get('student name') or clean_row.get('student_name') or 
+                    clean_row.get('name') or clean_row.get('full name') or 
+                    clean_row.get('candidate name') or clean_row.get('student') or '').strip()
+
+        reg_no_raw = (clean_row.get('registration number') or clean_row.get('roll no.') or 
+                      clean_row.get('roll no') or clean_row.get('roll number') or 
+                      clean_row.get('reg no') or clean_row.get('reg_no') or 
+                      clean_row.get('roll_no') or clean_row.get('registration_number') or 
+                      clean_row.get('id') or clean_row.get('reg. no.') or clean_row.get('sl no.') or '').strip()
         try:
             with transaction.atomic():
-                # Extract and clean data with flexible header matching
                 name = name_raw
-                
                 reg_no = reg_no_raw
                 
-                email_raw = (row.get('Email ID') or row.get('email') or row.get('Email') or '').strip()
+                email_raw = (clean_row.get('email id') or clean_row.get('email') or 
+                             clean_row.get('email address') or clean_row.get('email_id') or '').strip()
                 
-                course_raw = (row.get('Course') or row.get('course') or
-                             row.get('Program / Course') or row.get('Program/Course') or
-                             row.get('Programme / Course') or row.get('Programme') or
-                             row.get('Program') or row.get('program') or '').strip()
+                course_raw = (clean_row.get('program / course') or clean_row.get('program/course') or 
+                             clean_row.get('programme / course') or clean_row.get('programme/course') or 
+                             clean_row.get('course') or clean_row.get('program') or 
+                             clean_row.get('programme') or '').strip()
                 from apps.scraped_jobs.course_config import normalize_course_name
                 course = normalize_course_name(course_raw)
-                stream = (row.get('Stream') or row.get('stream') or
-                          row.get('Department') or row.get('department') or
-                          row.get('School') or row.get('school') or '').strip()
+
+                stream = (clean_row.get('school') or clean_row.get('stream') or 
+                          clean_row.get('department') or clean_row.get('branch') or '').strip()
                 
-                semester_raw = (row.get('Semester') or row.get('semester') or '').strip()
-                attendance_raw = (row.get('Attendance') or row.get('attendance') or row.get('Attendanc') or '').strip()
+                semester_raw = (clean_row.get('semester') or clean_row.get('sem') or '').strip()
+                attendance_raw = (clean_row.get('attendance') or clean_row.get('attendanc') or '').strip()
                 
-                # Flexible CGPA matching
-                marks_raw = (row.get('Marks (CGPA)') or row.get('marks') or row.get('CGPA') or 
-                         row.get('Marks') or row.get('cgpa') or '').strip()
+                marks_raw = (clean_row.get('marks (cgpa)') or clean_row.get('cgpa') or 
+                             clean_row.get('marks') or clean_row.get('gpa') or '').strip()
                 
-                passing_year_raw = (row.get('Passing Year') or row.get('passing_year') or row.get('Year of Passing') or '').strip()
+                passing_year_raw = (clean_row.get('passing year') or clean_row.get('year of passing') or 
+                                    clean_row.get('passing_year') or clean_row.get('graduating year') or '').strip()
                 
-                # Flexible Phone matching
-                phone_raw = (row.get('Phone Number') or row.get('phone_number') or row.get('Phone') or 
-                         row.get('Mobile') or row.get('Contact') or '').strip()
+                phone_raw = (clean_row.get('phone number') or clean_row.get('phone') or 
+                             clean_row.get('mobile') or clean_row.get('contact') or 
+                             clean_row.get('phone_number') or clean_row.get('mobile number') or '').strip()
                 
-                year_raw = (row.get('Year') or row.get('year') or '').strip().lower()
+                year_raw = (clean_row.get('year') or clean_row.get('academic year') or '').strip().lower()
                 if '4' in year_raw:
                     year = '4th'
                 elif '3' in year_raw:
@@ -292,7 +299,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                         year_to_semester = {'1st': '2', '2nd': '4', '3rd': '6', '4th': '8'}
                         semester_raw = year_to_semester.get(year, '')
 
-                category_raw = (row.get('Category') or row.get('category') or '').strip().upper()
+                category_raw = (clean_row.get('category') or '').strip().upper()
                 if 'A' in category_raw:
                     category = 'A'
                 elif 'B' in category_raw:
@@ -302,13 +309,12 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 else:
                     category = None
                 
-                backlogs_raw = str(row.get('Backlogs') or row.get('backlogs') or '').strip().lower()
+                backlogs_raw = str(clean_row.get('backlogs') or clean_row.get('backlog') or '').strip().lower()
                 backlogs = backlogs_raw in ['yes', 'true', '1', 'y']
 
-                training_attendance_raw = (row.get('Training Attendance') or row.get('training_attendance') or 
-                                           row.get('Training Attd') or row.get('training_attd') or
-                                           row.get('Training') or row.get('training') or '').strip()
-                backlogs_count_raw = (row.get('Backlog Count') or row.get('Backlogs Count') or row.get('backlogs_count') or '').strip()
+                training_attendance_raw = (clean_row.get('training attendance') or clean_row.get('training_attendance') or 
+                                           clean_row.get('training attd') or clean_row.get('training') or '').strip()
+                backlogs_count_raw = (clean_row.get('backlog count') or clean_row.get('backlogs count') or clean_row.get('backlogs_count') or '').strip()
 
                 # ===== VALIDATION PHASE =====
                 if not name:
