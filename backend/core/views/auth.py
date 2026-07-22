@@ -57,6 +57,11 @@ def _delete_auth_cookies(response, request=None):
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
 
+    def get_permissions(self):
+        if self.action in ['logout', 'change_password']:
+            return [permissions.IsAuthenticated()]
+        return super().get_permissions()
+
     @action(detail=False, methods=['post'], url_path='login')
     def login(self, request):
         serializer = LoginSerializer(data=request.data)

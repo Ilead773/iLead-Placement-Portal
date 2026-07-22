@@ -14,8 +14,9 @@ def get_client_ip(request):
 
 def log_audit(user, action_str, details='', request=None):
     """Create an audit log entry."""
+    db_user = user if (user and user.is_authenticated) else None
     AuditLog.objects.create(
-        user=user,
+        user=db_user,
         action=action_str,
         details=details,
         ip_address=get_client_ip(request) if request else None,

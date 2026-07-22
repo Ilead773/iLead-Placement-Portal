@@ -105,3 +105,13 @@ class TestAuthentication:
         admin_user.refresh_from_db()
         assert admin_user.failed_login_attempts == 1
         assert admin_user.locked_until is None
+
+    def test_unauthenticated_change_password_and_logout_are_unauthorized(self, api_client):
+        # Without authentication, POST /api/v1/auth/change-password/ should be 401
+        response = api_client.post('/api/v1/auth/change-password/', {})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+        # Without authentication, POST /api/v1/auth/logout/ should be 401
+        response2 = api_client.post('/api/v1/auth/logout/', {})
+        assert response2.status_code == status.HTTP_401_UNAUTHORIZED
+
