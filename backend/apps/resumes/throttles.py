@@ -50,12 +50,23 @@ class ResumeUploadThrottle(SimpleRateThrottle):
 
 
 class ResumeDownloadThrottle(SimpleRateThrottle):
-    """30 downloads per hour per user."""
+    """3 downloads per hour per user."""
     scope = 'resume_download'
-    rate = '30/hour'
+    rate = '3/hour'
 
     def get_cache_key(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return None
         return f'throttle_download_{request.user.id}'
+
+    def get_wait_time(self):
+        wait_seconds = self.wait()
+        if wait_seconds is None:
+            return 'a short while'
+        wait_minutes = math.ceil(wait_seconds / 60)
+        if wait_minutes >= 60:
+            return '1 hour'
+        if wait_minutes == 1:
+            return '1 minute'
+        return f'{wait_minutes} minutes'
 

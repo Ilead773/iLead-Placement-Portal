@@ -1,25 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
   Search,
   LayoutDashboard,
   User,
   Bell,
-  Video,
-  Star,
   FileText,
   ClipboardList,
   Briefcase,
-  Rss,
-  Bookmark,
-  GraduationCap,
-  Mic,
-  HelpCircle,
   AlertTriangle,
   Info,
-  CheckCircle,
-  Download,
   ChevronRight,
   Sparkles,
   ShieldAlert
@@ -87,42 +77,6 @@ const SECTIONS_DATA = [
         ],
         tips: 'Check this page at least twice a day during placement season.',
         type: 'info'
-      },
-      {
-        id: 'sessions',
-        title: 'My Sessions',
-        icon: <Video size={20} />,
-        description: 'Find links for online classes, training, and Zoom interviews.',
-        metrics: [
-          { name: 'Join Button', desc: 'This button lights up 15 minutes before the meeting starts.' },
-          { name: 'Auto-Attendance logging', desc: 'The system automatically tracks when you join and leave the meeting.' }
-        ],
-        steps: [
-          'Go to the My Sessions page.',
-          'Find today\'s class or interview link.',
-          'Click the blue "Join" button.',
-          'Stay in the call until it ends to mark your attendance.'
-        ],
-        warnings: 'If you miss an interview without telling us 24 hours in advance, you will be blocked from the next 3 company drives.',
-        type: 'danger'
-      },
-      {
-        id: 'north-star',
-        title: 'Project North Star',
-        icon: <Star size={20} />,
-        description: 'iLEAD\'s special course website. Use this to learn coding, soft skills, and aptitude.',
-        metrics: [
-          { name: 'Training Modules', desc: 'Short courses on coding, interview behavior, and math tests.' },
-          { name: 'Certifications', desc: 'Get certificates when you complete courses to show on your profile.' }
-        ],
-        steps: [
-          'Click Project North Star in the menu.',
-          'Look at the list of courses for your batch.',
-          'Finish the lessons and quizzes when you have time.',
-          'Download your certificates to add them to your resume.'
-        ],
-        tips: 'Completing these courses adds a special recommendation tag to your profile that companies can see.',
-        type: 'success'
       }
     ]
   },
@@ -205,105 +159,6 @@ const SECTIONS_DATA = [
         ],
         tips: 'If you get a full-time job offer (PPO) from your internship, you must tell the placement office within 24 hours.',
         type: 'info'
-      },
-      {
-        id: 'job-feed',
-        title: 'Job Feed',
-        icon: <Rss size={20} />,
-        description: 'Jobs gathered from sites like LinkedIn and Indeed. Good for applying on your own.',
-        metrics: [
-          { name: 'Source', desc: 'Jobs found on external sites.' },
-          { name: 'External Link', desc: 'Link to apply directly on the company website.' }
-        ],
-        steps: [
-          'Go to Job Feed.',
-          'Search for jobs that match your skills.',
-          'Click "Apply on Company Site" to go to their page.'
-        ],
-        tips: 'Since external job statuses do not update here, write them down or bookmark them to track your progress.',
-        type: 'success'
-      },
-      {
-        id: 'saved-jobs',
-        title: 'Saved Jobs',
-        icon: <Bookmark size={20} />,
-        description: 'A list of jobs you saved to check or apply to later.',
-        metrics: [
-          { name: 'Bookmarks', desc: 'Jobs you bookmarked.' }
-        ],
-        steps: [
-          'Look at jobs or internships.',
-          'Click the bookmark icon on any card to save it.',
-          'Open Saved Jobs in the menu to apply before they close.'
-        ],
-        type: 'info'
-      }
-    ]
-  },
-  {
-    category: 'Preparation',
-    items: [
-      {
-        id: 'assignments',
-        title: 'Assignments & Tests',
-        icon: <GraduationCap size={20} />,
-        description: 'Online tests, quizzes, and coding tasks given to your batch.',
-        metrics: [
-          { name: 'Proctoring Strikes', desc: 'Number of times you try to switch tabs or close fullscreen.' },
-          { name: 'Fullscreen Mandate', desc: 'Tests must be done in fullscreen. Leaving fullscreen adds 1 strike.' },
-          { name: 'Automatic Submission', desc: 'If you get 3 strikes, the test closes and you get 0 marks.' }
-        ],
-        steps: [
-          'Go to Assignments.',
-          'Pick a test and read the instructions.',
-          'Close all other tabs and chat apps.',
-          'Click "Start Test" (the screen will go fullscreen).',
-          'Finish and submit the test before time runs out.'
-        ],
-        warnings: 'Strict anti-cheating is on. If you switch tabs or exit fullscreen 3 times, your test will close instantly and you will get 0 marks.',
-        type: 'danger'
-      },
-      {
-        id: 'mock-interview',
-        title: 'Mock Interview',
-        icon: <Mic size={20} />,
-        description: 'Practice speaking interviews with an AI bot.',
-        metrics: [
-          { name: 'AI Interviewer', desc: 'An AI that asks you questions out loud.' },
-          { name: 'Overall Score', desc: 'Marks showing how well you answered and communicated.' },
-          { name: 'Skill Gap Analysis', desc: 'Topics you need to study more based on your answers.' }
-        ],
-        steps: [
-          'Go to Mock Interview.',
-          'Type the job title (like "React Developer") and details.',
-          'Allow microphone access and click "Start".',
-          'Listen to the question, speak your answer, and click Next.',
-          'Answer 5 questions and click submit to see your marks.'
-        ],
-        tips: 'Do at least 2 mock interviews before your real company interview to practice your speaking.',
-        type: 'success'
-      }
-    ]
-  },
-  {
-    category: 'Support',
-    items: [
-      {
-        id: 'support-guide',
-        title: 'Support & PDF Guide',
-        icon: <HelpCircle size={20} />,
-        description: 'Get help with placements, read guidelines, and download the full handbook.',
-        metrics: [
-          { name: 'Coordinators', desc: 'Contact names and emails of placement team members.' },
-          { name: 'Official Guide', desc: 'Detailed PDF with all placement cell rules and policies.' }
-        ],
-        steps: [
-          'Read the tips on this page to solve common problems.',
-          'Click the "Download Offline PDF" button at the top to download the official book.',
-          'Contact your department placement coordinator if you have any questions.'
-        ],
-        tips: 'Always double-check deadlines and test links before reaching out for help.',
-        type: 'info'
       }
     ]
   }
@@ -328,14 +183,6 @@ export default function StudentHandbook() {
       return { ...cat, items: filteredItems };
     }).filter(cat => cat.items.length > 0);
   }, [searchTerm, activeCategory]);
-
-  const handleDownloadPDF = () => {
-    try {
-      window.open('/STUDENT_HANDBOOK.pdf', '_blank');
-    } catch (e) {
-      alert("Failed to start handbook download. Please try again.");
-    }
-  };
 
   return (
     <div className="dash-page student-handbook animate-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', paddingBottom: '80px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -456,36 +303,6 @@ export default function StudentHandbook() {
               </p>
             </div>
           </div>
-          
-          <button 
-            onClick={handleDownloadPDF} 
-            className="btn btn-outline" 
-            style={{ 
-              alignSelf: 'flex-start', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              padding: '12px 18px', 
-              borderRadius: '12px', 
-              fontWeight: 700, 
-              fontSize: '14px',
-              border: '1.5px solid var(--border-color)',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.borderColor = 'var(--accent-primary)';
-              e.currentTarget.style.color = 'var(--accent-primary)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-color)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
-            <Download size={16} /> Download Offline PDF
-          </button>
         </div>
       </div>
 
@@ -493,7 +310,7 @@ export default function StudentHandbook() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
         {/* Category Selector */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {['All', 'General', 'Career', 'Preparation', 'Support'].map(cat => (
+          {['All', ...SECTIONS_DATA.map(c => c.category)].map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}

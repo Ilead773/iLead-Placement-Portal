@@ -193,7 +193,21 @@ export default function StudentResumes() {
       link.parentNode.removeChild(link);
       toast.success('Downloaded!', { id: 'download' });
     } catch (err) {
-      toast.error('Download failed', { id: 'download' });
+      let errorMsg = 'Download failed';
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          errorMsg = parsed.detail || parsed.error || errorMsg;
+        } catch (e) {
+          // ignore parsing error
+        }
+      } else if (err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      } else if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      }
+      toast.error(errorMsg, { id: 'download', duration: 6000 });
       console.error(err);
     }
   };
@@ -302,6 +316,19 @@ export default function StudentResumes() {
           <div>
             <h1 className="text-3xl font-black mb-1 tracking-tight">Resume Engine</h1>
             <p className="text-secondary text-sm">Generate professional, high-fidelity resumes synced directly from your profile data.</p>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
+              <span className="flex items-center gap-1.5">
+                📋 Profile completeness required: <strong className="text-slate-800 dark:text-slate-200">50%</strong> (Current: <strong className={profileScore >= 0.50 ? "text-success" : "text-warning"}>{Math.round(profileScore * 100)}%</strong>)
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1.5">
+                ⏱️ Generation limit: <strong className="text-slate-800 dark:text-slate-200">3 / hour</strong>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1.5">
+                📥 Download limit: <strong className="text-slate-800 dark:text-slate-200">3 / hour</strong>
+              </span>
+            </div>
           </div>
         </header>
 
@@ -598,27 +625,7 @@ export default function StudentResumes() {
           </div>
         </section>
 
-          {/* Tips Section (Layer 12 & 14) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <div className="info-card bg-primary/5 border border-primary/20 p-4 rounded-xl">
-              <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
-                <span>⭐</span> Pro Tip: Multi-Variant support
-              </h4>
-              <p className="text-xs text-muted leading-relaxed">
-                You can create different versions of your resume for different roles (e.g. Frontend vs Backend). 
-                Employers will always see your "Primary" resume by default.
-              </p>
-            </div>
-            <div className="info-card bg-info/5 border border-info/20 p-4 rounded-xl">
-              <h4 className="text-sm font-bold text-info mb-2 flex items-center gap-2">
-                <span>⏱️</span> Rate Limiting
-              </h4>
-              <p className="text-xs text-muted leading-relaxed">
-                Resume generation is a high-power operation. To ensure system stability, we limit 
-                generations to <strong>3 per hour</strong>. Need more? Contact your coordinator.
-              </p>
-            </div>
-          </div>
+
       </div>
     </div>
 

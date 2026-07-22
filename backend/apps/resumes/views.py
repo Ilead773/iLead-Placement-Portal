@@ -18,7 +18,7 @@ from .serializers import (
     BuiltResumeCreateSerializer, ResumeUploadSerializer,
 )
 from .services import ResumeGenerationService, ResumeUploadService
-from .throttles import ResumeGenerationThrottle, ResumeUploadThrottle
+from .throttles import ResumeGenerationThrottle, ResumeUploadThrottle, ResumeDownloadThrottle
 
 
 class ResumeViewSet(viewsets.ViewSet):
@@ -287,6 +287,19 @@ class ResumeViewSet(viewsets.ViewSet):
 
     def download(self, request, pk=None):
         """GET — Download the generated PDF resume."""
+        throttle = ResumeDownloadThrottle()
+        if not throttle.allow_request(request, self):
+            wait_time = throttle.get_wait_time()
+            return Response(
+                {
+                    'error': 'Download limit reached.',
+                    'detail': f'You can only download 3 resumes per hour. Please wait {wait_time} before trying again.',
+                    'limit': 3,
+                    'retry_after': wait_time,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         from django.http import FileResponse
         student = request.user.student_profile
         resume = get_object_or_404(BuiltResume, id=pk, student=student)
@@ -353,6 +366,19 @@ class ResumeUploadViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """GET — Download the uploaded PDF resume."""
+        throttle = ResumeDownloadThrottle()
+        if not throttle.allow_request(request, self):
+            wait_time = throttle.get_wait_time()
+            return Response(
+                {
+                    'error': 'Download limit reached.',
+                    'detail': f'You can only download 3 resumes per hour. Please wait {wait_time} before trying again.',
+                    'limit': 3,
+                    'retry_after': wait_time,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         from django.http import FileResponse
         student = request.user.student_profile
         upload = get_object_or_404(ResumeUpload, id=pk, student=student)
