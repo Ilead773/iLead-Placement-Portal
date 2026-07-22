@@ -27,7 +27,6 @@ export default function SharedResumes() {
       setLoading(true);
       const response = await axios.get(`/applications/shared-resumes/${logId}/`, {
         params: pin ? { pin } : {},
-        skipAuthRedirect: true,
       });
       setData(response.data);
       setError(null);
@@ -54,9 +53,6 @@ export default function SharedResumes() {
   useEffect(() => {
     if (logId) {
       fetchSharedResumes(null);
-    } else {
-      setLoading(false);
-      setError('Shared resumes not found or link has expired.');
     }
   }, [logId]);
 
@@ -370,7 +366,7 @@ export default function SharedResumes() {
           <div className="workspace-error-icon">✕</div>
           <h2 className="workspace-error-title">Link Expired or Invalid</h2>
           <p className="workspace-error-desc">{error}</p>
-          <a href="https://ilead.net.in/" className="workspace-error-btn">Go to iLEAD Website</a>
+          <a href="/login" className="workspace-error-btn">Return to Portal Login</a>
         </div>
         
         <style>{`

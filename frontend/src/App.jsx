@@ -52,22 +52,6 @@ import StudentHandbook from './pages/student/Handbook.jsx';
 
 import useThemeStore from './store/themeStore';
 
-function PublicRedirect() {
-  const { isAuthenticated, user } = useAuthStore();
-  
-  useEffect(() => {
-    if (!isAuthenticated) {
-      window.location.href = 'https://ilead.net.in/';
-    }
-  }, [isAuthenticated]);
-
-  if (isAuthenticated) {
-    return <Navigate to={user?.role === 'student' ? '/student' : '/dashboard'} replace />;
-  }
-  
-  return null;
-}
-
 export default function App() {
   const { initAuth, isAuthenticated, user, passwordChangeRequired } = useAuthStore();
   const { initTheme } = useThemeStore();
@@ -83,14 +67,11 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<PublicRedirect />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to={user?.role === 'student' ? '/student' : '/dashboard'} replace /> : <Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route path="/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" replace />} />
         <Route path="/shared-resumes/:logId" element={<SharedResumes />} />
-        <Route path="/shared-resumes" element={<SharedResumes />} />
-        <Route path="/shared-resumes/" element={<SharedResumes />} />
 
         {/* Shared North Star Route */}
         <Route element={<PrivateRoute roles={['admin', 'coordinator', 'student']}><Layout /></PrivateRoute>}>
@@ -147,7 +128,7 @@ export default function App() {
           <Route path="/student/sessions" element={<PrivateRoute feature="sessions"><StudentPlacementSessions /></PrivateRoute>} />
         </Route>
 
-        <Route path="*" element={<PublicRedirect />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? (user?.role === 'student' ? '/student' : '/dashboard') : '/login'} replace />} />
       </Routes>
       <Toaster position="bottom-right" />
     </>
