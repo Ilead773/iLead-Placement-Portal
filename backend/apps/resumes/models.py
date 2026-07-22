@@ -78,6 +78,7 @@ class BuiltResume(SoftDeleteModel):
     # Generated output (Layer 4: cache, regenerate on demand)
     generated_pdf = models.FileField(
         upload_to='resumes/generated/%Y/%m/',
+        max_length=255,
         null=True, blank=True,
         help_text='Cached PDF. Can be regenerated from canonical_json.',
     )
@@ -163,6 +164,7 @@ class ResumeUpload(SoftDeleteModel):
     )
     file = models.FileField(
         upload_to='resumes/uploads/%Y/%m/',
+        max_length=255,
         validators=[FileExtensionValidator(allowed_extensions=['pdf'])],
     )
     original_filename = models.CharField(max_length=255, blank=True, default='')

@@ -42,11 +42,15 @@ def _validate_email(email, row_num):
 
 
 def _validate_phone(phone, row_num):
-    """Normalize and validate phone number."""
+    """Normalize and validate phone number. Supports multiple numbers separated by / or , by taking the first one."""
     if not phone:
         return ''
+    # If multiple numbers are provided separated by slash, comma, or semicolon, take the first one
+    parts = re.split(r'[/,;]', phone)
+    first_phone = parts[0].strip()
+    
     # Strip spaces, dashes, parentheses
-    phone_clean = re.sub(r'[\s\-\(\)\.]', '', phone)
+    phone_clean = re.sub(r'[\s\-\(\)\.]', '', first_phone)
     # Allow optional + prefix, then 10-13 digits
     if not re.match(r'^\+?\d{10,13}$', phone_clean):
         raise ValueError(f"Row {row_num}: Invalid phone number: '{phone}'. Expected 10-13 digits.")

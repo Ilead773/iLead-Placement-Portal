@@ -40,6 +40,7 @@ class StudentProfile(SoftDeleteModel):
     # ─── Profile Picture ──────────────────────────────────────────
     profile_picture = models.ImageField(
         upload_to='profile_pictures/',
+        max_length=255,
         null=True,
         blank=True,
         help_text='Student profile photo.',

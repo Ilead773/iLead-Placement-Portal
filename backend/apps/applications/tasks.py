@@ -411,13 +411,20 @@ def send_job_alert_task(self, job_id):
                     continue
                 ids_to_email.append(str(notification.id))
 
-        # ✅ One single Celery task sends ALL emails in one batched connection
+        # ✅ Send emails in chunks of at most 200 to prevent SMTP limits/timeouts,
+        # and cap the total emails sent to JOB_ALERT_EMAIL_LIMIT to protect daily quota.
         if ids_to_email:
-            send_bulk_notification_emails.delay(ids_to_email)
+            limit = getattr(settings, 'JOB_ALERT_EMAIL_LIMIT', 200)
+            emails_to_send = ids_to_email[:limit]
+            
+            chunk_size = 200
+            for i in range(0, len(emails_to_send), chunk_size):
+                chunk = emails_to_send[i:i + chunk_size]
+                send_bulk_notification_emails.delay(chunk)
 
         logger.info(
             f"send_job_alert_task: Dispatched bulk job alert for job {job_id} "
-            f"to eligible students. Email/push queued for {len(ids_to_email)} recipients."
+            f"to eligible students. Email/push queued for {min(len(ids_to_email), limit) if ids_to_email else 0} recipients."
         )
 
     except Exception as exc:
@@ -521,6 +528,9 @@ def send_resumes_to_company_task(
                 id__in=log_obj.application_ids
             ).select_related(
                 'student', 'student__user'
+            ).prefetch_related(
+                'student__built_resumes',
+                'student__resume_uploads'
             )
         )
 
@@ -556,7 +566,8 @@ def send_resumes_to_company_task(
         # Log failure
         try:
             from apps.applications.models import ResumeEmailLog
-            log_obj = ResumeEmailLog.objects.filter(id=log_id).first()
+            _fail_log_id = actual_log_id if 'actual_log_id' in dir() else log_id
+            log_obj = ResumeEmailLog.objects.filter(id=_fail_log_id).first()
             if log_obj:
                 log_obj.status = 'failed'
                 log_obj.error_message = str(exc)
@@ -571,7 +582,7 @@ def send_resumes_to_company_task(
             return {'status': 'failed', 'error': str(exc)}
 
         # In non-eager mode, do not retry configuration errors (like missing Resend key)
-        if isinstance(exc, ValueError) and "Resend API key" in str(exc):
+        if isinstance(exc, ValueError) and "Brevo API key" in str(exc):
             logger.error(f"Configuration error, not retrying: {exc}")
             raise exc
 

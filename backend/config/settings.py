@@ -298,6 +298,28 @@ if _default_from and not any(s['email'] == _default_from for s in BREVO_SENDER_O
 # Brevo daily email limit (300 for free plan)
 BREVO_DAILY_LIMIT = int(os.environ.get('BREVO_DAILY_LIMIT', '300'))
 
+# Maximum email alerts sent for a single job publication (defaults to 200)
+JOB_ALERT_EMAIL_LIMIT = int(os.environ.get('JOB_ALERT_EMAIL_LIMIT', '200'))
+
+# Brevo Rotation Configuration (Format: "api_key1|email1,api_key2|email2")
+BREVO_ROTATION_CONFIG = []
+_raw_rotation = os.environ.get('BREVO_ROTATION_CONFIG', '')
+if _raw_rotation:
+    for entry in _raw_rotation.split(','):
+        parts = entry.strip().split('|')
+        if len(parts) == 2:
+            BREVO_ROTATION_CONFIG.append({
+                'api_key': parts[0].strip(),
+                'from_email': parts[1].strip()
+            })
+
+# Fallback: if empty, default to current environment configuration
+if not BREVO_ROTATION_CONFIG and os.environ.get('BREVO_API_KEY'):
+    BREVO_ROTATION_CONFIG.append({
+        'api_key': os.environ.get('BREVO_API_KEY'),
+        'from_email': os.environ.get('DEFAULT_FROM_EMAIL', '')
+    })
+
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 

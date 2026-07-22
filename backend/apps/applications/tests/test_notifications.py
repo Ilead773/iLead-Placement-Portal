@@ -361,7 +361,7 @@ class TestEmailRetryMechanism:
     def test_async_send_mail_no_retry_on_config_error(self, mock_send_mail, mock_retry):
         from core.tasks import async_send_mail
         
-        mock_send_mail.side_effect = ValueError("Resend API key is not configured")
+        mock_send_mail.side_effect = ValueError("Brevo API key is not configured")
         
         from django.conf import settings
         original_eager = getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False)
@@ -430,3 +430,112 @@ class TestEmailRetryMechanism:
             mock_retry.assert_called_once()
         finally:
             settings.CELERY_TASK_ALWAYS_EAGER = original_eager
+
+
+@pytest.mark.django_db
+class TestEmailLimitsAndRotation:
+    @patch('apps.applications.tasks.send_bulk_notification_emails.delay')
+    def test_job_alert_capping_and_chunking(self, mock_bulk_send_delay):
+        """
+        Verify that send_job_alert_task respects the limit settings and chunks correctly.
+        """
+        from apps.applications.tasks import send_job_alert_task
+        from django.conf import settings
+        from django.utils import timezone
+        
+        # Make a batch of 25 active students with emails
+        students = [
+            baker.make(User, role='student', email=f'student_{i}@test.com', is_active=True)
+            for i in range(25)
+        ]
+        
+        job = baker.make(
+            Job,
+            company_name='Test Capping Corp',
+            role='Software Engineer',
+            package=12.0,
+            location='Office',
+            job_type='internal',
+            listing_type='job',
+            application_deadline=timezone.now() + timezone.timedelta(days=7),
+            status='active'
+        )
+        
+        # Override settings for the test
+        original_limit = getattr(settings, 'JOB_ALERT_EMAIL_LIMIT', 200)
+        try:
+            # Set email limit to 15 (lower than 25 students)
+            settings.JOB_ALERT_EMAIL_LIMIT = 15
+            
+            Notification.objects.all().delete()
+            mock_bulk_send_delay.reset_mock()
+            
+            send_job_alert_task(job.id)
+            
+            # Capping: Total notifications should be 25, but emails should only be queued for 15
+            notifications = Notification.objects.filter(notification_type='JOB_ALERT')
+            assert notifications.count() == 25
+            
+            # Check mock_bulk_send_delay call
+            # Total emails to send is 15. The chunk size is 200, so 15 fits in a single chunk.
+            assert mock_bulk_send_delay.call_count == 1
+            called_ids = mock_bulk_send_delay.call_args[0][0]
+            assert len(called_ids) == 15
+            
+        finally:
+            settings.JOB_ALERT_EMAIL_LIMIT = original_limit
+
+    def test_brevo_rotation(self):
+        """
+        Verify that get_active_brevo_config correctly rotates when limit is reached.
+        """
+        from core.email_backends import get_active_brevo_config
+        from core.models import SentEmailLog
+        from django.conf import settings
+        from django.utils import timezone
+        
+        # Setup rotation configs
+        original_configs = getattr(settings, 'BREVO_ROTATION_CONFIG', [])
+        original_limit = getattr(settings, 'BREVO_DAILY_LIMIT', 300)
+        
+        try:
+            settings.BREVO_ROTATION_CONFIG = [
+                {'api_key': 'key_alpha', 'from_email': 'alpha@ilead.net.in'},
+                {'api_key': 'key_beta', 'from_email': 'beta@ilead.net.in'}
+            ]
+            settings.BREVO_DAILY_LIMIT = 10  # Low limit for testing
+            
+            # Clear logs
+            SentEmailLog.objects.all().delete()
+            
+            # 1. No emails sent yet -> Should return first config (alpha)
+            cfg = get_active_brevo_config()
+            assert cfg['from_email'] == 'alpha@ilead.net.in'
+            
+            # 2. Send 4 emails under alpha -> Limit is 10 (buffer of 5, so threshold is 5).
+            # 4 emails < 5, so it should still use alpha
+            for _ in range(4):
+                SentEmailLog.objects.create(
+                    recipient='test@example.com',
+                    subject='test',
+                    api_key_used='key_alpha',
+                    sender_email_used='alpha@ilead.net.in'
+                )
+            cfg = get_active_brevo_config()
+            assert cfg['from_email'] == 'alpha@ilead.net.in'
+            
+            # 3. Send 1 more email (total 5) under alpha -> Reaches threshold (10 - 5 = 5)
+            # Should rotate to beta
+            SentEmailLog.objects.create(
+                recipient='test@example.com',
+                subject='test',
+                api_key_used='key_alpha',
+                sender_email_used='alpha@ilead.net.in'
+            )
+            cfg = get_active_brevo_config()
+            assert cfg['from_email'] == 'beta@ilead.net.in'
+            
+        finally:
+            settings.BREVO_ROTATION_CONFIG = original_configs
+            settings.BREVO_DAILY_LIMIT = original_limit
+

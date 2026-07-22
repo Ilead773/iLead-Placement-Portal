@@ -1234,6 +1234,59 @@ class DashboardViewSet(viewsets.ViewSet):
             'filename': 'placement_report.xlsx',
         })
 
+    @action(detail=False, methods=['get'], url_path='email-stats')
+    def email_stats(self, request):
+        """Returns stats about sent emails and rotation status."""
+        from django.conf import settings
+        from django.utils import timezone
+        from core.models import SentEmailLog
+        
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_limit = getattr(settings, 'BREVO_DAILY_LIMIT', 300)
+        
+        configs = getattr(settings, 'BREVO_ROTATION_CONFIG', [])
+        
+        breakdown = []
+        total_sent_today = 0
+        
+        for idx, cfg in enumerate(configs):
+            from_email = cfg.get('from_email')
+            sent_count = SentEmailLog.objects.filter(
+                sender_email_used=from_email,
+                sent_at__gte=today_start
+            ).count()
+            
+            total_sent_today += sent_count
+            breakdown.append({
+                'index': idx,
+                'sender_email': from_email,
+                'sent_today': sent_count,
+                'limit': daily_limit,
+                'remaining': max(0, daily_limit - sent_count),
+                'status': 'active' if sent_count < (daily_limit - 5) else 'exhausted'
+            })
+            
+        # Get active config dynamically
+        from core.email_backends import get_active_brevo_config
+        active_cfg = get_active_brevo_config()
+        
+        # Log of recent sent emails
+        recent_emails = SentEmailLog.objects.all().order_by('-sent_at')[:20]
+        recent_data = [{
+            'recipient': log.recipient,
+            'subject': log.subject,
+            'sent_at': log.sent_at.isoformat() if log.sent_at else None,
+            'sender_email': log.sender_email_used
+        } for log in recent_emails]
+        
+        return Response({
+            'total_sent_today': total_sent_today,
+            'daily_limit': daily_limit,
+            'active_sender': active_cfg.get('from_email'),
+            'configs': breakdown,
+            'recent_emails': recent_data
+        })
+
 
 
 class AuditLogViewSet(viewsets.ViewSet):

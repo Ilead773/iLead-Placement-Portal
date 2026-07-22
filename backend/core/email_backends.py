@@ -23,6 +23,41 @@ logger = logging.getLogger(__name__)
 PUBLIC_DOMAINS = {'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'aol.com', 'yahoo.in'}
 
 
+def get_active_brevo_config():
+    from django.conf import settings
+    from django.utils import timezone
+    from core.models import SentEmailLog
+    
+    configs = getattr(settings, 'BREVO_ROTATION_CONFIG', [])
+    if not configs:
+        return {
+            'api_key': getattr(settings, 'BREVO_API_KEY', None),
+            'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        }
+        
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    limit = getattr(settings, 'BREVO_DAILY_LIMIT', 300)
+    
+    # Iterate through configured accounts; pick the first one with headroom
+    for cfg in configs:
+        api_key = cfg.get('api_key')
+        from_email = cfg.get('from_email')
+        
+        # Count how many emails were sent today using this sender email/api key
+        sent_count = SentEmailLog.objects.filter(
+            sender_email_used=from_email,
+            sent_at__gte=today_start
+        ).count()
+        
+        # Leave a buffer of 5 emails
+        if sent_count < (limit - 5):
+            return cfg
+            
+    # Fallback to last configured account
+    logger.warning("All Brevo email configurations are near their daily limit!")
+    return configs[-1]
+
+
 def _safe_from_email():
     """
     Returns a safe sender address. Falls back to onboarding@resend.dev
@@ -171,6 +206,20 @@ class ResendEmailBackend(BaseEmailBackend):
                 resend.Emails.send(params)
                 sent_count += 1
 
+                # Log the sent email in SentEmailLog
+                try:
+                    from core.models import SentEmailLog
+                    for recipient in original_to:
+                        clean_from = from_email.split('<')[-1].replace('>', '').strip()
+                        SentEmailLog.objects.create(
+                            recipient=recipient,
+                            subject=subject,
+                            api_key_used=self.api_key[-10:] if self.api_key else None,
+                            sender_email_used=clean_from
+                        )
+                except Exception as log_err:
+                    logger.warning(f"Failed to create SentEmailLog for Resend send: {log_err}")
+
             except Exception as e:
                 logger.error(f"Failed to send email via Resend: {e}", exc_info=True)
                 if not self.fail_silently:
@@ -198,14 +247,6 @@ class BrevoEmailBackend(BaseEmailBackend):
         if not email_messages:
             return 0
 
-        if not self.api_key:
-            self.api_key = getattr(settings, 'BREVO_API_KEY', None)
-            if not self.api_key:
-                logger.error("Brevo API key is not configured in settings.BREVO_API_KEY.")
-                if not self.fail_silently:
-                    raise ValueError("Brevo API key is not configured.")
-                return 0
-
         # Refresh test mode settings each call
         test_mode = getattr(settings, 'BREVO_TEST_MODE', self.test_mode)
         test_redirect_email = (
@@ -215,13 +256,6 @@ class BrevoEmailBackend(BaseEmailBackend):
         )
 
         sent_count = 0
-        try:
-            client = Brevo(api_key=self.api_key)
-        except Exception as e:
-            logger.error(f"Failed to initialize Brevo client: {e}", exc_info=True)
-            if not self.fail_silently:
-                raise e
-            return 0
 
         for message in email_messages:
             try:
@@ -229,8 +263,20 @@ class BrevoEmailBackend(BaseEmailBackend):
                 if not original_to:
                     continue
 
+                # Resolve active configuration dynamically
+                active_cfg = get_active_brevo_config()
+                api_key = active_cfg.get('api_key') or self.api_key
+                from_email = message.from_email or active_cfg.get('from_email') or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+
+                if not api_key:
+                    logger.error("Brevo API key is not configured.")
+                    if not self.fail_silently:
+                        raise ValueError("Brevo API key is not configured.")
+                    continue
+
+                client = Brevo(api_key=api_key)
+
                 # Resolve sender
-                from_email = message.from_email or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
                 sender_name, sender_email = parseaddr(from_email)
                 sender = SendTransacEmailRequestSender(
                     email=sender_email,
@@ -350,6 +396,19 @@ class BrevoEmailBackend(BaseEmailBackend):
                 # Send via SDK client
                 client.transactional_emails.send_transac_email(**kwargs_params)
                 sent_count += 1
+
+                # Log the sent email in SentEmailLog
+                try:
+                    from core.models import SentEmailLog
+                    for recipient in original_to:
+                        SentEmailLog.objects.create(
+                            recipient=recipient,
+                            subject=subject,
+                            api_key_used=api_key[-10:] if api_key else None,
+                            sender_email_used=sender_email
+                        )
+                except Exception as log_err:
+                    logger.warning(f"Failed to create SentEmailLog for Brevo send: {log_err}")
 
             except Exception as e:
                 logger.error(f"Failed to send email via Brevo: {e}", exc_info=True)

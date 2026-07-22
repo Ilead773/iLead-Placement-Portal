@@ -459,3 +459,19 @@ class StudentFeatureConfig(models.Model):
     def __str__(self):
         return f'{self.display_name} ({self.feature_key})'
 
+
+class SentEmailLog(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.EmailField()
+    subject = models.CharField(max_length=255)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    api_key_used = models.CharField(max_length=255, blank=True, null=True)
+    sender_email_used = models.EmailField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'sent_email_logs'
+        ordering = ['-sent_at']
+
+    def __str__(self):
+        return f"To: {self.recipient} | Subject: {self.subject} | At: {self.sent_at}"
+

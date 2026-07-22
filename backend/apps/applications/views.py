@@ -443,13 +443,15 @@ class NotificationViewSet(viewsets.ModelViewSet):
         
         created_notifications = Notification.objects.bulk_create(notifications_to_create, batch_size=500)
 
-        # Trigger background email dispatch in a SINGLE batched Celery task
+        # Trigger background email dispatch in batched Celery tasks
         from .tasks import send_bulk_notification_emails
         email_queued = 0
         try:
             ids_to_email = [str(notif.id) for notif in created_notifications]
             if ids_to_email:
-                send_bulk_notification_emails.delay(ids_to_email)
+                chunk_size = 200
+                for i in range(0, len(ids_to_email), chunk_size):
+                    send_bulk_notification_emails.delay(ids_to_email[i:i + chunk_size])
                 email_queued = len(ids_to_email)
         except Exception as e:
             logger.warning(f"Could not queue bulk email task (is Celery running?): {e}")

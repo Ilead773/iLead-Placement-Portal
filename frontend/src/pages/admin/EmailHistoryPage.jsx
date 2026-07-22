@@ -27,9 +27,24 @@ const EmailHistoryPage = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [emailStats, setEmailStats] = useState(null);
+  const [fetchingStats, setFetchingStats] = useState(true);
+
+  const fetchEmailStats = async () => {
+    setFetchingStats(true);
+    try {
+      const response = await axios.get('/dashboard/stats/email-stats/');
+      setEmailStats(response.data);
+    } catch (err) {
+      console.error('Error fetching email stats', err);
+    } finally {
+      setFetchingStats(false);
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
+    fetchEmailStats();
   }, []);
 
   useEffect(() => {
@@ -136,6 +151,81 @@ const EmailHistoryPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Daily Email Limits and Rotation Status */}
+      {!fetchingStats && emailStats && (
+        <div className="card animate-in" style={{ padding: '28px', borderRadius: '24px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <span style={{ fontSize: '10px', color: 'var(--accent-primary)', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '1px', display: 'block', marginBottom: '4px' }}>System Live Monitoring</span>
+              <h2 style={{ fontSize: '18px', fontWeight: '850', color: 'var(--text-primary)', margin: 0, fontFamily: 'var(--font-heading)' }}>Brevo Daily Limits & Rotation Queue</h2>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '8px 16px', borderRadius: '99px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: '12px', fontWeight: '750', color: 'var(--success)' }}>
+                Active Sender: <strong style={{ textDecoration: 'underline' }}>{emailStats.active_sender || 'Default'}</strong>
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', alignItems: 'start' }}>
+            
+            {/* Left Card: Progress bar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: 'var(--bg-body)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>Today's Total Email Usage</span>
+                <span style={{ fontSize: '14px', fontWeight: '850', color: 'var(--text-primary)' }}>
+                  {emailStats.total_sent_today} / {emailStats.daily_limit * (emailStats.configs ? emailStats.configs.length : 1)}
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${Math.min(100, (emailStats.total_sent_today / (emailStats.daily_limit * (emailStats.configs ? emailStats.configs.length : 1))) * 100)}%`, 
+                  height: '100%', 
+                  background: 'linear-gradient(90deg, var(--accent-primary) 0%, #10b981 100%)',
+                  borderRadius: '4px',
+                  transition: 'width 0.5s ease-out'
+                }} />
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                Tracks CSV welcome emails, resume forwards, and job alerts across all rotation senders.
+              </span>
+            </div>
+
+            {/* Right Card: List of Rotated Senders */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rotation Queue & Status</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {emailStats.configs && emailStats.configs.map((cfg, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: cfg.status === 'active' ? 'var(--bg-body)' : 'rgba(239, 68, 68, 0.04)', padding: '10px 16px', borderRadius: '12px', border: cfg.status === 'active' ? '1px solid var(--border-light)' : '1px solid rgba(239, 68, 68, 0.15)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)' }}>#{idx + 1}</span>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>{cfg.sender_email}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: cfg.status === 'active' ? 'var(--text-primary)' : 'var(--danger)' }}>
+                        {cfg.sent_today} / {cfg.limit}
+                      </span>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        fontWeight: '800', 
+                        textTransform: 'uppercase', 
+                        padding: '2px 8px', 
+                        borderRadius: '6px',
+                        backgroundColor: cfg.status === 'active' ? 'var(--accent-soft)' : 'rgba(239, 68, 68, 0.1)',
+                        color: cfg.status === 'active' ? 'var(--accent-primary)' : 'var(--danger)'
+                      }}>
+                        {cfg.status === 'active' ? 'Active' : 'Exhausted'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Filters Box */}
       <div className="card" style={{ padding: '24px', borderRadius: '24px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
