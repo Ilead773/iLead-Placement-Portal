@@ -19,9 +19,10 @@ logger = logging.getLogger('core')
 
 def _set_auth_cookies(response, request, access_token, refresh_token):
     cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
-    secure = not settings.DEBUG or request.is_secure()
+    is_secure_request = request.is_secure() or request.META.get('HTTP_X_FORWARDED_PROTO') == 'https'
+    secure = not settings.DEBUG or is_secure_request
     
-    # Use SameSite=None in production to support cross-site requests (Vercel -> Railway)
+    # Use SameSite=None in production/secure contexts to support cross-site requests (Vercel -> Railway)
     samesite = 'None' if secure else 'Lax'
     
     response.set_cookie(
@@ -45,9 +46,11 @@ def _set_auth_cookies(response, request, access_token, refresh_token):
 
 def _delete_auth_cookies(response, request=None):
     cookie_domain = getattr(settings, 'AUTH_COOKIE_DOMAIN', None)
-    secure = not settings.DEBUG
+    is_secure_request = False
     if request:
-        secure = not settings.DEBUG or request.is_secure()
+        is_secure_request = request.is_secure() or request.META.get('HTTP_X_FORWARDED_PROTO') == 'https'
+    
+    secure = not settings.DEBUG or is_secure_request
     samesite = 'None' if secure else 'Lax'
     
     response.set_cookie('access_token', '', max_age=0, expires='Thu, 01 Jan 1970 00:00:00 GMT', domain=cookie_domain, secure=secure, samesite=samesite)

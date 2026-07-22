@@ -323,11 +323,12 @@ if not BREVO_ROTATION_CONFIG and os.environ.get('BREVO_API_KEY'):
 # Frontend URL for password reset links
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
+# Respect HTTPS forwarding headers from reverse proxies (Railway/Render).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 # Force SSL in production
 if not DEBUG:
-    # Respect HTTPS forwarding headers from reverse proxies (Railway/Render).
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    USE_X_FORWARDED_HOST = True
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

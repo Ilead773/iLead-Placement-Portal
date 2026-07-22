@@ -111,7 +111,7 @@ def test_linkedin_scraper_batch(mock_get, mock_post):
             'company': 'Google',
             'url': 'https://linkedin.com/job1',
             'description': 'Python React software developer fresher',
-            'postedAt': '2026-07-08T12:00:00Z'
+            'postedAt': datetime.now(timezone.utc).isoformat()
         }
     ]
     
