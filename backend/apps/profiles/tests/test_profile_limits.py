@@ -49,3 +49,17 @@ class TestProfileLimits:
         profile = StudentProfile.objects.get(student=self.student)
         assert profile.profile_picture is not None
         assert profile.profile_picture.size == 50
+
+    def test_completion_view_auto_creates_profile(self):
+        # Delete existing StudentProfile if any
+        StudentProfile.objects.filter(student=self.student).delete()
+        
+        # Call the completion endpoint
+        response = self.client.get('/api/v1/profiles/me/completion/')
+        assert response.status_code == status.HTTP_200_OK
+        
+        # Verify that StudentProfile was created automatically
+        assert StudentProfile.objects.filter(student=self.student).exists()
+        profile = StudentProfile.objects.get(student=self.student)
+        assert response.data['completion_score'] == profile.completion_score
+

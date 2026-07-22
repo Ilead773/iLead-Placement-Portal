@@ -51,8 +51,13 @@ class ProfileViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def completion(self, request):
         """GET /profiles/me/completion/ — Get detailed completion info."""
-        student = request.user.student_profile
-        profile = get_object_or_404(StudentProfile, student=student)
+        student = getattr(request.user, 'student_profile', None)
+        if not student:
+            return Response({'error': 'No student record found.'}, status=404)
+        
+        profile, created = StudentProfile.objects.get_or_create(student=student)
+        if created:
+            profile.recalculate_completion()
         validator = ProfileCompletionValidator()
         is_valid, errors, score = validator.validate_profile(profile)
         suggestions = validator.get_suggestions(profile)
