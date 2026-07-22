@@ -76,6 +76,25 @@ def build_resume_email(
 
     body_html = body.replace('\n', '<br>')
     
+    table_html = ""
+    if html_table_rows:
+        table_html = f"""
+        <table style="width: 100%; border-collapse: collapse; margin-top: 24px; margin-bottom: 24px; font-family: inherit; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Candidate Name</th>
+                    <th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Department</th>
+                    <th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Year</th>
+                    <th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">CGPA</th>
+                    <th style="padding: 12px 10px; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0;">Resume Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                {"".join(html_table_rows)}
+            </tbody>
+        </table>
+        """
+
     master_link_html = ""
     if log_id:
         master_url = f"{settings.FRONTEND_URL}/shared-resumes/{log_id}"
@@ -101,6 +120,7 @@ def build_resume_email(
             <div style="font-size: 15px; color: #1e293b; font-family: inherit; whitespace: pre-line;">
                 {body_html}
             </div>
+            {table_html}
             {master_link_html}
             <hr style="border: 0; border-top: 1px solid #f1f5f9; margin-top: 32px; margin-bottom: 16px;" />
             <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">Sent securely via iLEAD Placement Portal</p>
