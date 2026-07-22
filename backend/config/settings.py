@@ -24,7 +24,7 @@ if not SECRET_KEY:
     else:
         raise ValueError("SECRET_KEY environment variable is required in production mode!")
 
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',') if host.strip()]
+ALLOWED_HOSTS = [host.strip().strip('"').strip("'") for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0').split(',') if host.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -214,7 +214,7 @@ SIMPLE_JWT = {
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
+    origin.strip().strip('"').strip("'")
     for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     if origin.strip()
 ]

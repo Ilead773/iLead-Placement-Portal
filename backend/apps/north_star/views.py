@@ -699,7 +699,7 @@ def ensure_student_progress_records():
                     existing_pairs.add(pair)
                 
     if missing_progress:
-        CourseProgress.objects.bulk_create(missing_progress)
+        CourseProgress.objects.bulk_create(missing_progress, ignore_conflicts=True)
 
 
 class CourseProgressViewSet(viewsets.ReadOnlyModelViewSet):

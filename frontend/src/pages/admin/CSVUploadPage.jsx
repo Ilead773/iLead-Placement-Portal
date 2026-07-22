@@ -141,6 +141,27 @@ export default function CSVUploadPage() {
     }
   };
 
+  const handleDownloadCredentials = async (logId, fileName) => {
+    try {
+      const response = await api.get(`/students/${logId}/download-credentials/`, {
+        responseType: 'blob'
+      });
+      const url = URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanName = fileName ? fileName.replace(/\.[^/.]+$/, "") : `credentials_${logId}`;
+      a.download = `${cleanName}_credentials.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Credentials sheet downloaded successfully!');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to download credentials sheet. It may have expired or does not exist.', 'error');
+    }
+  };
+
   const handleRevert = async (logId) => {
     if (!window.confirm("Are you sure you want to revert this upload? This will permanently delete all newly created students from this upload.")) {
       return;
@@ -634,6 +655,17 @@ export default function CSVUploadPage() {
                           👁️ View Summary
                         </button>
 
+                        {log.status !== 'reverted' && log.status !== 'failed' && (log.created_count > 0 || (log.created_count === 0 && log.updated_count === 0 && log.successful_records > 0)) && (
+                          <button 
+                            onClick={() => handleDownloadCredentials(log.id, log.file_name)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', border: '1px solid #10b981', color: '#10b981', background: 'transparent' }}
+                            title="Download student credentials sheet"
+                          >
+                            📥 Credentials
+                          </button>
+                        )}
+
                         {log.status !== 'reverted' && log.status !== 'failed' && (
                           <button 
                             onClick={() => handleRevert(log.id)}
@@ -712,6 +744,34 @@ export default function CSVUploadPage() {
                     {sendingEmails[selectedLogSummary.id] ? 'Sending...' : '✉ Send Emails'}
                   </button>
                 )}
+              </div>
+            )}
+
+            {selectedLogSummary.status !== 'failed' && selectedLogSummary.status !== 'reverted' && (selectedLogSummary.created_count > 0 || (selectedLogSummary.created_count === 0 && selectedLogSummary.updated_count === 0 && selectedLogSummary.successful_records > 0)) && (
+              <div style={{ 
+                marginBottom: 20, 
+                padding: '12px 16px', 
+                borderRadius: '8px', 
+                background: 'rgba(16, 185, 129, 0.05)', 
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12
+              }}>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 2 }}>Credentials Sheet</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    Download generated login credentials and passwords.
+                  </span>
+                </div>
+                <button 
+                  onClick={() => handleDownloadCredentials(selectedLogSummary.id, selectedLogSummary.file_name)}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: '0.8rem', border: '1px solid #10b981', color: '#10b981', background: 'transparent', cursor: 'pointer', borderRadius: '4px', fontWeight: 600 }}
+                >
+                  📥 Download Credentials
+                </button>
               </div>
             )}
 
