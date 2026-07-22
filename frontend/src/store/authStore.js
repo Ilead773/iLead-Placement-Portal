@@ -10,6 +10,12 @@ const useAuthStore = create((set, get) => ({
 
   login: async (login_id, password) => {
     const { data } = await api.post('/auth/login/', { login_id, password });
+    if (data.access) {
+      localStorage.setItem('access_token', data.access);
+    }
+    if (data.refresh) {
+      localStorage.setItem('refresh_token', data.refresh);
+    }
     setCookie('has_session', 'true', 7);
     const needsChange = data.user.temp_password_flag || data.user.password_reset_required;
     set({ user: data.user, isAuthenticated: true, passwordChangeRequired: needsChange });
@@ -17,7 +23,13 @@ const useAuthStore = create((set, get) => ({
   },
 
   changePassword: async (current_password, new_password, confirm_password) => {
-    await api.post('/auth/change-password/', { current_password, new_password, confirm_password });
+    const { data } = await api.post('/auth/change-password/', { current_password, new_password, confirm_password });
+    if (data.access) {
+      localStorage.setItem('access_token', data.access);
+    }
+    if (data.refresh) {
+      localStorage.setItem('refresh_token', data.refresh);
+    }
     setCookie('has_session', 'true', 7);
     set((s) => ({
       passwordChangeRequired: false,
@@ -27,10 +39,11 @@ const useAuthStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await api.post('/auth/logout/');
+      const refresh = localStorage.getItem('refresh_token');
+      await api.post('/auth/logout/', { refresh });
     } catch { /* */ }
-    eraseCookie('has_session');
     localStorage.clear();
+    eraseCookie('has_session');
     try {
       const { default: useNotificationStore } = await import('./notificationStore');
       useNotificationStore.getState().stopPolling();
@@ -47,6 +60,7 @@ const useAuthStore = create((set, get) => ({
       const needsChange = data.temp_password_flag || data.password_reset_required;
       set({ user: data, isAuthenticated: true, passwordChangeRequired: needsChange });
     } catch {
+      localStorage.clear();
       eraseCookie('has_session');
       set({ user: null, isAuthenticated: false });
     }

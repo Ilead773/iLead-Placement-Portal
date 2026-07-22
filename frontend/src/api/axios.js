@@ -11,9 +11,13 @@ const api = axios.create({
   xsrfHeaderName: 'X-CSRFToken'
 });
 
-// Request interceptor to manually attach CSRF token for cross-origin requests
+// Request interceptor to manually attach Authorization and CSRF tokens
 api.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
     const csrfToken = getCookie('csrftoken');
     if (csrfToken) {
       config.headers['X-CSRFToken'] = csrfToken;
@@ -50,13 +54,25 @@ api.interceptors.response.use(
       orig._retry = true;
       isRefreshing = true;
       try {
-        await axios.post(`${API_URL}/auth/refresh/`, {}, { withCredentials: true });
+        const refreshToken = localStorage.getItem('refresh_token');
+        const { data } = await axios.post(
+          `${API_URL}/auth/refresh/`, 
+          { refresh: refreshToken }, 
+          { withCredentials: true }
+        );
+        if (data.access) {
+          localStorage.setItem('access_token', data.access);
+        }
+        if (data.refresh) {
+          localStorage.setItem('refresh_token', data.refresh);
+        }
         processQueue(null);
         return api(orig);
       } catch (err) {
         processQueue(err);
         if (!skipAuthRedirect) {
           const wasLoggedIn = getCookie('has_session') === 'true';
+          localStorage.clear();
           eraseCookie('has_session');
           if (wasLoggedIn) {
             localStorage.setItem('session_expired', 'true');
@@ -71,9 +87,10 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !isLoginRequest && !skipAuthRedirect) {
       const wasLoggedIn = getCookie('has_session') === 'true';
+      localStorage.clear();
       eraseCookie('has_session');
       if (wasLoggedIn) {
-        localStorage.setItem('session_expired', 'true');
+         localStorage.setItem('session_expired', 'true');
       }
       window.location.href = '/login';
     }

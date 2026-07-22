@@ -148,6 +148,8 @@ class AuthViewSet(viewsets.ViewSet):
 
         response = Response({
             'user': UserSerializer(user).data,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
         })
         _set_auth_cookies(response, request, str(refresh.access_token), str(refresh))
         return response
@@ -185,6 +187,8 @@ class AuthViewSet(viewsets.ViewSet):
         refresh = RefreshToken.for_user(user)
         response = Response({
             'message': 'Password changed successfully.',
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
         })
         _set_auth_cookies(response, request, str(refresh.access_token), str(refresh))
         return response
@@ -215,7 +219,11 @@ class AuthViewSet(viewsets.ViewSet):
             else:
                 data['refresh'] = str(refresh)
                 
-            response = Response({'status': 'refreshed'})
+            response = Response({
+                'status': 'refreshed',
+                'access': data['access'],
+                'refresh': data['refresh'],
+            })
             _set_auth_cookies(response, request, data['access'], data['refresh'])
             return response
         except Exception:
