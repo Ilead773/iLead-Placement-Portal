@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../api/axios';
 import { Link, useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/authStore';
 import { 
   GraduationCap, ChevronRight, Calendar, BrainCircuit, Award, 
   BarChart3, ArrowRight, MessageSquare, Play, 
@@ -102,6 +103,7 @@ const STATUS_BADGE = {
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { user, initAuth } = useAuthStore();
   const [profile, setProfile] = useState(null);
   const [completion, setCompletion] = useState(null);
   const [placements, setPlacements] = useState([]);
@@ -123,6 +125,7 @@ export default function StudentDashboard() {
   const fetchData = useCallback(async () => {
     try {
       const cacheBust = { _t: Date.now() };
+      initAuth().catch(() => {});
       const [profRes, placRes, compRes, interviewRes, appsRes] = await Promise.all([
         api.get('me/profile/', { params: cacheBust }),
         api.get('me/placements/', { params: cacheBust }),
@@ -503,60 +506,62 @@ export default function StudentDashboard() {
           )}
 
           {/* AI Mock Interview Readiness Hub */}
-          <motion.div className="dash-card" variants={itemVariants}>
-            <div className="dash-card-header">
-              <h3 className="dash-card-title">
-                <BrainCircuit size={18} className="text-orange-500" /> AI Interview Readiness
-              </h3>
-              <Link to="/student/mock-interview" className="text-xs font-bold text-orange-500 hover:underline flex items-center gap-1">
-                Mock Portal <ChevronRight size={14} />
-              </Link>
-            </div>
+          {user?.features?.['mock-interview'] !== false && (
+            <motion.div className="dash-card" variants={itemVariants}>
+              <div className="dash-card-header">
+                <h3 className="dash-card-title">
+                  <BrainCircuit size={18} className="text-orange-500" /> AI Interview Readiness
+                </h3>
+                <Link to="/student/mock-interview" className="text-xs font-bold text-orange-500 hover:underline flex items-center gap-1">
+                  Mock Portal <ChevronRight size={14} />
+                </Link>
+              </div>
 
-            <div className="dash-card-body">
-              {interviewSessions.length === 0 ? (
-                <div className="py-8 text-center flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl mb-3 border border-orange-500/20">
-                    🎯
+              <div className="dash-card-body">
+                {interviewSessions.length === 0 ? (
+                  <div className="py-8 text-center flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl mb-3 border border-orange-500/20">
+                      🎯
+                    </div>
+                    <h4 className="font-bold text-base text-primary mb-1">Evaluate Your Domain Competencies</h4>
+                    <p className="text-xs text-secondary max-w-sm mb-5 leading-relaxed">
+                      Practice domain-specific mock interviews, pinpoint your gaps, and build a targeted learning path.
+                    </p>
+                    <Link to="/student/mock-interview" className="btn btn-primary btn-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: '#ea580c', borderColor: '#ea580c' }}>
+                      <Play size={12} fill="currentColor" /> Start First Mock Interview
+                    </Link>
                   </div>
-                  <h4 className="font-bold text-base text-primary mb-1">Evaluate Your Domain Competencies</h4>
-                  <p className="text-xs text-secondary max-w-sm mb-5 leading-relaxed">
-                    Practice domain-specific mock interviews, pinpoint your gaps, and build a targeted learning path.
-                  </p>
-                  <Link to="/student/mock-interview" className="btn btn-primary btn-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: '#ea580c', borderColor: '#ea580c' }}>
-                    <Play size={12} fill="currentColor" /> Start First Mock Interview
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Performance stats row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="ai-stat-widget score flex flex-col">
-                      <span className="text-[10px] font-black uppercase text-muted tracking-wider">Avg Score</span>
-                      <span className="text-xl font-bold text-primary mt-1">
-                        {Math.round(
-                          interviewSessions.filter(s => s.total_score !== null).reduce((acc, curr) => acc + curr.total_score, 0) / 
-                          (interviewSessions.filter(s => s.total_score !== null).length || 1)
-                        )}%
-                      </span>
-                    </div>
-                    <div className="ai-stat-widget attempts flex flex-col">
-                      <span className="text-[10px] font-black uppercase text-muted tracking-wider">Attempts</span>
-                      <span className="text-xl font-bold text-primary mt-1">{interviewSessions.length}</span>
-                    </div>
-                    <div className="ai-stat-widget rating flex flex-col">
-                      <span className="text-[10px] font-black uppercase text-muted tracking-wider">Top Rating</span>
-                      <span className="text-xl font-bold text-primary mt-1">
-                        {Math.round(
-                          Math.max(...(interviewSessions.filter(s => s.total_score !== null).map(s => s.total_score) || [0]))
-                        )}%
-                      </span>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Performance stats row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="ai-stat-widget score flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Avg Score</span>
+                        <span className="text-xl font-bold text-primary mt-1">
+                          {Math.round(
+                            interviewSessions.filter(s => s.total_score !== null).reduce((acc, curr) => acc + curr.total_score, 0) / 
+                            (interviewSessions.filter(s => s.total_score !== null).length || 1)
+                          )}%
+                        </span>
+                      </div>
+                      <div className="ai-stat-widget attempts flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Attempts</span>
+                        <span className="text-xl font-bold text-primary mt-1">{interviewSessions.length}</span>
+                      </div>
+                      <div className="ai-stat-widget rating flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Top Rating</span>
+                        <span className="text-xl font-bold text-primary mt-1">
+                          {Math.round(
+                            Math.max(...(interviewSessions.filter(s => s.total_score !== null).map(s => s.total_score) || [0]))
+                          )}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           {/* Job Applications (Recruitment Pipeline Tracker) */}
           <motion.div className="dash-card" variants={itemVariants}>
@@ -825,85 +830,87 @@ export default function StudentDashboard() {
           </motion.div>
 
           {/* Hot Opportunities */}
-          <motion.div className="dash-card" variants={itemVariants}>
-            <div className="dash-card-header">
-              <h3 className="dash-card-title text-orange-500">
-                <Flame size={18} className="text-orange-500" /> Hot Opportunities
-              </h3>
-              <Link to="/student/jobs" className="text-xs font-bold text-orange-500 hover:underline">
-                View All
-              </Link>
-            </div>
+          {user?.features?.['jobs'] !== false && (
+            <motion.div className="dash-card" variants={itemVariants}>
+              <div className="dash-card-header">
+                <h3 className="dash-card-title text-orange-500">
+                  <Flame size={18} className="text-orange-500" /> Hot Opportunities
+                </h3>
+                <Link to="/student/jobs" className="text-xs font-bold text-orange-500 hover:underline">
+                  View All
+                </Link>
+              </div>
 
-            <div className="dash-card-body flex flex-col gap-4">
-              {profile?.upcoming_jobs?.length === 0 ? (
-                <p className="text-xs text-muted italic">No upcoming deadlines.</p>
-              ) : (
-                profile?.upcoming_jobs?.map(job => {
-                  const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
-                  return (
-                    <div 
-                      key={job.id} 
-                      onClick={() => navigate('/student/jobs')}
-                      className="opp-card"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="company-logo-avatar shrink-0">
-                          {job.company_name?.charAt(0) || 'J'}
+              <div className="dash-card-body flex flex-col gap-4">
+                {profile?.upcoming_jobs?.length === 0 ? (
+                  <p className="text-xs text-muted italic">No upcoming deadlines.</p>
+                ) : (
+                  profile?.upcoming_jobs?.map(job => {
+                    const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
+                    return (
+                      <div 
+                        key={job.id} 
+                        onClick={() => navigate('/student/jobs')}
+                        className="opp-card"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="company-logo-avatar shrink-0">
+                            {job.company_name?.charAt(0) || 'J'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="opp-card-title truncate" title={job.role}>
+                              {job.role}
+                            </h4>
+                            <p className="opp-card-company truncate">{job.company_name}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="opp-card-title truncate" title={job.role}>
-                            {job.role}
-                          </h4>
-                          <p className="opp-card-company truncate">{job.company_name}</p>
+                        
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          {job.has_applied ? (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                              ✓ Applied
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
+                              {(() => {
+                                if (!job.package) return 'Not Specified';
+                                const pkgStr = String(job.package).trim();
+                                const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                                if (!isNumeric) return pkgStr;
+                                if (job.listing_type === 'internship') {
+                                  return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
+                                }
+                                return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
+                              })()}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">
+                            Full-time
+                          </span>
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        {job.has_applied ? (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            ✓ Applied
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
-                            {(() => {
-                              if (!job.package) return 'Not Specified';
-                              const pkgStr = String(job.package).trim();
-                              const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
-                              if (!isNumeric) return pkgStr;
-                              if (job.listing_type === 'internship') {
-                                return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
-                              }
-                              return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
-                            })()}
-                          </span>
-                        )}
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">
-                          Full-time
-                        </span>
-                      </div>
 
-                      <div className="flex justify-between items-center pt-3 mt-1 border-t border-border-color/40 text-[10px] font-medium text-muted">
-                        <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
-                          <Calendar size={11} />
-                          {job.deadline ? format(new Date(job.deadline), 'dd MMM, h:mm a') : 'No Deadline'}
-                        </span>
-                        {isUrgent ? (
-                          <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-1 text-[10px]">
-                            <Flame size={11} /> Urgent
+                        <div className="flex justify-between items-center pt-3 mt-1 border-t border-border-color/40 text-[10px] font-medium text-muted">
+                          <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
+                            <Calendar size={11} />
+                            {job.deadline ? format(new Date(job.deadline), 'dd MMM, h:mm a') : 'No Deadline'}
                           </span>
-                        ) : (
-                          <span className="opp-card-apply-text text-primary font-bold flex items-center gap-0.5 text-[10px]">
-                            Apply <ArrowRight size={11} />
-                          </span>
-                        )}
+                          {isUrgent ? (
+                            <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-1 text-[10px]">
+                              <Flame size={11} /> Urgent
+                            </span>
+                          ) : (
+                            <span className="opp-card-apply-text text-primary font-bold flex items-center gap-0.5 text-[10px]">
+                              Apply <ArrowRight size={11} />
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
 
         </div>
       </div>
