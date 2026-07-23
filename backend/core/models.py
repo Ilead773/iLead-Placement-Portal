@@ -217,6 +217,21 @@ class Student(models.Model):
         return round(score, 1)
 
     def save(self, *args, **kwargs):
+        # Auto-derive year from semester
+        if self.semester:
+            if self.semester <= 2:
+                self.year = '1st'
+            elif self.semester <= 4:
+                self.year = '2nd'
+            elif self.semester <= 6:
+                self.year = '3rd'
+            else:
+                self.year = '4th'
+        # Fallback: Auto-derive semester from year if semester is empty
+        elif self.year:
+            year_to_semester = {'1st': 2, '2nd': 4, '3rd': 6, '4th': 8}
+            self.semester = year_to_semester.get(self.year)
+
         if not self.is_category_manual:
             self.category = self.calculate_category()
         super().save(*args, **kwargs)
