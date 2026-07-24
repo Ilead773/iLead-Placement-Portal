@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { ILEAD_COURSES } from '../../constants/courses';
+import { Eye, EyeOff } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
@@ -39,6 +40,7 @@ const formatYearSem = (year, semester) => {
 
 export default function Students() {
   const [students, setStudents] = useState([]);
+  const [showCustomPassword, setShowCustomPassword] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -3231,14 +3233,25 @@ export default function Students() {
                 {/* Custom Password */}
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Password (Optional)</label>
-                  <input 
-                    type="password" 
-                    className="input-field" 
-                    value={addForm.password} 
-                    onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} 
-                    style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
-                    placeholder="Leave blank to auto-generate"
-                  />
+                  <div className="password-input-container">
+                    <input 
+                      type={showCustomPassword ? "text" : "password"} 
+                      className="input-field" 
+                      value={addForm.password} 
+                      onChange={(e) => setAddForm({ ...addForm, password: e.target.value })} 
+                      style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
+                      placeholder="Leave blank to auto-generate"
+                    />
+                    <button 
+                      type="button" 
+                      className="password-toggle-btn" 
+                      onClick={() => setShowCustomPassword(!showCustomPassword)}
+                      aria-label={showCustomPassword ? "Hide password" : "Show password"}
+                      style={{ height: 40, top: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      {showCustomPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Welcome Email Checkbox */}

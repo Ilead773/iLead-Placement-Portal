@@ -5,10 +5,12 @@ import useAuthStore from '../store/authStore';
 import { getCookie } from '../utils/cookies';
 import logo from '../logo.png';
 import { toast } from 'react-hot-toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuthStore();
@@ -68,7 +70,25 @@ export default function Login() {
           </div>
           <div className="input-group">
             <label htmlFor="login-pwd">Password</label>
-            <input id="login-pwd" type="password" className="input-field" placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <div className="password-input-container">
+              <input 
+                id="login-pwd" 
+                type={showPassword ? 'text' : 'password'} 
+                className="input-field" 
+                placeholder="Enter password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <div style={{ textAlign: 'right', marginTop: '4px' }}>
                 <a href="/forgot-password" style={{ fontSize: '0.85rem', color: '#8b5cf6', textDecoration: 'none' }}>
                     Forgot password?

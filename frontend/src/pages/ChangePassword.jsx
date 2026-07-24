@@ -1,7 +1,7 @@
-// src/pages/ChangePassword.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
+import { Eye, EyeOff } from 'lucide-react';
 
 const CHECKS = [
   { id: 'len', label: 'At least 8 characters', test: (p) => p.length >= 8 },
@@ -15,6 +15,9 @@ export default function ChangePassword() {
   const [current, setCurrent] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { changePassword, logout, user } = useAuthStore();
@@ -49,15 +52,63 @@ export default function ChangePassword() {
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label>Current Password</label>
-            <input type="password" className="input-field" value={current} onChange={(e) => setCurrent(e.target.value)} required />
+            <div className="password-input-container">
+              <input 
+                type={showCurrent ? 'text' : 'password'} 
+                className="input-field" 
+                value={current} 
+                onChange={(e) => setCurrent(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={() => setShowCurrent(!showCurrent)}
+                aria-label={showCurrent ? "Hide password" : "Show password"}
+              >
+                {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div className="input-group">
             <label>New Password</label>
-            <input type="password" className="input-field" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required />
+            <div className="password-input-container">
+              <input 
+                type={showNew ? 'text' : 'password'} 
+                className="input-field" 
+                value={newPwd} 
+                onChange={(e) => setNewPwd(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={() => setShowNew(!showNew)}
+                aria-label={showNew ? "Hide password" : "Show password"}
+              >
+                {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div className="input-group">
             <label>Confirm New Password</label>
-            <input type="password" className={`input-field ${confirm && confirm !== newPwd ? 'input-error' : ''}`} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+            <div className="password-input-container">
+              <input 
+                type={showConfirm ? 'text' : 'password'} 
+                className={`input-field ${confirm && confirm !== newPwd ? 'input-error' : ''}`} 
+                value={confirm} 
+                onChange={(e) => setConfirm(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button" 
+                className="password-toggle-btn" 
+                onClick={() => setShowConfirm(!showConfirm)}
+                aria-label={showConfirm ? "Hide password" : "Show password"}
+              >
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {confirm && confirm !== newPwd && <span className="error-text">Passwords do not match.</span>}
           </div>
           <div className="pwd-checklist">
