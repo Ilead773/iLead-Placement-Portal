@@ -72,7 +72,8 @@ api.interceptors.response.use(
         processQueue(err);
         if (!skipAuthRedirect) {
           const wasLoggedIn = getCookie('has_session') === 'true';
-          localStorage.clear();
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
           eraseCookie('has_session');
           if (wasLoggedIn) {
             localStorage.setItem('session_expired', 'true');
@@ -87,7 +88,8 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !isLoginRequest && !skipAuthRedirect) {
       const wasLoggedIn = getCookie('has_session') === 'true';
-      localStorage.clear();
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       eraseCookie('has_session');
       if (wasLoggedIn) {
          localStorage.setItem('session_expired', 'true');

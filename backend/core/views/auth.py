@@ -297,6 +297,27 @@ class AuthViewSet(viewsets.ViewSet):
             user = User.objects.get(pk=uid)
             
             if default_token_generator.check_token(user, token):
+                # Validate password complexity (matching the standard regex checklist)
+                import re
+                if len(new_password) < 8:
+                    return Response({'error': 'Password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not re.search(r'[A-Z]', new_password):
+                    return Response({'error': 'Password must contain at least one uppercase letter.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not re.search(r'[a-z]', new_password):
+                    return Response({'error': 'Password must contain at least one lowercase letter.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not re.search(r'\d', new_password):
+                    return Response({'error': 'Password must contain at least one digit.'}, status=status.HTTP_400_BAD_REQUEST)
+                if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+                    return Response({'error': 'Password must contain at least one special character.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Also run standard Django validators (common passwords, numeric, similarity)
+                from django.contrib.auth.password_validation import validate_password
+                from django.core.exceptions import ValidationError as DjangoValidationError
+                try:
+                    validate_password(new_password, user)
+                except DjangoValidationError as ve:
+                    return Response({'error': ve.messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+
                 user.set_password(new_password)
                 user.temp_password_flag = False
                 user.password_reset_required = False

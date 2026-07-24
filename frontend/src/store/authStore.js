@@ -42,7 +42,8 @@ const useAuthStore = create((set, get) => ({
       const refresh = localStorage.getItem('refresh_token');
       await api.post('/auth/logout/', { refresh });
     } catch { /* */ }
-    localStorage.clear();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     eraseCookie('has_session');
     try {
       const { default: useNotificationStore } = await import('./notificationStore');
@@ -60,7 +61,8 @@ const useAuthStore = create((set, get) => ({
       const needsChange = data.temp_password_flag || data.password_reset_required;
       set({ user: data, isAuthenticated: true, passwordChangeRequired: needsChange });
     } catch {
-      localStorage.clear();
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       eraseCookie('has_session');
       set({ user: null, isAuthenticated: false });
     }
