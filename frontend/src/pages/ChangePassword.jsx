@@ -17,7 +17,7 @@ export default function ChangePassword() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { changePassword, user } = useAuthStore();
+  const { changePassword, logout, user } = useAuthStore();
   const navigate = useNavigate();
 
   const allPassed = CHECKS.every((c) => c.test(newPwd)) && newPwd === confirm && newPwd.length > 0;
@@ -69,6 +69,17 @@ export default function ChangePassword() {
           </div>
           <button type="submit" className="btn btn-primary btn-full" disabled={!allPassed || loading}>
             {loading ? 'Changing...' : 'Set New Password'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-full"
+            style={{ marginTop: '12px' }}
+            onClick={async () => {
+              await logout();
+              navigate('/login');
+            }}
+          >
+            Cancel & Sign Out
           </button>
         </form>
       </div>
