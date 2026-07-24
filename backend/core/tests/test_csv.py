@@ -116,3 +116,31 @@ class TestCSVImport:
         assert not Student.objects.filter(registration_number='STU_TEST').exists()
         log = CSVUploadLog.objects.get(id=log_id)
         assert log.status == 'reverted'
+
+    def test_import_without_semester_success(self, auth_client):
+        url = '/api/v1/students/import-csv/'
+        # CSV content has no semester column, and passing_year has no 'year' or year auto-derivation
+        csv_content = (
+            "name,registration_number,email,passing_year,course,marks\n"
+            "Semesterless Student,STU_NO_SEM,nosem@student.com,2025,BCA,8.5"
+        )
+        csv_file = SimpleUploadedFile(
+            "students.csv", 
+            csv_content.encode('utf-8'), 
+            content_type="text/csv"
+        )
+        
+        # Post request with empty string or omitting default_semester
+        response = auth_client.post(url, {'file': csv_file, 'default_semester': ''}, format='multipart')
+        
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert User.objects.filter(login_id='stu_no_sem').exists()
+        
+        student = Student.objects.get(registration_number='STU_NO_SEM')
+        assert student.semester is None
+        assert student.year is None
+        
+        log_id = response.data['upload_log']['id']
+        log = CSVUploadLog.objects.get(id=log_id)
+        assert log.status == 'success'
+        assert log.successful_records == 1

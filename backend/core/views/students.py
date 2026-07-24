@@ -111,6 +111,8 @@ class StudentViewSet(viewsets.ViewSet):
             
             # Trigger Celery task
             default_semester = request.data.get('default_semester', None)
+            if not default_semester:
+                default_semester = None
             process_student_csv_task.delay(str(upload_log.id), path, str(request.user.id), default_semester=default_semester)
             
             return Response({

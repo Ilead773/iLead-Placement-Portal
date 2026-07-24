@@ -114,12 +114,6 @@ export default function CSVUploadPage() {
       showToast('Please upload a valid .csv or .xlsx file.', 'error');
       return;
     }
-
-    if (!defaultSemester) {
-      showToast('Please select the default semester before uploading.', 'error');
-      return;
-    }
-
     setUploading(true);
     setUploadResult(null);
 
@@ -290,8 +284,7 @@ export default function CSVUploadPage() {
           {/* Default Semester Selector */}
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
-              Default Semester <span style={{ color: 'var(--accent-danger)' }}>*</span>
-              <span style={{ fontWeight: 400, marginLeft: 6, color: 'var(--text-muted)' }}>(applied to students with no semester in file)</span>
+              Default Semester <span style={{ fontWeight: 400, marginLeft: 6, color: 'var(--text-muted)' }}>(Optional - applied to students with no semester in file)</span>
             </label>
             <select
               value={defaultSemester}
