@@ -384,6 +384,12 @@ else:
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': _cache_url,
+            'OPTIONS': {
+                'socket_timeout': 5.0,
+                'socket_connect_timeout': 5.0,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            }
         }
     }
 
