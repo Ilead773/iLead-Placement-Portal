@@ -125,6 +125,15 @@ class SkillViewSet(viewsets.ViewSet):
         profile = get_object_or_404(StudentProfile, student=student)
         serializer = SkillSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        name = serializer.validated_data.get('name')
+        category = serializer.validated_data.get('category')
+        if Skill.objects.filter(profile=profile, category=category, name__iexact=name.strip()).exists():
+            return Response(
+                {'error': f"Skill '{name}' under category '{category}' already exists on your profile."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         serializer.save(profile=profile)
         profile.recalculate_completion()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -135,6 +144,15 @@ class SkillViewSet(viewsets.ViewSet):
         skill = get_object_or_404(Skill, id=pk, profile=profile)
         serializer = SkillSerializer(skill, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        
+        name = serializer.validated_data.get('name', skill.name)
+        category = serializer.validated_data.get('category', skill.category)
+        if Skill.objects.filter(profile=profile, category=category, name__iexact=name.strip()).exclude(id=pk).exists():
+            return Response(
+                {'error': f"Skill '{name}' under category '{category}' already exists on your profile."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         serializer.save()
         profile.recalculate_completion()
         return Response(serializer.data)

@@ -33,18 +33,23 @@ HTML_TEMPLATE = """<div class="resume-container">
             <h1 class="candidate-name">{{ personal.name|default:"Full Name" }}</h1>
             <div class="linkedin-link">
                 {% if personal.linkedin %}
-                    <a href="{{ personal.linkedin }}" target="_blank">{{ personal.linkedin }}</a>
+                    <a href="{{ personal.linkedin }}" target="_blank">LinkedIn Profile</a>
                 {% else %}
                     <a href="#" class="placeholder-link">LinkedIn Link (just add the link) - MANDATORY</a>
                 {% endif %}
             </div>
             <div class="portfolio-link">
                 {% if personal.portfolio %}
-                    <a href="{{ personal.portfolio }}" target="_blank">{{ personal.portfolio }}</a>
+                    <a href="{{ personal.portfolio }}" target="_blank">Portfolio Link</a>
                 {% else %}
                     <a href="#" class="placeholder-link">Portfolio Link (For BMS, MSc Media, BMAGD, MMAGD, FTP Students)</a>
                 {% endif %}
             </div>
+            {% if personal.github %}
+            <div class="github-link">
+                <a href="{{ personal.github }}" target="_blank">GitHub Profile</a>
+            </div>
+            {% endif %}
             <div class="contact-row">
                 <span>
                     <span class="icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></span>
@@ -164,9 +169,11 @@ HTML_TEMPLATE = """<div class="resume-container">
                     <ul class="bullet-list">
                         {% if skills %}
                             {% for skill_group in skills %}
-                                {% for item in skill_group.items %}
-                                    <li>{{ item }}</li>
-                                {% endfor %}
+                                {% if skill_group.category == 'Technical' or skill_group.category == 'Other' %}
+                                    {% for item in skill_group.items %}
+                                        <li>{{ item }}</li>
+                                    {% endfor %}
+                                {% endif %}
                             {% endfor %}
                         {% else %}
                             <li>MS Office Suite (Excel, Word, PowerPoint)</li>
@@ -220,8 +227,8 @@ HTML_TEMPLATE = """<div class="resume-container">
             </td>
             <td class="right-col">
                 <div class="main-section">
-                    <h3 class="section-title">EXPERIENCE</h3>
                     {% if experience %}
+                    <h3 class="section-title">EXPERIENCE</h3>
                         {% for exp in experience %}
                         <div class="experience-item">
                             <div class="exp-header">
@@ -242,21 +249,6 @@ HTML_TEMPLATE = """<div class="resume-container">
                             {% elif exp.description %}
                             <p class="exp-desc">{{ exp.description }}</p>
                             {% endif %}
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        {% for i in "123" %}
-                        <div class="experience-item">
-                            <div class="exp-header">
-                                <span class="company-name">Company Name</span> |
-                                <span class="designation"> Designation</span> |
-                                <span class="duration"> Internship (Month Year – Month Year)</span>
-                            </div>
-                            <ul class="bullet-list">
-                                <li>Responsibility/Achievement 1</li>
-                                <li>Responsibility/Achievement 2</li>
-                                <li>Responsibility/Achievement 3</li>
-                            </ul>
                         </div>
                         {% endfor %}
                     {% endif %}
@@ -441,17 +433,17 @@ body {
     margin: 0 0 3px 0;
 }
 
-.linkedin-link, .portfolio-link {
+.linkedin-link, .portfolio-link, .github-link {
     font-size: 9.5pt;
     margin-bottom: 2px;
 }
 
-.linkedin-link a, .portfolio-link a {
+.linkedin-link a, .portfolio-link a, .github-link a {
     color: #0077b5;
     text-decoration: none;
 }
 
-.linkedin-link a:hover, .portfolio-link a:hover {
+.linkedin-link a:hover, .portfolio-link a:hover, .github-link a:hover {
     text-decoration: underline;
 }
 

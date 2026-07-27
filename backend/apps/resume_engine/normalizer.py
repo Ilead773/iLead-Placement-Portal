@@ -98,13 +98,20 @@ class ResumeNormalizer:
             logger.error(f"Error processing profile picture: {e}")
             photo_url = ''
 
+        from apps.profiles.rules import get_department_by_course
+        dept = get_department_by_course(getattr(profile.student, 'course', ''))
+
+        github_link = profile.github or ''
+        if dept != 'Technology':
+            github_link = ''
+
         canonical['personal'] = {
             'name': profile.student.name,
             'email': profile.student.email,
-            'phone': profile.phone or '',
+            'phone': profile.phone or profile.student.phone_number or '',
             'location': profile.location or '',
             'linkedin': profile.linkedin or '',
-            'github': profile.github or '',
+            'github': github_link,
             'portfolio': profile.portfolio or '',
             'photo': photo_url,
         }

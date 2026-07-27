@@ -21,6 +21,7 @@ def test_profile_completion_is_calculated_from_live_profile_data(student_user):
     profile.location = "Kolkata"
     profile.linkedin = "https://linkedin.com/in/student"
     profile.github = "https://github.com/student"
+    profile.portfolio = "https://studentportfolio.com"
     profile.save()
 
     baker.make(Skill, profile=profile, name="Python", category="Technical")

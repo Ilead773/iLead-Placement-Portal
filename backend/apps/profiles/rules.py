@@ -70,6 +70,215 @@ PROFILE_COMPLETION_RULES = {
 }
 
 
+# ─── Department-Specific Completion Rules ────────────────────────────────
+DEPARTMENT_COMPLETION_RULES = {
+    "Technology": {
+        "personal": {
+            "require_name": True,
+            "require_email": True,
+            "require_phone": True,
+            "require_location": True,
+            "weight": 0.15,
+        },
+        "professional_summary": {
+            "require": True,
+            "min_length": 50,
+            "weight": 0.10,
+        },
+        "experience": {
+            "min_count": 0,
+            "require_at_least_one": False,
+            "weight": 0.10,
+        },
+        "projects": {
+            "min_count": 1,
+            "require_at_least_one": True,
+            "weight": 0.20,
+        },
+        "skills": {
+            "min_count": 3,
+            "weight": 0.15,
+        },
+        "education": {
+            "require_at_least_one": True,
+            "weight": 0.15,
+        },
+        "certifications": {
+            "min_count": 0,
+            "weight": 0.10,
+        },
+        "links": {
+            "require_linkedin": True,
+            "require_github": True,
+            "require_portfolio": True,
+            "weight": 0.05,
+        },
+        "resume_generation": {
+            "min_profile_completion": 0.50,
+        },
+    },
+    "Design & Media": {
+        "personal": {
+            "require_name": True,
+            "require_email": True,
+            "require_phone": True,
+            "require_location": True,
+            "weight": 0.15,
+        },
+        "professional_summary": {
+            "require": True,
+            "min_length": 50,
+            "weight": 0.10,
+        },
+        "experience": {
+            "min_count": 0,
+            "require_at_least_one": False,
+            "weight": 0.10,
+        },
+        "projects": {
+            "min_count": 1,
+            "require_at_least_one": True,
+            "weight": 0.20,
+        },
+        "skills": {
+            "min_count": 3,
+            "weight": 0.15,
+        },
+        "education": {
+            "require_at_least_one": True,
+            "weight": 0.15,
+        },
+        "certifications": {
+            "min_count": 0,
+            "weight": 0.05,
+        },
+        "links": {
+            "require_linkedin": True,
+            "require_github": False,
+            "require_portfolio": True,
+            "weight": 0.10,
+        },
+        "resume_generation": {
+            "min_profile_completion": 0.50,
+        },
+    },
+    "Business & Management": {
+        "personal": {
+            "require_name": True,
+            "require_email": True,
+            "require_phone": True,
+            "require_location": True,
+            "weight": 0.20,
+        },
+        "professional_summary": {
+            "require": True,
+            "min_length": 50,
+            "weight": 0.10,
+        },
+        "experience": {
+            "min_count": 1,
+            "require_at_least_one": True,
+            "weight": 0.20,
+        },
+        "projects": {
+            "min_count": 0,
+            "require_at_least_one": False,
+            "weight": 0.10,
+        },
+        "skills": {
+            "min_count": 3,
+            "weight": 0.15,
+        },
+        "education": {
+            "require_at_least_one": True,
+            "weight": 0.15,
+        },
+        "certifications": {
+            "min_count": 0,
+            "weight": 0.05,
+        },
+        "links": {
+            "require_linkedin": True,
+            "require_github": False,
+            "require_portfolio": False,
+            "weight": 0.05,
+        },
+        "resume_generation": {
+            "min_profile_completion": 0.50,
+        },
+    },
+    "Health Sciences": {
+        "personal": {
+            "require_name": True,
+            "require_email": True,
+            "require_phone": True,
+            "require_location": True,
+            "weight": 0.20,
+        },
+        "professional_summary": {
+            "require": True,
+            "min_length": 50,
+            "weight": 0.10,
+        },
+        "experience": {
+            "min_count": 1,
+            "require_at_least_one": True,
+            "weight": 0.20,
+        },
+        "projects": {
+            "min_count": 0,
+            "require_at_least_one": False,
+            "weight": 0.10,
+        },
+        "skills": {
+            "min_count": 3,
+            "weight": 0.15,
+        },
+        "education": {
+            "require_at_least_one": True,
+            "weight": 0.15,
+        },
+        "certifications": {
+            "min_count": 0,
+            "weight": 0.05,
+        },
+        "links": {
+            "require_linkedin": True,
+            "require_github": False,
+            "require_portfolio": False,
+            "weight": 0.05,
+        },
+        "resume_generation": {
+            "min_profile_completion": 0.50,
+        },
+    },
+}
+
+
+def get_department_by_course(course_str):
+    if not course_str:
+        return "Business & Management"  # default / fallback
+
+    course_lower = course_str.lower()
+
+    # 1. Technology
+    if any(tech_term in course_lower for tech_term in ["bca", "computer", "data science", "cyber security", "it", "software"]):
+        return "Technology"
+
+    # 2. Design & Media
+    if any(media_term in course_lower for media_term in ["media", "animation", "graphic", "multimedia", "film", "television", "interior design", "fashion", "gaming"]):
+        return "Design & Media"
+
+    # 3. Health Sciences
+    if any(health_term in course_lower for health_term in ["optometry", "critical care", "cct", "laboratory", "bmlt", "hospital", "health"]):
+        if "bba" in course_lower:
+            return "Business & Management"
+        return "Health Sciences"
+
+    # 4. Business & Management
+    return "Business & Management"
+
+
 def get_relation_count(instance, relation_name):
     if hasattr(instance, '_prefetched_objects_cache') and relation_name in instance._prefetched_objects_cache:
         return len(getattr(instance, relation_name).all())
@@ -84,14 +293,21 @@ class ProfileCompletionValidator:
     """
     Rule-based profile validation engine.
 
-    Configurable per institution. Returns:
+    Configurable per institution/department. Returns:
     - is_valid (bool): meets all hard requirements
     - errors (list[str]): what's missing
     - completion (float): 0.0–1.0 completion score
     """
 
     def __init__(self, rules=None):
-        self.rules = rules or PROFILE_COMPLETION_RULES
+        self._default_rules = rules
+
+    def get_rules_for_profile(self, profile):
+        if self._default_rules:
+            return self._default_rules
+        course = getattr(profile.student, 'course', '')
+        dept = get_department_by_course(course)
+        return DEPARTMENT_COMPLETION_RULES.get(dept, PROFILE_COMPLETION_RULES)
 
     def validate_profile(self, profile):
         """
@@ -103,13 +319,17 @@ class ProfileCompletionValidator:
         Returns:
             tuple: (is_valid, errors, completion_score)
         """
+        rules = self.get_rules_for_profile(profile)
         errors = []
         section_scores = {}
+        evaluated_sections = set()
 
         # ── Personal Section ─────────────────────────────────────
-        personal_rules = self.rules['personal']
+        personal_rules = rules['personal']
         personal_score = 0.0
         personal_checks = 0
+
+        evaluated_sections.add('personal')
 
         if personal_rules['require_name']:
             personal_checks += 1
@@ -127,7 +347,8 @@ class ProfileCompletionValidator:
 
         if personal_rules['require_phone']:
             personal_checks += 1
-            if profile.phone:
+            # Check both profile.phone and student.phone_number for safety
+            if profile.phone or (profile.student and getattr(profile.student, 'phone_number', '')):
                 personal_score += 1
             else:
                 errors.append("Phone number is required.")
@@ -144,7 +365,8 @@ class ProfileCompletionValidator:
         )
 
         # ── Professional Summary ─────────────────────────────────
-        summary_rules = self.rules['professional_summary']
+        summary_rules = rules['professional_summary']
+        evaluated_sections.add('professional_summary')
         if profile.professional_summary and len(profile.professional_summary) >= summary_rules['min_length']:
             section_scores['professional_summary'] = 1.0
         elif profile.professional_summary:
@@ -157,7 +379,8 @@ class ProfileCompletionValidator:
                 )
 
         # ── Skills ───────────────────────────────────────────────
-        skill_rules = self.rules['skills']
+        skill_rules = rules['skills']
+        evaluated_sections.add('skills')
         skill_count = get_relation_count(profile, 'skills')
         if skill_count >= skill_rules['min_count']:
             section_scores['skills'] = min(1.0, skill_count / max(skill_rules['min_count'], 3))
@@ -169,29 +392,40 @@ class ProfileCompletionValidator:
             )
 
         # ── Experience ───────────────────────────────────────────
-        exp_rules = self.rules['experience']
+        exp_rules = rules['experience']
         exp_count = get_relation_count(profile, 'experiences')
-        if exp_rules['require_at_least_one'] and exp_count == 0:
-            section_scores['experience'] = 0.0
-            errors.append("At least one experience entry is required.")
-        elif exp_count > 0:
-            section_scores['experience'] = 1.0
+        if exp_rules['require_at_least_one']:
+            evaluated_sections.add('experience')
+            if exp_count == 0:
+                section_scores['experience'] = 0.0
+                errors.append("At least one experience entry is required.")
+            else:
+                section_scores['experience'] = 1.0
         else:
-            section_scores['experience'] = 0.0  # Not required, no penalty
+            # Optional section: evaluated only if filled
+            if exp_count > 0:
+                evaluated_sections.add('experience')
+                section_scores['experience'] = 1.0
 
         # ── Projects ─────────────────────────────────────────────
-        proj_rules = self.rules['projects']
+        proj_rules = rules['projects']
         proj_count = get_relation_count(profile, 'projects')
-        if proj_rules['require_at_least_one'] and proj_count == 0:
-            section_scores['projects'] = 0.0
-            errors.append("At least one project is required.")
-        elif proj_count > 0:
-            section_scores['projects'] = 1.0
+        if proj_rules['require_at_least_one']:
+            evaluated_sections.add('projects')
+            if proj_count == 0:
+                section_scores['projects'] = 0.0
+                errors.append("At least one project is required.")
+            else:
+                section_scores['projects'] = 1.0
         else:
-            section_scores['projects'] = 0.0
+            # Optional section: evaluated only if filled
+            if proj_count > 0:
+                evaluated_sections.add('projects')
+                section_scores['projects'] = 1.0
 
         # ── Education ────────────────────────────────────────────
-        edu_rules = self.rules['education']
+        edu_rules = rules['education']
+        evaluated_sections.add('education')
         edu_count = get_relation_count(profile, 'education_entries')
         if edu_rules['require_at_least_one'] and edu_count == 0:
             section_scores['education'] = 0.0
@@ -202,15 +436,34 @@ class ProfileCompletionValidator:
             section_scores['education'] = 0.0
 
         # ── Certifications ───────────────────────────────────────
+        cert_rules = rules['certifications']
         cert_count = get_relation_count(profile, 'certifications')
-        section_scores['certifications'] = 1.0 if cert_count > 0 else 0.0
+        if cert_rules.get('require_at_least_one', False) or cert_rules.get('min_count', 0) > 0:
+            evaluated_sections.add('certifications')
+            min_c = cert_rules.get('min_count', 1)
+            if cert_count >= min_c:
+                section_scores['certifications'] = 1.0
+            else:
+                section_scores['certifications'] = 0.0
+                errors.append(f"At least {min_c} certification(s) required.")
+        else:
+            # Optional section: evaluated only if filled
+            if cert_count > 0:
+                evaluated_sections.add('certifications')
+                section_scores['certifications'] = 1.0
 
         # ── Links ────────────────────────────────────────────────
-        link_rules = self.rules['links']
+        link_rules = rules['links']
         link_score = 0.0
         link_checks = 0
 
-        if link_rules['require_linkedin']:
+        # Tech/Design/Business may require different links
+        req_linkedin = link_rules.get('require_linkedin', True)
+        req_github = link_rules.get('require_github', False)
+        req_portfolio = link_rules.get('require_portfolio', False)
+
+        # LinkedIn Check
+        if req_linkedin:
             link_checks += 1
             if profile.linkedin:
                 link_score += 1
@@ -220,7 +473,8 @@ class ProfileCompletionValidator:
             link_checks += 1
             link_score += 1
 
-        if link_rules['require_github']:
+        # GitHub Check
+        if req_github:
             link_checks += 1
             if profile.github:
                 link_score += 1
@@ -230,17 +484,29 @@ class ProfileCompletionValidator:
             link_checks += 1
             link_score += 1
 
-        if profile.portfolio:
+        # Portfolio Check
+        if req_portfolio:
+            link_checks += 1
+            if profile.portfolio:
+                link_score += 1
+            else:
+                errors.append("Portfolio website URL is required.")
+        elif profile.portfolio:
             link_checks += 1
             link_score += 1
 
-        section_scores['links'] = (link_score / link_checks) if link_checks > 0 else 0.0
+        if link_checks > 0:
+            evaluated_sections.add('links')
+            section_scores['links'] = link_score / link_checks
 
-        # ── Calculate weighted completion score ──────────────────
-        total_completion = 0.0
-        for section, score in section_scores.items():
-            weight = self.rules.get(section, {}).get('weight', 0.0)
-            total_completion += score * weight
+        # ── Calculate weighted completion score (Dynamic Normalization) ──
+        total_weight = sum(rules[sect].get('weight', 0.0) for sect in evaluated_sections)
+        weighted_score = sum(section_scores.get(sect, 0.0) * rules[sect].get('weight', 0.0) for sect in evaluated_sections)
+
+        if total_weight > 0:
+            total_completion = weighted_score / total_weight
+        else:
+            total_completion = 1.0
 
         # Ensure score is 0.0–1.0
         total_completion = min(1.0, max(0.0, total_completion))
@@ -260,8 +526,9 @@ class ProfileCompletionValidator:
 
         Returns True if completion score >= configured minimum.
         """
+        rules = self.get_rules_for_profile(profile)
         _, _, completion = self.validate_profile(profile)
-        min_required = self.rules['resume_generation']['min_profile_completion']
+        min_required = rules['resume_generation']['min_profile_completion']
         return completion >= min_required
 
     def get_suggestions(self, profile):
@@ -270,6 +537,7 @@ class ProfileCompletionValidator:
 
         Returns a list of suggestion strings.
         """
+        rules = self.get_rules_for_profile(profile)
         _, errors, completion = self.validate_profile(profile)
         suggestions = []
 
@@ -277,25 +545,22 @@ class ProfileCompletionValidator:
             suggestions.append(
                 "Add a professional summary (2-3 sentences about your goals)."
             )
-        if get_relation_count(profile, 'skills') < 3:
-            suggestions.append("Add at least 3 skills to strengthen your profile.")
-        if get_relation_count(profile, 'projects') == 0:
+        if get_relation_count(profile, 'skills') < rules['skills'].get('min_count', 3):
+            suggestions.append(f"Add at least {rules['skills'].get('min_count', 3)} skills to strengthen your profile.")
+
+        if rules['projects'].get('require_at_least_one', False) and get_relation_count(profile, 'projects') == 0:
             suggestions.append("Add at least one project to showcase your work.")
-        if not profile.linkedin:
+
+        if rules['experience'].get('require_at_least_one', False) and get_relation_count(profile, 'experiences') == 0:
+            suggestions.append("Add internship or work experience if applicable.")
+
+        if not profile.linkedin and rules['links'].get('require_linkedin', False):
             suggestions.append("Add your LinkedIn profile URL.")
-        if not profile.github:
+
+        if not profile.github and rules['links'].get('require_github', False):
             suggestions.append("Add your GitHub profile URL.")
-        if get_relation_count(profile, 'experiences') == 0:
-            suggestions.append(
-                "Add internship or work experience if applicable."
-            )
-        if get_relation_count(profile, 'extracurricular_activities') == 0:
-            suggestions.append(
-                "Add extracurricular activities to showcase your leadership or hobbies."
-            )
-        if not profile.strengths:
-            suggestions.append("Add your key strengths.")
-        if not profile.languages_known:
-            suggestions.append("Add the languages you know.")
+
+        if not profile.portfolio and rules['links'].get('require_portfolio', False):
+            suggestions.append("Add your Portfolio website URL.")
 
         return suggestions

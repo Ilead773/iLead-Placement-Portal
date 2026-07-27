@@ -832,27 +832,38 @@ export default function StudentProfile() {
               </div>
 
               {/* Social Buttons */}
-              <div className="flex gap-4 pt-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 {profile?.linkedin && (
                   <a 
                     href={profile.linkedin} 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
                   >
                     <Linkedin size={14} />
                     LinkedIn
                   </a>
                 )}
-                {profile?.github && (
+                {profile?.github && profile?.student_department === 'Technology' && (
                   <a 
                     href={profile.github} 
                     target="_blank" 
                     rel="noreferrer" 
-                    className="flex items-center justify-center gap-2 flex-1 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
                   >
                     <Github size={14} />
                     GitHub
+                  </a>
+                )}
+                {profile?.portfolio && (
+                  <a 
+                    href={profile.portfolio} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#10b981] to-[#059669] hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                  >
+                    <span className="text-sm">🌐</span>
+                    Portfolio
                   </a>
                 )}
               </div>
@@ -1121,33 +1132,69 @@ export default function StudentProfile() {
                 <label htmlFor="summary-input">Professional Summary</label>
                 <textarea id="summary-input" className="input-field" rows="3" value={basicInfo.professional_summary} onChange={e => setBasicInfo({...basicInfo, professional_summary: e.target.value})} />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="input-group">
-                  <label htmlFor="linkedin-input">LinkedIn</label>
-                  <input id="linkedin-input" className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} />
-                </div>
-                <div className="input-group">
-                  <label htmlFor="github-input">GitHub</label>
-                  <input id="github-input" className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="input-group">
-                  <label htmlFor="portfolio-input">Portfolio Website</label>
-                  <input id="portfolio-input" className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} />
-                </div>
-                <div className="input-group flex flex-col justify-center">
-                  <div className="flex items-center gap-2 mt-4 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      id="email-alerts-checkbox" 
-                      checked={basicInfo.email_job_alerts} 
-                      onChange={e => setBasicInfo({...basicInfo, email_job_alerts: e.target.checked})} 
-                    />
-                    <label htmlFor="email-alerts-checkbox" className="text-sm font-semibold select-none cursor-pointer">Receive Email Job Alerts</label>
-                  </div>
-                </div>
-              </div>
+              {(() => {
+                const dept = profile?.student_department || 'Business & Management';
+                const showGithub = dept === 'Technology';
+                return showGithub ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-group">
+                        <label htmlFor="linkedin-input">LinkedIn</label>
+                        <input id="linkedin-input" className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} />
+                      </div>
+                      <div className="input-group">
+                        <label htmlFor="github-input">GitHub (Required)</label>
+                        <input id="github-input" className="input-field" value={basicInfo.github} onChange={e => setBasicInfo({...basicInfo, github: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-group">
+                        <label htmlFor="portfolio-input">Portfolio Website (Required)</label>
+                        <input id="portfolio-input" className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} />
+                      </div>
+                      <div className="input-group flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mt-4 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            id="email-alerts-checkbox" 
+                            checked={basicInfo.email_job_alerts} 
+                            onChange={e => setBasicInfo({...basicInfo, email_job_alerts: e.target.checked})} 
+                          />
+                          <label htmlFor="email-alerts-checkbox" className="text-sm font-semibold select-none cursor-pointer">Receive Email Job Alerts</label>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-group">
+                        <label htmlFor="linkedin-input">LinkedIn</label>
+                        <input id="linkedin-input" className="input-field" value={basicInfo.linkedin} onChange={e => setBasicInfo({...basicInfo, linkedin: e.target.value})} />
+                      </div>
+                      <div className="input-group">
+                        <label htmlFor="portfolio-input">
+                          {dept === 'Design & Media' ? 'Portfolio Website (Required)' : 'Portfolio Website (Optional)'}
+                        </label>
+                        <input id="portfolio-input" className="input-field" value={basicInfo.portfolio} onChange={e => setBasicInfo({...basicInfo, portfolio: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="input-group flex flex-col justify-center">
+                        <div className="flex items-center gap-2 mt-4 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            id="email-alerts-checkbox" 
+                            checked={basicInfo.email_job_alerts} 
+                            onChange={e => setBasicInfo({...basicInfo, email_job_alerts: e.target.checked})} 
+                          />
+                          <label htmlFor="email-alerts-checkbox" className="text-sm font-semibold select-none cursor-pointer">Receive Email Job Alerts</label>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div className="input-group">
                   <label htmlFor="strengths-input">Strengths (comma separated)</label>
