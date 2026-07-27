@@ -38,7 +38,7 @@ class EducationSerializer(serializers.ModelSerializer):
         model = Education
         fields = [
             'id', 'institution', 'degree', 'field',
-            'graduation_date', 'gpa', 'honors'
+            'graduation_date', 'start_year', 'end_year', 'gpa', 'honors'
         ]
 
 

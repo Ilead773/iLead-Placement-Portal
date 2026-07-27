@@ -116,16 +116,18 @@ class ResumeNormalizer:
             'photo': photo_url,
         }
         canonical['professional_summary'] = profile.professional_summary or ''
-        skills_by_category = {}
+        all_skills = []
         for skill in profile.skills.all():
-            cat = skill.category
-            if cat not in skills_by_category: skills_by_category[cat] = []
             clean_name = re.sub(r'^[•\-\*–\s]+', '', skill.name).strip()
-            skills_by_category[cat].append(clean_name)
+            if clean_name:
+                all_skills.append(clean_name)
 
-        canonical['skills'] = [{'category': cat, 'items': items} for cat, items in skills_by_category.items()]
-        canonical['languages'] = profile.languages_known if profile.languages_known else skills_by_category.get('Language', [])
-        canonical['strengths'] = profile.strengths if profile.strengths else skills_by_category.get('Soft Skill', [])
+        if all_skills:
+            canonical['skills'] = [{'category': 'Skills', 'items': all_skills}]
+        else:
+            canonical['skills'] = []
+        canonical['languages'] = profile.languages_known if profile.languages_known else []
+        canonical['strengths'] = profile.strengths if profile.strengths else []
         canonical['extra_curricular'] = [act.title for act in profile.extracurricular_activities.all()]
         
         canonical['experience'] = [
@@ -159,7 +161,11 @@ class ResumeNormalizer:
                 'institution': re.sub(r'^[•\-\*–\s]+', '', edu.institution).strip(),
                 'degree': re.sub(r'^[•\-\*–\s]+', '', edu.degree).strip(),
                 'field': edu.field or '',
-                'graduation_date': edu.graduation_date.isoformat() if edu.graduation_date else None,
+                'graduation_date': (
+                    f"{edu.start_year} - {edu.end_year if edu.end_year else 'Present'}"
+                    if edu.start_year
+                    else (f"{edu.end_year}" if edu.end_year else (edu.graduation_date.isoformat() if edu.graduation_date else None))
+                ),
                 'gpa': edu.gpa,
                 'honors': edu.honors or '',
             }

@@ -277,20 +277,16 @@ def seed_ilead_kolkata_template():
         
         <div class="header-center">
             <h1 class="candidate-name">{{ personal.name|default:"Full Name" }}</h1>
+            {% if personal.linkedin %}
             <div class="linkedin-link">
-                {% if personal.linkedin %}
-                    <a href="{{ personal.linkedin }}" target="_blank">LinkedIn Profile</a>
-                {% else %}
-                    <a href="#" class="placeholder-link">LinkedIn Link (just add the link) - MANDATORY</a>
-                {% endif %}
+                <a href="{{ personal.linkedin }}" target="_blank">LinkedIn Profile</a>
             </div>
+            {% endif %}
+            {% if personal.portfolio %}
             <div class="portfolio-link">
-                {% if personal.portfolio %}
-                    <a href="{{ personal.portfolio }}" target="_blank">Portfolio Link</a>
-                {% else %}
-                    <a href="#" class="placeholder-link">Portfolio Link (For BMS, MSc Media, BMAGD, MMAGD, FTP Students)</a>
-                {% endif %}
+                <a href="{{ personal.portfolio }}" target="_blank">Portfolio Link</a>
             </div>
+            {% endif %}
             {% if personal.github %}
             <div class="github-link">
                 <a href="{{ personal.github }}" target="_blank">GitHub Profile</a>
@@ -432,19 +428,11 @@ def seed_ilead_kolkata_template():
 
                 {% if certifications %}
                 <div class="sidebar-section">
-                    <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
+                    <h3 class="section-title">CERTIFICATIONS</h3>
                     <ul class="bullet-list">
                         {% for cert in certifications %}
                             <li>{{ cert.name }}{% if cert.issuer %} – {{ cert.issuer }}{% endif %}</li>
                         {% endfor %}
-                    </ul>
-                </div>
-                {% else %}
-                <div class="sidebar-section">
-                    <h3 class="section-title">CERTIFICATIONS <i>(if any)</i></h3>
-                    <ul class="bullet-list">
-                        <li>Certification – Issuing Organization</li>
-                        <li>Certification – Issuing Organization</li>
                     </ul>
                 </div>
                 {% endif %}

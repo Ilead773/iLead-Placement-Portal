@@ -52,7 +52,7 @@ export default function StudentProfile() {
   const [editingExtraId, setEditingExtraId] = useState(null);
 
   // Form States
-  const [newSkill, setNewSkill] = useState({ name: '', category: 'Technical', proficiency: 'Beginner' });
+  const [newSkill, setNewSkill] = useState({ name: '', category: 'Technical', proficiency: 'Intermediate' });
   const [basicInfo, setBasicInfo] = useState({ 
     phone_number: '', 
     location: '', 
@@ -67,7 +67,7 @@ export default function StudentProfile() {
   });
   const [newExp, setNewExp] = useState({ company: '', position: '', start_date: '', end_date: '', is_current: false, description: '' });
   const [newProj, setNewProj] = useState({ title: '', description: '', technologies: '', link: '', date: '' });
-  const [newEdu, setNewEdu] = useState({ institution: '', degree: '', field: '', graduation_date: '', gpa: '', honors: '' });
+  const [newEdu, setNewEdu] = useState({ institution: '', degree: '', field: '', graduation_date: '', start_year: '', end_year: '', gpa: '', honors: '' });
   const [newCert, setNewCert] = useState({ name: '', issuer: '', date: '', credential_url: '' });
   const [newAward, setNewAward] = useState({ title: '', issuer: '', date: '', description: '' });
   const [newExtra, setNewExtra] = useState({ title: '', description: '', date: '' });
@@ -463,6 +463,8 @@ export default function StudentProfile() {
       const eduData = { ...newEdu };
       if (!eduData.graduation_date) delete eduData.graduation_date;
       if (eduData.gpa === '') delete eduData.gpa;
+      if (eduData.start_year === '') delete eduData.start_year;
+      if (eduData.end_year === '') delete eduData.end_year;
 
       if (editingEduId) {
         await api.patch(`profiles/me/education/${editingEduId}/`, eduData);
@@ -473,7 +475,7 @@ export default function StudentProfile() {
       }
       setShowEduModal(false);
       setEditingEduId(null);
-      setNewEdu({ institution: '', degree: '', field: '', graduation_date: '', gpa: '', honors: '' });
+      setNewEdu({ institution: '', degree: '', field: '', graduation_date: '', start_year: '', end_year: '', gpa: '', honors: '' });
       fetchProfile();
     } catch (err) {
       const errorMsg = err.response?.data ? Object.values(err.response.data)[0] : 'Failed to save education';
@@ -944,7 +946,9 @@ export default function StudentProfile() {
                       {edu.honors && <p className="text-xs text-muted">Honors: {edu.honors}</p>}
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className="text-xs text-muted font-bold">{edu.graduation_date || 'Ongoing'}</span>
+                      <span className="text-xs text-muted font-bold">
+                        {edu.start_year ? `${edu.start_year} - ${edu.end_year || 'Present'}` : (edu.graduation_date || 'Ongoing')}
+                      </span>
                       <div className="item-actions">
                         <span onClick={() => startEditEducation(edu)} className="action-link edit">Edit</span>
                         <span onClick={() => handleDeleteEducation(edu.id)} className="action-link delete">Delete</span>
@@ -965,7 +969,6 @@ export default function StudentProfile() {
               {profile?.skills?.length > 0 ? profile.skills.map(skill => (
                 <div key={skill.id} className="skill-badge group">
                   <span className="skill-name">{skill.name}</span>
-                  <span className="skill-level">{skill.proficiency}</span>
                   <div className="item-actions">
                     <span onClick={() => startEditSkill(skill)} className="action-link edit">Edit</span>
                     <span onClick={() => handleDeleteSkill(skill.id)} className="action-link delete">Delete</span>
@@ -1247,12 +1250,25 @@ export default function StudentProfile() {
       {showSkillModal && (
         <div className="modal-overlay">
           <div className="modal modal-md">
-            <div className="modal-header"><h2>{editingSkillId ? 'Edit Skill' : 'Add New Skill'}</h2><button className="modal-close" onClick={() => { setShowSkillModal(false); setEditingSkillId(null); setNewSkill({ name: '', category: 'Technical', proficiency: 'Beginner' }); }}>&times;</button></div>
+            <div className="modal-header">
+              <h2>{editingSkillId ? 'Edit Skill' : 'Add New Skill'}</h2>
+              <button className="modal-close" onClick={() => { 
+                setShowSkillModal(false); 
+                setEditingSkillId(null); 
+                setNewSkill({ name: '', category: 'Technical', proficiency: 'Intermediate' }); 
+              }}>&times;</button>
+            </div>
             <form onSubmit={handleAddSkill}>
-              <div className="input-group"><label>Skill Name</label><input className="input-field" required value={newSkill.name} onChange={e => setNewSkill({...newSkill, name: e.target.value})} /></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="input-group"><label>Category</label><select className="input-field" value={newSkill.category} onChange={e => setNewSkill({...newSkill, category: e.target.value})}><option>Technical</option><option>Soft Skill</option><option>Language</option></select></div>
-                <div className="input-group"><label>Proficiency</label><select className="input-field" value={newSkill.proficiency} onChange={e => setNewSkill({...newSkill, proficiency: e.target.value})}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+              <div className="input-group">
+                <label htmlFor="skill-name-input">Skill Name</label>
+                <input 
+                  id="skill-name-input" 
+                  className="input-field" 
+                  required 
+                  placeholder="e.g. Project Management, Python, Video Editing" 
+                  value={newSkill.name} 
+                  onChange={e => setNewSkill({...newSkill, name: e.target.value})} 
+                />
               </div>
               <button type="submit" className="btn btn-primary btn-full mt-4">Save Skill</button>
             </form>
@@ -1284,7 +1300,7 @@ export default function StudentProfile() {
               <button className="modal-close" onClick={() => {
                 setShowEduModal(false);
                 setEditingEduId(null);
-                setNewEdu({ institution: '', degree: '', field: '', graduation_date: '', gpa: '', honors: '' });
+                setNewEdu({ institution: '', degree: '', field: '', graduation_date: '', start_year: '', end_year: '', gpa: '', honors: '' });
               }}>&times;</button>
             </div>
             <form onSubmit={handleAddEducation}>
@@ -1302,12 +1318,30 @@ export default function StudentProfile() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="input-group">
-                  <label>Graduation Date</label>
-                  <input type="date" className="input-field" value={newEdu.graduation_date} onChange={e => setNewEdu({...newEdu, graduation_date: e.target.value})} />
+                  <label htmlFor="start-year-input">Start Year</label>
+                  <input 
+                    id="start-year-input"
+                    type="number" 
+                    min="1900" 
+                    max="2100" 
+                    placeholder="e.g. 2023" 
+                    className="input-field" 
+                    value={newEdu.start_year || ''} 
+                    onChange={e => setNewEdu({...newEdu, start_year: e.target.value})} 
+                  />
                 </div>
                 <div className="input-group">
-                  <label>GPA / Percentage</label>
-                  <input type="number" step="0.01" min="0" max="100" className="input-field" value={newEdu.gpa} onChange={e => setNewEdu({...newEdu, gpa: e.target.value})} />
+                  <label htmlFor="end-year-input">End Year (or Expected)</label>
+                  <input 
+                    id="end-year-input"
+                    type="number" 
+                    min="1900" 
+                    max="2100" 
+                    placeholder="e.g. 2026" 
+                    className="input-field" 
+                    value={newEdu.end_year || ''} 
+                    onChange={e => setNewEdu({...newEdu, end_year: e.target.value})} 
+                  />
                 </div>
               </div>
               <div className="input-group">

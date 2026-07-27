@@ -130,7 +130,6 @@ export default function StudentResumes() {
         template_id: templateId,
         title: `Resume - ${new Date().toLocaleDateString()}`
       });
-      toast.success('Generation started! Please wait...');
       fetchResumes();
     } catch (err) {
       if (err.response?.status === 429) {

@@ -248,6 +248,8 @@ class Education(SoftDeleteModel):
     degree = models.CharField(max_length=200)
     field = models.CharField(max_length=200, blank=True, default='')
     graduation_date = models.DateField(null=True, blank=True)
+    start_year = models.IntegerField(null=True, blank=True)
+    end_year = models.IntegerField(null=True, blank=True)
     gpa = models.FloatField(null=True, blank=True)
     honors = models.CharField(max_length=200, blank=True, default='')
 
