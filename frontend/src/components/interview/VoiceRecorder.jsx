@@ -24,15 +24,10 @@ export default function VoiceRecorder({ onTranscriptionComplete, disabled, liveT
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
-    recognition.onstart = () => {
-      console.log("[SpeechRecognition] Started listening");
-      setIsListening(true);
-      setError(null);
-    };
+    recognition.onstart = () => { setIsListening(true); setError(null); };
     recognition.onresult = (event) => {
       let interimText = '';
       let finalText = '';
-      console.log("[SpeechRecognition] Result received. Index:", event.resultIndex, "Total:", event.results.length);
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const t = event.results[i][0].transcript;
         if (event.results[i].isFinal) finalText += t + ' ';
@@ -45,17 +40,12 @@ export default function VoiceRecorder({ onTranscriptionComplete, disabled, liveT
       setInterim(interimText);
     };
     recognition.onerror = (event) => {
-      console.error("[SpeechRecognition] Error occurred:", event.error, event);
       if (event.error === 'not-allowed') setError('Microphone access blocked. Allow microphone in your browser settings.');
       else if (event.error === 'no-speech') setError('No speech detected. Try again or type your answer.');
       else if (event.error !== 'aborted') setError(`Mic error (${event.error}). Please try typing instead.`);
       setIsListening(false);
     };
-    recognition.onend = () => {
-      console.log("[SpeechRecognition] Stopped listening");
-      setIsListening(false);
-      setInterim('');
-    };
+    recognition.onend = () => { setIsListening(false); setInterim(''); };
     recognitionRef.current = recognition;
     return () => { try { recognitionRef.current?.abort(); } catch (e) {} };
   }, [setLiveTranscript]);

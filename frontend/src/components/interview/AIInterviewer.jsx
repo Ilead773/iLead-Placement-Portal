@@ -132,8 +132,10 @@ export default function AIInterviewer({ reaction, question, isThinking, evalId }
         else lastSpokenRef.current = "intro_spoken";
         
         window.speechSynthesis.cancel();
+        window.speechSynthesis.resume(); // Force-wake Chrome's TTS engine from frozen states
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.volume = 1.0; // Ensure maximum output volume
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.lang = 'en-US';
