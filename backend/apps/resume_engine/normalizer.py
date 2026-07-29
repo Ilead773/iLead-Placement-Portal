@@ -116,6 +116,7 @@ class ResumeNormalizer:
             'photo': photo_url,
         }
         canonical['professional_summary'] = profile.professional_summary or ''
+        canonical['department'] = dept
         all_skills = []
         for skill in profile.skills.all():
             clean_name = re.sub(r'^[•\-\*–\s]+', '', skill.name).strip()
@@ -164,7 +165,7 @@ class ResumeNormalizer:
                 'graduation_date': (
                     f"{edu.start_year} - {edu.end_year if edu.end_year else 'Present'}"
                     if edu.start_year
-                    else (f"{edu.end_year}" if edu.end_year else (edu.graduation_date.isoformat() if edu.graduation_date else None))
+                    else (f"{edu.end_year}" if edu.end_year else (str(edu.graduation_date.year) if edu.graduation_date else None))
                 ),
                 'gpa': edu.gpa,
                 'honors': edu.honors or '',

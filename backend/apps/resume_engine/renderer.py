@@ -92,6 +92,7 @@ class ResumeRenderer:
                 'projects': projects_list,
                 'education': education_list,
                 'certifications': certifications_list,
+                'department': canonical_json.get('department', ''),
                 'summary': canonical_json.get('professional_summary', ''),
                 'achievements': canonical_json.get('achievements', []),
                 'extra_curricular': canonical_json.get('extra_curricular', []),

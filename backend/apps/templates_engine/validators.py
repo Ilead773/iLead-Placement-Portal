@@ -25,7 +25,7 @@ ALLOWED_ATTRIBUTES = {
     '*': ['class', 'id', 'style'],
     'a': ['href', 'title', 'target'],
     'img': ['src', 'alt', 'width', 'height'],
-    'svg': ['width', 'height', 'viewbox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'style'],
+    'svg': ['width', 'height', 'viewbox', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'xmlns', 'style'],
     'path': ['d', 'style'],
     'polyline': ['points', 'style'],
     'circle': ['cx', 'cy', 'r', 'style'],
@@ -81,13 +81,18 @@ class TemplateSecurityValidator:
             logger.error("bleach package is not installed! Aborting HTML sanitization for safety.")
             raise ImportError("bleach is required for secure HTML template sanitization. Please install bleach.")
 
-        # Temporarily extract <table>...</table> blocks to prevent HTML5 parser from hoisting Django template loops
-        tables = []
-        def replace_table(match):
-            tables.append(match.group(0))
-            return f"__TABLE_PLACEHOLDER_{len(tables)-1}__"
+        # Temporarily extract structural blocks to prevent HTML5 parser from hoisting Django template loops
+        # and mangling SVG inline icons inside headers/sections
+        blocks = []
+        def replace_block(match):
+            blocks.append(match.group(0))
+            return f"__BLOCK_PLACEHOLDER_{len(blocks)-1}__"
 
-        placeholder_html = re.sub(r'<table\b[^>]*>.*?</table>', replace_table, html_content, flags=re.DOTALL | re.IGNORECASE)
+        # Extract tables, headers, and sections that contain SVG or Django template tags
+        placeholder_html = re.sub(
+            r'<(table|header|section)\b[^>]*>.*?</\1>',
+            replace_block, html_content, flags=re.DOTALL | re.IGNORECASE
+        )
 
         cleaned = bleach.clean(
             placeholder_html,
@@ -97,14 +102,14 @@ class TemplateSecurityValidator:
             strip=True,
         )
 
-        # Restore <table>...</table> blocks and validate their security
-        for idx, table_html in enumerate(tables):
-            # Verify no dangerous elements are inside the table
+        # Restore structural blocks and validate their security
+        for idx, block_html in enumerate(blocks):
+            # Verify no dangerous elements are inside the block
             for pattern in DANGEROUS_HTML_PATTERNS:
-                if re.search(pattern, table_html, re.IGNORECASE):
-                    raise ValueError(f"Dangerous HTML pattern detected in table: {pattern}")
+                if re.search(pattern, block_html, re.IGNORECASE):
+                    raise ValueError(f"Dangerous HTML pattern detected in block: {pattern}")
             
-            cleaned = cleaned.replace(f"__TABLE_PLACEHOLDER_{idx}__", table_html)
+            cleaned = cleaned.replace(f"__BLOCK_PLACEHOLDER_{idx}__", block_html)
 
         return cleaned
 

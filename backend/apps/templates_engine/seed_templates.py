@@ -321,10 +321,12 @@ def seed_ilead_kolkata_template():
         </div>
     </header>
 
+    {% if summary %}
     <section class="resume-section">
         <h2 class="section-title">CAREER OBJECTIVE</h2>
-        <p class="summary-text">{{ summary|default:"(Sample: A motivated and enthusiastic undergraduate student seeking opportunities to apply academic knowledge, develop professional skills, and contribute effectively to organizational goals while gaining industry exposure.)" }}</p>
+        <p class="summary-text">{{ summary }}</p>
     </section>
+    {% endif %}
 
     <section class="resume-section">
         <table class="education-table">
@@ -357,15 +359,7 @@ def seed_ilead_kolkata_template():
                             {% endif %}
                         </td>
                         <td>
-                            {% if edu.graduation_date %}
-                                {% if "UG" in edu.degree %}
-                                    {{ edu.graduation_date|slice:":4"|add:"-3" }} – Present
-                                {% else %}
-                                    {{ edu.graduation_date|slice:":4" }}
-                                {% endif %}
-                            {% else %}
-                                {% if "UG" in edu.degree %}20XX – Present{% else %}Year{% endif %}
-                            {% endif %}
+                            {{ edu.graduation_date|default:"Year" }}
                         </td>
                         <td class="bold-text">
                             {% if edu.gpa %}
@@ -406,25 +400,26 @@ def seed_ilead_kolkata_template():
     <table class="two-col-table">
         <tr>
             <td class="left-col">
+                {% if skills %}
                 <div class="sidebar-section">
-                    <h3 class="section-title">TECHNICAL SKILLS</h3>
-                    <ul class="bullet-list">
-                        {% if skills %}
-                            {% for skill_group in skills %}
-                                {% if skill_group.category == 'Technical' or skill_group.category == 'Other' %}
-                                    {% for item in skill_group.items %}
-                                        <li>{{ item }}</li>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
+                    <h3 class="section-title">
+                        {% if department == 'Technology' %}
+                            TECHNICAL SKILLS
                         {% else %}
-                            <li>MS Office Suite (Excel, Word, PowerPoint)</li>
-                            <li>Industry-Specific Software (if applicable)</li>
-                            <li>AI Tools (ChatGPT, Gemini, Canva AI, etc.)</li>
-                            <li>Data Analysis / Design / Programming Tools</li>
+                            KEY SKILLS
                         {% endif %}
+                    </h3>
+                    <ul class="bullet-list">
+                        {% for skill_group in skills %}
+                            {% if skill_group.category == 'Technical' or skill_group.category == 'Other' %}
+                                {% for item in skill_group.items %}
+                                    <li>{{ item }}</li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
                     </ul>
                 </div>
+                {% endif %}
 
                 {% if certifications %}
                 <div class="sidebar-section">
@@ -491,97 +486,67 @@ def seed_ilead_kolkata_template():
         </tr>
     </table>
 
+    {% if achievements %}
     <div class="full-width-section">
         <h3 class="section-title">ACHIEVEMENTS &amp; POSITIONS OF RESPONSIBILITY</h3>
-        {% if achievements %}
-            <table class="horiz-list">
-                <tr>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            {% for ach in achievements %}
-                                {% if not forloop.counter|divisibleby:2 %}
-                                    <li>
-                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            {% for ach in achievements %}
-                                {% if forloop.counter|divisibleby:2 %}
-                                    <li>
-                                        <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
-                                        {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                </tr>
-            </table>
-        {% else %}
-            <table class="horiz-list">
-                <tr>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            <li>Achievement/Award – Organizing body/Institution</li>
-                        </ul>
-                    </td>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            <li>Club Coordinator / Event Volunteer / Team Lead – Institution</li>
-                        </ul>
-                    </td>
-                </tr>
-            </table>
-        {% endif %}
+        <table class="horiz-list">
+            <tr>
+                <td style="width: 50%;">
+                    <ul class="bullet-list">
+                        {% for ach in achievements %}
+                            {% if not forloop.counter|divisibleby:2 %}
+                                <li>
+                                    <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                    {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td style="width: 50%;">
+                    <ul class="bullet-list">
+                        {% for ach in achievements %}
+                            {% if forloop.counter|divisibleby:2 %}
+                                <li>
+                                    <strong>{{ ach.title }}</strong>{% if ach.issuer %} – {{ ach.issuer }}{% endif %}
+                                    {% if ach.description %}<span class="ach-desc"> – {{ ach.description }}</span>{% endif %}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        </table>
     </div>
+    {% endif %}
 
+    {% if extra_curricular %}
     <div class="full-width-section">
         <h3 class="section-title">EXTRA-CURRICULAR ACTIVITIES</h3>
-        {% if extra_curricular %}
-            <table class="horiz-list">
-                <tr>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            {% for activity in extra_curricular %}
-                                {% if not forloop.counter|divisibleby:2 %}
-                                    <li>{{ activity }}</li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            {% for activity in extra_curricular %}
-                                {% if forloop.counter|divisibleby:2 %}
-                                    <li>{{ activity }}</li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                </tr>
-            </table>
-        {% else %}
-            <table class="horiz-list">
-                <tr>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            <li>Event Volunteer / Club Member / Sports / Cultural Activity</li>
-                        </ul>
-                    </td>
-                    <td style="width: 50%;">
-                        <ul class="bullet-list">
-                            <li>NSS / NCC / Community Service</li>
-                        </ul>
-                    </td>
-                </tr>
-            </table>
-        {% endif %}
+        <table class="horiz-list">
+            <tr>
+                <td style="width: 50%;">
+                    <ul class="bullet-list">
+                        {% for activity in extra_curricular %}
+                            {% if not forloop.counter|divisibleby:2 %}
+                                <li>{{ activity }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td style="width: 50%;">
+                    <ul class="bullet-list">
+                        {% for activity in extra_curricular %}
+                            {% if forloop.counter|divisibleby:2 %}
+                                <li>{{ activity }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        </table>
     </div>
+    {% endif %}
 
     <footer class="resume-footer">
         Campus: 113, Matheswartola Road, Kolkata 700 046, West Bengal, India, Ph: +91.33.4018 2000/02 Fax: +91.33.4018 2016

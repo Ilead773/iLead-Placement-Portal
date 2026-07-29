@@ -24,10 +24,19 @@ class UserSerializer(serializers.ModelSerializer):
         student = getattr(obj, 'student_profile', None)
         course = student.course if student else None
         year_value = getattr(student, 'year', None)
+        reg_number = student.registration_number if student else None
         
         configs = StudentFeatureConfig.objects.all()
         for config in configs:
-            if not config.is_enabled:
+            allowed_whitelist = getattr(config, 'allowed_departments', []) or []
+            
+            # Check if this student is explicitly whitelisted via registration number
+            student_is_whitelisted = bool(reg_number and reg_number in allowed_whitelist)
+            
+            if student_is_whitelisted:
+                # Whitelisted students get the feature regardless of global is_enabled flag
+                features_dict[config.feature_key] = True
+            elif not config.is_enabled:
                 features_dict[config.feature_key] = False
             else:
                 # Course check (empty allowed_courses means all)
@@ -37,6 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
                 
                 features_dict[config.feature_key] = (course_ok and year_ok)
         return features_dict
+
 
 
 class LoginSerializer(serializers.Serializer):
