@@ -9,7 +9,7 @@ from .conversation import AIConversationService
 logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=30, name='apps.interviews.tasks.evaluate_answer_task')
-def evaluate_answer_task(self, answer_id):
+def evaluate_answer_task(self, answer_id, model=None):
     """
     Background task to evaluate an interview answer and generate a reaction.
     """
@@ -25,6 +25,7 @@ def evaluate_answer_task(self, answer_id):
             ideal_answer=question.ideal_answer,
             evaluation_rubric=question.evaluation_rubric,
             answer_text=answer.answer_text,
+            model=model,
         )
         
         # ── Conversation Layer ───────────────────────────────────────

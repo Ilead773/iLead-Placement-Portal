@@ -39,7 +39,7 @@ class AIConversationService:
 
     @property
     def MODEL(self) -> str:
-        return ai_client_wrapper.model or 'llama-3.1-8b-instant'
+        return ai_client_wrapper.model or 'openai/gpt-oss-20b'
 
     MAX_TOKENS = 300
 

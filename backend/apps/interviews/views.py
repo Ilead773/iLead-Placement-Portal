@@ -256,9 +256,11 @@ def submit_answer(request):
         time_taken_seconds=time_taken,
     )
 
+    model = request.data.get('model')
+
     # ── Trigger Celery Task ──────────────────────────────────────
     from .tasks import evaluate_answer_task
-    evaluate_answer_task.delay(answer.id)
+    evaluate_answer_task.delay(answer.id, model=model)
 
     total_q = len(session.questions)
     is_final = question_number >= total_q

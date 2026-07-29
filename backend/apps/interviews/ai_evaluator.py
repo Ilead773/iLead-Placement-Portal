@@ -59,7 +59,7 @@ class AIInterviewEvaluator:
 
     @property
     def MODEL(self) -> str:
-        return ai_client_wrapper.model or 'llama-3.1-8b-instant'
+        return ai_client_wrapper.model or 'openai/gpt-oss-20b'
 
     MAX_TOKENS = 800
 
@@ -111,6 +111,7 @@ class AIInterviewEvaluator:
         ideal_answer: str,
         evaluation_rubric: Dict,
         answer_text: str,
+        model: str = None,
     ) -> Dict:
         """
         Run AI evaluation. Returns structured dict.
@@ -125,7 +126,7 @@ class AIInterviewEvaluator:
 
         client = _get_client()
         response = client.chat.completions.create(
-            model=self.MODEL,
+            model=model or self.MODEL,
             messages=[
                 {"role": "system", "content": self._system_prompt()},
                 {"role": "user",   "content": prompt},
@@ -142,17 +143,18 @@ class AIInterviewEvaluator:
 
     def _system_prompt(self) -> str:
         return (
-            "You are a professional, objective, and mildly encouraging job interviewer dedicated to helping candidates learn. "
-            "Your goal is to provide realistic, accurate, and fair evaluations. "
+            "You are a professional, highly objective, and strict job interviewer. "
+            "Your goal is to provide realistic, accurate, and critical evaluations. "
             "You assess candidate answers on 2 dimensions: technical_accuracy, depth. "
-            "SCORING RULES:\n"
-            "- If the answer is completely silent, blank, or states 'I don't know', score exactly 0 or 1.\n"
-            "- If the candidate makes an honest attempt and demonstrates basic understanding or mentions relevant technical keywords/terms, be mildly encouraging: award at least 4 to 5 points to reward their effort.\n"
-            "- If they demonstrate a solid understanding of the core concepts, award a good score of 6 to 7.\n"
-            "- If they provide a clear, accurate, and comprehensive explanation, reward them with a score of 8 to 9.\n"
-            "- Reserve 9.5 to 10 for exceptionally deep answers with trade-offs or professional examples.\n"
+            "SCORING RULES (Strict Grading):\n"
+            "- Score 0: If the answer is silent, blank, gibberish/nonsense, or states 'I don't know'.\n"
+            "- Score 1 to 2 (Extremely Poor): If the candidate writes something but it is completely off-topic, incorrect, or lacks any substance (e.g. 'just talk to them' or 'it can be anything'). Do NOT award points for effort or simple word matching.\n"
+            "- Score 3 to 4 (Weak Attempt): The candidate attempts the question, but has major inaccuracies, misconceptions, or fails to define/explain the core concept.\n"
+            "- Score 5 to 6 (Average/Basic): The candidate correctly defines the core concept or answers the prompt, but the explanation is very brief and lacks detail, examples, or depth.\n"
+            "- Score 7 to 8 (Good): The explanation is clear, accurate, and covers most essential points of the rubric with a good level of detail.\n"
+            "- Score 9 to 10 (Excellent): Exceptionally deep answer that is comprehensive, structured, and includes professional examples or trade-offs.\n"
             "- BREVITY EXEMPTION: Do NOT penalize short answers if the content is correct. If they say the right things in a single sentence, grade them on correctness and accuracy, not length.\n"
-            "Each dimension is scored 0–10. Be objective, fair, and constructive. Always return valid JSON only."
+            "Each dimension is scored 0–10. Be highly objective, critical, and fair. Always return valid JSON only."
         )
 
     def _build_prompt(
@@ -166,7 +168,7 @@ class AIInterviewEvaluator:
         return f"""
 INTERVIEW QUESTION:
 {question}
-
+ 
 IDEAL ANSWER SUMMARY:
 {ideal}
 
@@ -192,7 +194,7 @@ Evaluate the candidate's answer. Return ONLY a JSON object with this exact struc
   "score_explanation": "<2-3 sentences in plain English explaining exactly why they got this score — what they did right, what was missing, what would have pushed it higher>"
 }}
 
-Score fairly and objectively. If the candidate tried, reward them with mildly encouraging marks. If completely silent, they must be penalized.
+Score fairly and objectively. Do NOT award points for incorrect, off-topic, or gibberish answers.
 """.strip()
 
     def generate_final_summary(self, answers, total_score: float) -> str:

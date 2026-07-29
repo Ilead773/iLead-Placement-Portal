@@ -26,7 +26,7 @@ class AIClientWrapper:
         # Priority 1: Groq
         if groq_key:
             self._provider = 'groq'
-            self._model = os.environ.get('GROQ_MODEL', 'llama-3.1-8b-instant')
+            self._model = os.environ.get('GROQ_MODEL', 'openai/gpt-oss-20b')
             try:
                 from groq import Groq
                 self._client = Groq(api_key=groq_key)

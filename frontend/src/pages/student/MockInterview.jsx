@@ -30,6 +30,7 @@ export default function MockInterview() {
     const val = sessionStorage.getItem('mi_useVoice');
     return val !== null ? JSON.parse(val) : true;
   });
+  const [selectedModel, setSelectedModel] = useState(() => sessionStorage.getItem('mi_selectedModel') || 'openai/gpt-oss-20b');
   const [loading, setLoading] = useState(false);
 
 
@@ -140,6 +141,10 @@ export default function MockInterview() {
   useEffect(() => {
     sessionStorage.setItem('mi_useVoice', JSON.stringify(useVoice));
   }, [useVoice]);
+
+  useEffect(() => {
+    sessionStorage.setItem('mi_selectedModel', selectedModel);
+  }, [selectedModel]);
 
   useEffect(() => {
     if (sessionId) sessionStorage.setItem('mi_sessionId', JSON.stringify(sessionId));
@@ -482,7 +487,7 @@ export default function MockInterview() {
     setSubmitting(true);
     try {
       const { data } = await interviewsAPI.submitAnswer(
-        sessionId, questionNumber, answerText, timer
+        sessionId, questionNumber, answerText, timer, selectedModel
       );
 
       // Start polling
@@ -502,7 +507,7 @@ export default function MockInterview() {
     }
     // Clear all state in sessionStorage
     const keys = [
-      'mi_phase', 'mi_selectedDomain', 'mi_selectedType', 'mi_useVoice',
+      'mi_phase', 'mi_selectedDomain', 'mi_selectedType', 'mi_useVoice', 'mi_selectedModel',
       'mi_sessionId', 'mi_currentQuestion', 'mi_questionNumber', 'mi_totalQuestions',
       'mi_interviewerReaction', 'mi_lastEvaluation', 'mi_lastAnswerId',
       'mi_finalFeedback', 'mi_timer', 'mi_proctorWarnings'
@@ -677,6 +682,36 @@ export default function MockInterview() {
                       </span>
                     </div>
                   </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 0' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🤖 AI Evaluator Model
+                    </span>
+                    <select
+                      value={selectedModel}
+                      onChange={e => setSelectedModel(e.target.value)}
+                      style={{
+                        padding: '14px 18px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'inherit',
+                        fontSize: '0.95rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        width: '100%',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b (Default - Balanced & Very Fast)</option>
+                      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile (Meta Llama 70B - Deep Reasoning)</option>
+                      <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (Llama 8B - Fast & Simple)</option>
+                    </select>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Select the Large Language Model to evaluate your mock interview answers. All models run on Groq and are completely free.
+                    </span>
+                  </div>
 
                   <button
                     className="btn btn-primary btn-full"

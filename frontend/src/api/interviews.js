@@ -22,12 +22,13 @@ export const interviewsAPI = {
     return api.post(`${INTERVIEWS_BASE}/start/`, payload);
   },
 
-  submitAnswer: (sessionId, questionNumber, answerText, timeTaken = 0) =>
+  submitAnswer: (sessionId, questionNumber, answerText, timeTaken = 0, model = null) =>
     api.post(`${INTERVIEWS_BASE}/submit-answer/`, {
       session_id: sessionId,
       question_number: questionNumber,
       answer_text: answerText,
       time_taken_seconds: timeTaken,
+      model: model,
     }),
 
   checkAnswerStatus: (answerId) => api.get(`${INTERVIEWS_BASE}/check-answer-status/${answerId}/`),
