@@ -192,7 +192,7 @@ REST_FRAMEWORK = {
         'resume_generation': '100/hour',
         'resume_upload': '5/hour',
         'resume_download': '3/hour',
-        'mock_interview_start': '5/hour',
+        'mock_interview_start': '60/hour',
         'mock_interview_submit': '60/hour',
     },
 }
