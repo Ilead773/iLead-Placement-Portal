@@ -96,8 +96,8 @@ class AuthViewSet(viewsets.ViewSet):
         from django.db import transaction
         try:
             with transaction.atomic():
-                # Re-fetch user with row lock to securely update status counters
-                user = User.objects.select_for_update().get(id=user.id)
+                # Re-fetch user to get latest state (select_for_update removed — incompatible with Supabase pooler)
+                user = User.objects.get(id=user.id)
 
                 # Re-check lockout status inside transaction to prevent race conditions
                 if user.locked_until:

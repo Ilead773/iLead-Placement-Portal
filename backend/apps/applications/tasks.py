@@ -270,7 +270,15 @@ def send_job_alert_task(self, job_id):
 
         allowed_branches = rules.get('allowed_branches', [])
         if allowed_branches:
-            student_filter &= Q(student_profile__course__in=allowed_branches)
+            # Match exact course name OR parenthesized course short code (e.g. "(BCA)")
+            # to prevent matching broad terms like BBA to BBA SM (Sports Management).
+            branch_q = Q()
+            for branch in allowed_branches:
+                if branch:
+                    branch = branch.strip()
+                    branch_q |= Q(student_profile__course__iexact=branch)
+                    branch_q |= Q(student_profile__course__icontains=f"({branch})")
+            student_filter &= branch_q
 
         allowed_years = rules.get('allowed_years', [])
         if allowed_years:
@@ -331,28 +339,34 @@ def send_job_alert_task(self, job_id):
                 continue
 
             student_profile = getattr(student, 'student_profile', None)
-            if student_profile:
-                # Pre-populate properties on Student model to prevent check_eligibility DB hits
-                student_profile._has_primary_built = (student_profile.id in primary_built_student_ids)
-                student_profile._has_primary_uploaded = (student_profile.id in primary_uploaded_student_ids)
-                
-                # Pre-populate max built/uploaded timestamp caches
-                student_profile._max_built_updated_ts = max_built_map.get(
-                    student_profile.id, timezone.datetime.fromtimestamp(0, tz=timezone.utc)
-                ).timestamp()
-                student_profile._max_uploaded_updated_ts = max_uploaded_map.get(
-                    student_profile.id, timezone.datetime.fromtimestamp(0, tz=timezone.utc)
-                ).timestamp()
 
-                resume_profile = getattr(student_profile, 'resume_profile', None)
-                if resume_profile:
-                    # Pre-cache skills list
-                    student_profile._skills_list = [s.name.lower() for s in resume_profile.skills.all()]
+            # ⚠️ BUG FIX: Skip students with no profile — they have no academic data
+            # and cannot be eligibility-checked. Previously these fell through and still
+            # received notifications because the `if student_profile:` block was skipped.
+            if not student_profile:
+                continue
 
-                # Skip ineligible students
-                eligibility = check_eligibility(student_profile, job, ignore_profile_resume=True)
-                if not eligibility['eligible']:
-                    continue
+            # Pre-populate properties on Student model to prevent check_eligibility DB hits
+            student_profile._has_primary_built = (student_profile.id in primary_built_student_ids)
+            student_profile._has_primary_uploaded = (student_profile.id in primary_uploaded_student_ids)
+
+            # Pre-populate max built/uploaded timestamp caches
+            student_profile._max_built_updated_ts = max_built_map.get(
+                student_profile.id, timezone.datetime.fromtimestamp(0, tz=timezone.utc)
+            ).timestamp()
+            student_profile._max_uploaded_updated_ts = max_uploaded_map.get(
+                student_profile.id, timezone.datetime.fromtimestamp(0, tz=timezone.utc)
+            ).timestamp()
+
+            resume_profile = getattr(student_profile, 'resume_profile', None)
+            if resume_profile:
+                # Pre-cache skills list
+                student_profile._skills_list = [s.name.lower() for s in resume_profile.skills.all()]
+
+            # Skip ineligible students
+            eligibility = check_eligibility(student_profile, job, ignore_profile_resume=True)
+            if not eligibility['eligible']:
+                continue
 
             title = f"💼 New Opportunity: {job.company_name}!"
             if job.listing_type == 'internship':

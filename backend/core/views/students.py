@@ -1072,3 +1072,294 @@ class StudentViewSet(viewsets.ViewSet):
             'temporary_password': password
         }, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'], url_path='promote-batch')
+    def promote_batch(self, request):
+        """
+        Bulk-promote students to the next academic year.
+
+        Supports three scopes:
+          1. registration_numbers — comma/space/newline separated list of reg numbers
+          2. filter_course + filter_year — promote an entire course-year batch
+          3. student_ids — list of UUIDs (from checkbox selection)
+
+        Promotion settings:
+          target_year: '1st'|'2nd'|'3rd'|'4th'|'graduated'|'auto_increment'
+          semester_mode: 'auto'|'increment_2'|'increment_1'|'keep'|'specific'
+          specific_semester: int (only when semester_mode='specific')
+          passing_year_mode: 'keep'|'increment_1'|'specific'
+          specific_passing_year: int (only when passing_year_mode='specific')
+        """
+        if not (request.user.role == 'admin' or
+                (request.user.role == 'coordinator' and
+                 getattr(request.user, 'can_manage_students', False))):
+            return Response(
+                {'error': 'Only admins or authorized coordinators can promote students.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        data = request.data
+
+        # ── 1. Resolve the queryset ──────────────────────────────────────────
+        reg_numbers_raw = data.get('registration_numbers', '')
+        filter_course = (data.get('filter_course') or '').strip()
+        filter_year = (data.get('filter_year') or '').strip()
+        student_ids = data.get('student_ids', [])
+
+        if reg_numbers_raw:
+            # Support comma, space, or newline separation
+            import re
+            reg_numbers = [
+                r.strip() for r in re.split(r'[\s,\n]+', str(reg_numbers_raw))
+                if r.strip()
+            ]
+            if not reg_numbers:
+                return Response(
+                    {'error': 'No valid registration numbers found in the provided list.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            qs = Student.objects.filter(registration_number__in=reg_numbers)
+            scope_label = f"{len(reg_numbers)} registration number(s)"
+
+        elif filter_course and filter_year:
+            qs = Student.objects.filter(course=filter_course, year=filter_year)
+            scope_label = f"course '{filter_course}' / year '{filter_year}'"
+
+        elif student_ids:
+            qs = Student.objects.filter(id__in=student_ids)
+            scope_label = f"{len(student_ids)} selected student(s)"
+
+        else:
+            return Response(
+                {'error': 'Provide registration_numbers, filter_course+filter_year, or student_ids.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── 2. Validate promotion settings ──────────────────────────────────
+        target_year = data.get('target_year', 'auto_increment')
+        VALID_TARGET_YEARS = {'1st', '2nd', '3rd', '4th', 'graduated', 'auto_increment', 'auto_decrement'}
+        if target_year not in VALID_TARGET_YEARS:
+            return Response(
+                {'error': f"Invalid target_year '{target_year}'. Choices: {', '.join(VALID_TARGET_YEARS)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        semester_mode = data.get('semester_mode', 'auto')
+        VALID_SEM_MODES = {'auto', 'increment_2', 'increment_1', 'keep', 'specific'}
+        if semester_mode not in VALID_SEM_MODES:
+            return Response(
+                {'error': f"Invalid semester_mode '{semester_mode}'. Choices: {', '.join(VALID_SEM_MODES)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        specific_semester = None
+        if semester_mode == 'specific':
+            try:
+                specific_semester = int(data.get('specific_semester', ''))
+                if not (1 <= specific_semester <= 12):
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'specific_semester must be an integer between 1 and 12.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        passing_year_mode = data.get('passing_year_mode', 'keep')
+        VALID_PY_MODES = {'keep', 'increment_1', 'specific'}
+        if passing_year_mode not in VALID_PY_MODES:
+            return Response(
+                {'error': f"Invalid passing_year_mode '{passing_year_mode}'. Choices: {', '.join(VALID_PY_MODES)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        specific_passing_year = None
+        if passing_year_mode == 'specific':
+            try:
+                specific_passing_year = int(data.get('specific_passing_year', ''))
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'specific_passing_year must be a valid integer year.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # ── 3. Year progression / regression maps ───────────────────────────
+        YEAR_PROGRESSION = {
+            '1st': '2nd',
+            '2nd': '3rd',
+            '3rd': None,   # At 3rd year, admin must choose explicitly (graduated or 4th)
+            '4th': None,   # Graduated
+        }
+        YEAR_REGRESSION = {
+            '2nd': '1st',
+            '3rd': '2nd',
+            '4th': '3rd',
+            # None (Graduated) requires explicit target — cannot auto-guess
+        }
+
+        # Semester auto-shift map: maps (new_year) -> default first semester of that year
+        YEAR_TO_SEMESTER = {
+            '1st': 1,
+            '2nd': 3,
+            '3rd': 5,
+            '4th': 7,
+        }
+        SEMESTER_REGRESSION = {
+            3: 1, 4: 2,   # 2nd year semesters revert to 1st year
+            5: 3, 6: 4,   # 3rd year semesters revert to 2nd year
+            7: 5, 8: 6,   # 4th year semesters revert to 3rd year
+        }
+
+        def next_semester_auto(current_sem, new_year, direction='forward'):
+            """Shift semester forward or backward based on the new year."""
+            if new_year is None:
+                return None  # Graduated, clear semester
+            if direction == 'backward':
+                return SEMESTER_REGRESSION.get(current_sem, current_sem)
+            base = YEAR_TO_SEMESTER.get(new_year)
+            if base is None:
+                return current_sem
+            # Even semesters go to base+1, odd to base
+            if current_sem is not None and current_sem % 2 == 0:
+                return base + 1
+            return base
+
+        # ── 4. Process each student ──────────────────────────────────────────
+        promoted = []
+        skipped = []
+        errors = []
+
+        students_list = list(qs.select_related('user'))
+
+        if not students_list:
+            return Response(
+                {'error': 'No students found matching the provided scope.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        for student in students_list:
+            try:
+                old_year = student.year
+                old_semester = student.semester
+
+                # ── Determine new year ───────────────────────────────────────
+                if target_year == 'auto_increment':
+                    if old_year == '3rd':
+                        # Cannot auto-decide for 3rd year — skip with a clear message
+                        skipped.append({
+                            'registration_number': student.registration_number,
+                            'name': student.name,
+                            'reason': (
+                                "3rd-year students require an explicit target "
+                                "(Set to '4th' to Continue, or 'graduated' to Exit). "
+                                "Use a separate promotion action for these students."
+                            )
+                        })
+                        continue
+                    new_year = YEAR_PROGRESSION.get(old_year)
+                elif target_year == 'auto_decrement':
+                    if old_semester is None or old_semester <= 1:
+                        skipped.append({
+                            'registration_number': student.registration_number,
+                            'name': student.name,
+                            'reason': (
+                                "Cannot revert: student is at Semester 1 (or has no semester set). "
+                                "They cannot go back further."
+                            )
+                        })
+                        continue
+                    # Revert by exactly 1 semester
+                    new_semester = old_semester - 1
+                    # Derive year automatically from the new semester
+                    if new_semester <= 2:
+                        new_year = '1st'
+                    elif new_semester <= 4:
+                        new_year = '2nd'
+                    elif new_semester <= 6:
+                        new_year = '3rd'
+                    elif new_semester <= 8:
+                        new_year = '4th'
+                    else:
+                        new_year = old_year  # fallback for unusual semesters
+                elif target_year == 'graduated':
+                    new_year = None
+                else:
+                    new_year = target_year
+
+                # ── Determine new semester ───────────────────────────────────────
+                if target_year == 'auto_decrement':
+                    # Semester already resolved above
+                    new_semester = new_semester
+                elif semester_mode == 'auto':
+                    new_semester = next_semester_auto(old_semester, new_year, direction='forward')
+                elif semester_mode == 'increment_2':
+                    new_semester = (old_semester + 2) if old_semester is not None else None
+                elif semester_mode == 'increment_1':
+                    new_semester = (old_semester + 1) if old_semester is not None else None
+                elif semester_mode == 'keep':
+                    new_semester = old_semester
+                elif semester_mode == 'specific':
+                    new_semester = specific_semester
+                else:
+                    new_semester = old_semester
+
+                # Clamp semester to valid range (1-12) or None
+                if new_semester is not None:
+                    new_semester = max(1, min(12, new_semester))
+
+                # ── Determine new passing year ───────────────────────────────
+                if passing_year_mode == 'keep':
+                    new_passing_year = student.passing_year
+                elif passing_year_mode == 'increment_1':
+                    new_passing_year = (student.passing_year + 1) if student.passing_year is not None else None
+                elif passing_year_mode == 'specific':
+                    new_passing_year = specific_passing_year
+                else:
+                    new_passing_year = student.passing_year
+
+                # ── Apply changes ────────────────────────────────────────────
+                student.year = new_year
+                student.semester = new_semester
+                student.passing_year = new_passing_year
+
+                # Recalculate category unless admin has manually pinned it
+                if not student.is_category_manual:
+                    student.category = student.calculate_category()
+
+                student.save()
+
+                promoted.append({
+                    'registration_number': student.registration_number,
+                    'name': student.name,
+                    'old_year': old_year,
+                    'new_year': new_year or 'Graduated',
+                    'old_semester': old_semester,
+                    'new_semester': new_semester,
+                })
+
+            except Exception as e:
+                errors.append({
+                    'registration_number': student.registration_number,
+                    'name': student.name,
+                    'error': str(e)
+                })
+
+        # ── 5. Audit log ─────────────────────────────────────────────────────
+        log_audit(
+            request.user,
+            'students_promoted',
+            (
+                f"Promoted {len(promoted)} student(s) via scope: {scope_label}. "
+                f"Skipped: {len(skipped)}. Errors: {len(errors)}."
+            ),
+            request
+        )
+
+        return Response({
+            'message': f"Promotion complete. {len(promoted)} promoted, {len(skipped)} skipped, {len(errors)} error(s).",
+            'promoted_count': len(promoted),
+            'skipped_count': len(skipped),
+            'error_count': len(errors),
+            'promoted': promoted,
+            'skipped': skipped,
+            'errors': errors,
+        }, status=status.HTTP_200_OK)
+

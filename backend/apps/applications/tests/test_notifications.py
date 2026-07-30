@@ -120,8 +120,13 @@ class TestNotificationTasks:
         # Create a few active students with email addresses
         student_user1 = baker.make(User, role='student', email='student1@test.com', is_active=True)
         student_user2 = baker.make(User, role='student', email='student2@test.com', is_active=True)
+        # Create student profiles so they are not skipped by the eligibility task
+        baker.make(Student, user=student_user1, email=student_user1.email, cgpa=8.0, attendance=90.0, backlogs_count=0)
+        baker.make(Student, user=student_user2, email=student_user2.email, cgpa=8.5, attendance=92.0, backlogs_count=0)
+        
         # Inactive student
         inactive_student = baker.make(User, role='student', email='inactive@test.com', is_active=False)
+        baker.make(Student, user=inactive_student, email=inactive_student.email)
         # Non-student user
         admin_user = baker.make(User, role='admin', email='admin@test.com', is_active=True)
         
@@ -444,10 +449,11 @@ class TestEmailLimitsAndRotation:
         from django.utils import timezone
         
         # Make a batch of 25 active students with emails
-        students = [
-            baker.make(User, role='student', email=f'student_{i}@test.com', is_active=True)
-            for i in range(25)
-        ]
+        students = []
+        for i in range(25):
+            student_user = baker.make(User, role='student', email=f'student_{i}@test.com', is_active=True)
+            baker.make(Student, user=student_user, email=student_user.email, cgpa=8.0, attendance=90.0, backlogs_count=0)
+            students.append(student_user)
         
         job = baker.make(
             Job,

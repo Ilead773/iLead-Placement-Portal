@@ -66,12 +66,19 @@ export default function Notifications() {
   // Pre-select a specific notification if navigated from dashboard
   useEffect(() => {
     if (location.state?.selectedId) {
-      setSelectedId(location.state.selectedId);
-      setActiveFolder('inbox');
+      const targetId = location.state.selectedId;
+      setSelectedId(targetId);
+      // If the targeted notification is already read, it lives in archive — switch there
+      const targetNotif = notifications.find(n => n.id === targetId);
+      if (targetNotif && targetNotif.is_read) {
+        setActiveFolder('archive');
+      } else {
+        setActiveFolder('inbox');
+      }
       // Clear location state after selecting so it doesn't re-select on subsequent changes
       window.history.replaceState({}, document.title);
     }
-  }, [location.state]);
+  }, [location.state, notifications]);
 
   // Sync Starred with LocalStorage
   useEffect(() => {
@@ -162,8 +169,10 @@ export default function Notifications() {
     // 1. Folder Filters
     const isUnread = !note.is_read;
     const isStarred = starredIds.includes(note.id);
-    
-    // Inbox folder shows all notifications (both read and unread) to differentiate them clearly
+
+    // Inbox: only unread notifications
+    // Archive: only read notifications
+    if (activeFolder === 'inbox' && !isUnread) return false;
     if (activeFolder === 'archive' && isUnread) return false;
     if (activeFolder === 'starred' && !isStarred) return false;
 
@@ -314,8 +323,19 @@ export default function Notifications() {
           toggleStar(activeNotification.id);
         }
 
-        // A or Backspace or Delete - Delete / Clear Notification
-        if (key === 'a' || e.key === 'Backspace' || e.key === 'Delete') {
+        // A - Archive (Mark as Read). Backspace / Delete - Delete Notification
+        if (key === 'a') {
+          e.preventDefault();
+          // 'A' archives = marks as read (moves from inbox to archive)
+          if (!activeNotification.is_read) {
+            markRead(activeNotification.id);
+          } else {
+            // Already read/archived — move back to inbox (mark unread)
+            markUnread(activeNotification.id);
+          }
+        }
+
+        if (e.key === 'Backspace' || e.key === 'Delete') {
           e.preventDefault();
           deleteNotification(activeNotification.id);
         }
@@ -880,8 +900,12 @@ export default function Notifications() {
                   <kbd className="shortcut-kbd">S</kbd> or <kbd>F</kbd>
                 </div>
                 <div className="shortcut-item-row">
-                  <span className="shortcut-label">Archive / Delete Notification</span>
-                  <kbd className="shortcut-kbd">A</kbd> or <kbd>Backspace</kbd>
+                  <span className="shortcut-label">Archive (Mark as Read) / Unarchive</span>
+                  <kbd className="shortcut-kbd">A</kbd>
+                </div>
+                <div className="shortcut-item-row">
+                  <span className="shortcut-label">Delete Notification</span>
+                  <kbd className="shortcut-kbd">Backspace</kbd> or <kbd>Del</kbd>
                 </div>
                 <div className="shortcut-item-row">
                   <span className="shortcut-label">Open Linked Action URL</span>

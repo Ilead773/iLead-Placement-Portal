@@ -229,7 +229,23 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     if allowed_branches:
         student_course = (student.course or '').strip().lower()
         allowed_branches_lower = [b.strip().lower() for b in allowed_branches if b]
-        if student_course not in allowed_branches_lower:
+        
+        # Check if student's course matches any allowed branch
+        matched = False
+        for allowed_branch in allowed_branches_lower:
+            if student_course == allowed_branch:
+                matched = True
+                break
+            # Parenthesized allowed branch in student course (e.g. allowed branch "BCA" in "BSc in Computer Application (BCA)")
+            if f"({allowed_branch})" in student_course:
+                matched = True
+                break
+            # Parenthesized student course in allowed branch (e.g. student course "BCA" in allowed branch "BSc in Computer Application (BCA)")
+            if f"({student_course})" in allowed_branch:
+                matched = True
+                break
+                
+        if not matched:
             failing_checks.append({
                 'check_name': 'branch',
                 'reason': f'Your course ({student.course or "Not specified"}) is not eligible for this role.',

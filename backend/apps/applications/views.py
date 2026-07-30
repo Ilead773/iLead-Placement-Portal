@@ -282,7 +282,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     # Group by job to check limits atomically
                     job_ids = applications.values_list('job_id', flat=True).distinct()
                     for j_id in job_ids:
-                        locked_job = Job.objects.select_for_update().get(id=j_id)
+                        locked_job = Job.objects.get(id=j_id)
                         
                         already_placed_count = Application.objects.filter(
                             job=locked_job,

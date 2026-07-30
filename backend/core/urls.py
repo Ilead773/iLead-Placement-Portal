@@ -19,6 +19,7 @@ urlpatterns = [
     path('students/<uuid:pk>/delete/', views.StudentViewSet.as_view({'delete': 'delete_student'})),
     path('students/<uuid:pk>/toggle-access/', views.StudentViewSet.as_view({'post': 'toggle_access'})),
     path('students/<uuid:pk>/change-category/', views.StudentViewSet.as_view({'post': 'change_category', 'put': 'change_category', 'patch': 'change_category'})),
+    path('students/promote-batch/', views.StudentViewSet.as_view({'post': 'promote_batch'})),
     path('students/upload-history/', views.StudentViewSet.as_view({'get': 'upload_history'})),
     path('students/upload-status/<uuid:pk>/', views.StudentViewSet.as_view({'get': 'upload_status'})),
     path('students/upload-status/<uuid:pk>/download-credentials/', views.StudentViewSet.as_view({'get': 'download_credentials'})),
