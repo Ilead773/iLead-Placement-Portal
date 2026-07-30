@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import AdminDashboard from './pages/admin/Dashboard';
 import Students from './pages/admin/Students';
+import PromoteStudents from './pages/admin/PromoteStudents';
 import CSVUploadPage from './pages/admin/CSVUploadPage';
 import Placements from './pages/admin/Placements';
 import Assignments from './pages/admin/Assignments';
@@ -84,6 +85,7 @@ export default function App() {
         <Route element={<PrivateRoute roles={['admin', 'coordinator']}><Layout /></PrivateRoute>}>
           <Route path="/dashboard" element={<AdminDashboard />} />
           <Route path="/students" element={<Students />} />
+          <Route path="/admin/promote-students" element={<PromoteStudents />} />
           <Route path="/admin/csv-upload" element={<CSVUploadPage />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/admin/jobs" element={<ManageJobs />} />

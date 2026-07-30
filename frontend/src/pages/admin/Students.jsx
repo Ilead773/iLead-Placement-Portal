@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
 import { ILEAD_COURSES } from '../../constants/courses';
@@ -39,6 +39,7 @@ const formatYearSem = (year, semester) => {
 };
 
 export default function Students() {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [showCustomPassword, setShowCustomPassword] = useState(false);
   const [total, setTotal] = useState(0);
@@ -67,20 +68,8 @@ export default function Students() {
   const [selectedSessionDetail, setSelectedSessionDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // ── Promotion modal state ─────────────────────────────────────────────
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  // ── Checked student selection state ──────────────────────────────────
   const [selectedIds, setSelectedIds] = useState([]);
-  const [promoteScope, setPromoteScope] = useState('reg_numbers'); // 'reg_numbers' | 'course_batch' | 'selected'
-  const [promoteRegNumbers, setPromoteRegNumbers] = useState('');
-  const [promoteCourse, setPromoteCourse] = useState('');
-  const [promoteYear, setPromoteYear] = useState('');
-  const [promoteTargetYear, setPromoteTargetYear] = useState('auto_increment');
-  const [promoteSemesterMode, setPromoteSemesterMode] = useState('auto');
-  const [promoteSpecificSemester, setPromoteSpecificSemester] = useState('');
-  const [promotePassingYearMode, setPromotePassingYearMode] = useState('keep');
-  const [promoteSpecificPassingYear, setPromoteSpecificPassingYear] = useState('');
-  const [promoteLoading, setPromoteLoading] = useState(false);
-  const [promoteResult, setPromoteResult] = useState(null);
 
   const [editForm, setEditForm] = useState({
     name: '',
@@ -549,40 +538,7 @@ export default function Students() {
     }
   };
 
-  // ── Promote batch handler ─────────────────────────────────────────────
-  const handlePromoteBatch = async () => {
-    setPromoteLoading(true);
-    setPromoteResult(null);
-    try {
-      const payload = {
-        target_year: promoteTargetYear,
-        semester_mode: promoteSemesterMode,
-        passing_year_mode: promotePassingYearMode,
-      };
-      if (promoteSemesterMode === 'specific') payload.specific_semester = parseInt(promoteSpecificSemester);
-      if (promotePassingYearMode === 'specific') payload.specific_passing_year = parseInt(promoteSpecificPassingYear);
 
-      if (promoteScope === 'reg_numbers') {
-        payload.registration_numbers = promoteRegNumbers;
-      } else if (promoteScope === 'course_batch') {
-        payload.filter_course = promoteCourse;
-        payload.filter_year = promoteYear;
-      } else {
-        payload.student_ids = selectedIds;
-      }
-
-      const { data } = await api.post('/students/promote-batch/', payload);
-      setPromoteResult(data);
-      showToast(`✅ Promotion complete! ${data.promoted_count} promoted, ${data.skipped_count} skipped.`);
-      fetchStudents(page);
-      setSelectedIds([]);
-    } catch (err) {
-      const msg = err.response?.data?.error || 'Promotion failed.';
-      showToast(msg, 'error');
-    } finally {
-      setPromoteLoading(false);
-    }
-  };
 
   return (
     <div className="page-container">
@@ -597,14 +553,34 @@ export default function Students() {
           </Link>
           <button
             className="btn"
-            onClick={() => { setShowPromoteModal(true); setPromoteResult(null); if (selectedIds.length > 0) setPromoteScope('selected'); else setPromoteScope('reg_numbers'); setPromoteTargetYear('auto_increment'); }}
+            onClick={() => {
+              const selectedStudents = students.filter(s => selectedIds.includes(s.id));
+              navigate('/admin/promote-students', { 
+                state: { 
+                  initialScope: selectedIds.length > 0 ? 'selected' : 'reg_numbers', 
+                  initialTargetYear: 'auto_increment', 
+                  selectedStudents,
+                  selectedIds
+                } 
+              });
+            }}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             ⚡ Promote Students
           </button>
           <button
             className="btn"
-            onClick={() => { setShowPromoteModal(true); setPromoteResult(null); if (selectedIds.length > 0) setPromoteScope('selected'); else setPromoteScope('reg_numbers'); setPromoteTargetYear('auto_decrement'); }}
+            onClick={() => {
+              const selectedStudents = students.filter(s => selectedIds.includes(s.id));
+              navigate('/admin/promote-students', { 
+                state: { 
+                  initialScope: selectedIds.length > 0 ? 'selected' : 'reg_numbers', 
+                  initialTargetYear: 'auto_decrement', 
+                  selectedStudents,
+                  selectedIds
+                } 
+              });
+            }}
             style={{ background: 'linear-gradient(135deg, #b45309, #d97706)', color: '#fff', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             ↩ Revert Promotion
@@ -1211,7 +1187,16 @@ export default function Students() {
             ✅ {selectedIds.length} student{selectedIds.length > 1 ? 's' : ''} selected
           </span>
           <button
-            onClick={() => { setShowPromoteModal(true); setPromoteScope('selected'); setPromoteResult(null); }}
+            onClick={() => {
+              const selectedStudents = students.filter(s => selectedIds.includes(s.id));
+              navigate('/admin/promote-students', { 
+                state: { 
+                  initialScope: 'selected', 
+                  selectedStudents,
+                  selectedIds
+                } 
+              });
+            }}
             style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}
           >
             ⚡ Promote Selected
@@ -1225,178 +1210,7 @@ export default function Students() {
         </div>
       )}
 
-      {/* ── Promote Students Modal ── */}
-      {showPromoteModal && (
-        <div className="modal-overlay" onClick={() => { if (!promoteLoading) setShowPromoteModal(false); }}>
-          <div className="modal card" onClick={e => e.stopPropagation()} style={{ maxWidth: 580, padding: 32, borderRadius: 20, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div className="modal-header" style={{ marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>⚡ Promote Students</h2>
-              <button className="modal-close" onClick={() => setShowPromoteModal(false)}>×</button>
-            </div>
 
-            {/* Result summary */}
-            {promoteResult && (
-              <div style={{ background: promoteResult.error_count > 0 ? '#fef9c3' : '#f0fdf4', border: `1px solid ${promoteResult.error_count > 0 ? '#fde047' : '#86efac'}`, borderRadius: 10, padding: 16, marginBottom: 20, fontSize: '0.88rem' }}>
-                <div style={{ fontWeight: 800, marginBottom: 8 }}>Promotion Result</div>
-                <div>✅ Promoted: <strong>{promoteResult.promoted_count}</strong></div>
-                <div>⏭ Skipped (3rd-year — need explicit target): <strong>{promoteResult.skipped_count}</strong></div>
-                {promoteResult.error_count > 0 && <div style={{ color: '#dc2626' }}>❌ Errors: <strong>{promoteResult.error_count}</strong></div>}
-                {promoteResult.skipped?.length > 0 && (
-                  <details style={{ marginTop: 8 }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Show skipped students</summary>
-                    <ul style={{ margin: '8px 0 0 16px', fontSize: '0.8rem' }}>
-                      {promoteResult.skipped.map((s, i) => <li key={i}>{s.registration_number} — {s.name}</li>)}
-                    </ul>
-                  </details>
-                )}
-              </div>
-            )}
-
-            {/* Step 1: Scope */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 10 }}>Step 1 — Who to Promote</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { val: 'reg_numbers', label: '📋 Paste Registration Numbers', desc: 'Copy-paste roll numbers from Excel' },
-                  { val: 'course_batch', label: '📚 By Course & Year', desc: 'Promote an entire batch in one click' },
-                  { val: 'selected', label: `☑️ Selected Students (${selectedIds.length} checked)`, desc: 'Only the students you checked in the list' },
-                ].map(opt => (
-                  <label key={opt.val} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderRadius: 10, border: `2px solid ${promoteScope === opt.val ? '#7c3aed' : 'var(--border-color)'}`, background: promoteScope === opt.val ? 'rgba(124,58,237,0.06)' : 'var(--bg-input)', cursor: 'pointer' }}>
-                    <input type="radio" name="promoteScope" value={opt.val} checked={promoteScope === opt.val} onChange={() => setPromoteScope(opt.val)} style={{ marginTop: 2, accentColor: '#7c3aed' }} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{opt.label}</div>
-                      <div style={{ fontSize: '0.77rem', color: 'var(--text-secondary)', marginTop: 2 }}>{opt.desc}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {promoteScope === 'reg_numbers' && (
-                <div style={{ marginTop: 12 }}>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Paste Registration / Roll Numbers</label>
-                  <textarea
-                    rows={5}
-                    placeholder={'BCA2023001, BCA2023002\nBCA2023003\nBCA2023004'}
-                    value={promoteRegNumbers}
-                    onChange={e => setPromoteRegNumbers(e.target.value)}
-                    style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-primary)', padding: '10px 12px', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box' }}
-                  />
-                  <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)', marginTop: 4 }}>Separate by commas, spaces, or new lines. You can paste directly from Excel.</div>
-                </div>
-              )}
-
-              {promoteScope === 'course_batch' && (
-                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Course</label>
-                    <select className="input-field" value={promoteCourse} onChange={e => setPromoteCourse(e.target.value)} style={{ width: '100%' }}>
-                      <option value="">Select Course</option>
-                      {availableCourses.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Current Year</label>
-                    <select className="input-field" value={promoteYear} onChange={e => setPromoteYear(e.target.value)} style={{ width: '100%' }}>
-                      <option value="">Select Year</option>
-                      {['1st','2nd','3rd','4th'].map(y => <option key={y} value={y}>{y} Year</option>)}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {promoteScope === 'selected' && selectedIds.length === 0 && (
-                <div style={{ marginTop: 10, padding: 10, background: '#fef9c3', border: '1px solid #fde047', borderRadius: 8, fontSize: '0.82rem', color: '#854d0e' }}>
-                  ⚠️ No students selected. Check some students in the list first.
-                </div>
-              )}
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 20px 0' }} />
-
-            {/* Step 2: Target Year */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 10 }}>Step 2 — Target Academic Year</div>
-              <select className="input-field" value={promoteTargetYear} onChange={e => setPromoteTargetYear(e.target.value)} style={{ width: '100%' }}>
-                <option value="auto_increment">🔁 Auto-increment Year (1st→2nd, 2nd→3rd, 4th→Graduate) — Skips 3rd Year</option>
-                <option value="auto_decrement">↩ Revert 1 Semester (Sem 4→3, Sem 3→2nd Year Sem 2, etc.)</option>
-                <option value="4th">▶️ Set to 4th Year (3rd Year Students — CONTINUE)</option>
-                <option value="graduated">🎓 Set to Graduated / Exit (3rd or 4th Year Students)</option>
-                <option value="2nd">Set to 2nd Year</option>
-                <option value="3rd">Set to 3rd Year</option>
-                <option value="1st">Set to 1st Year</option>
-              </select>
-              {promoteTargetYear === 'auto_increment' && (
-                <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-secondary)', background: 'rgba(99,102,241,0.06)', borderRadius: 6, padding: '6px 10px' }}>
-                  ℹ️ 3rd-year students will be <strong>skipped</strong> under auto-increment. Use a separate promotion with <em>"Continue to 4th Year"</em> or <em>"Graduated / Exit"</em> for them.
-                </div>
-              )}
-              {promoteTargetYear === 'auto_decrement' && (
-                <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#92400e', background: 'rgba(217,119,6,0.08)', borderRadius: 6, padding: '6px 10px', border: '1px solid rgba(217,119,6,0.2)' }}>
-                  ↩ Goes back exactly <strong>1 semester</strong>. Year is auto-updated based on new semester (e.g. Sem 5 → Sem 4 → 2nd Year). Students already at Semester 1 are skipped.
-                </div>
-              )}
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 20px 0' }} />
-
-            {/* Step 3: Semester */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 10 }}>Step 3 — Semester Update</div>
-              <select className="input-field" value={promoteSemesterMode} onChange={e => setPromoteSemesterMode(e.target.value)} style={{ width: '100%' }}>
-                <option value="auto">🔁 Auto (shift to first semester of new year)</option>
-                <option value="increment_2">+2 Semesters (e.g. Sem 1 → Sem 3)</option>
-                <option value="increment_1">+1 Semester</option>
-                <option value="keep">Keep Unchanged</option>
-                <option value="specific">Set Specific Semester</option>
-              </select>
-              {promoteSemesterMode === 'specific' && (
-                <input
-                  type="number" min={1} max={12}
-                  className="input-field"
-                  placeholder="Enter semester (1–12)"
-                  value={promoteSpecificSemester}
-                  onChange={e => setPromoteSpecificSemester(e.target.value)}
-                  style={{ marginTop: 8, width: '100%' }}
-                />
-              )}
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 20px 0' }} />
-
-            {/* Step 4: Passing Year */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: 10 }}>Step 4 — Graduation (Passing) Year</div>
-              <select className="input-field" value={promotePassingYearMode} onChange={e => setPromotePassingYearMode(e.target.value)} style={{ width: '100%' }}>
-                <option value="keep">Keep Unchanged</option>
-                <option value="increment_1">+1 Year (e.g. 2026 → 2027)</option>
-                <option value="specific">Set Specific Year</option>
-              </select>
-              {promotePassingYearMode === 'specific' && (
-                <input
-                  type="number" min={2020} max={2040}
-                  className="input-field"
-                  placeholder="Enter graduation year (e.g. 2028)"
-                  value={promoteSpecificPassingYear}
-                  onChange={e => setPromoteSpecificPassingYear(e.target.value)}
-                  style={{ marginTop: 8, width: '100%' }}
-                />
-              )}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button className="btn btn-secondary" onClick={() => setShowPromoteModal(false)} disabled={promoteLoading}>Cancel</button>
-              <button
-                className="btn"
-                onClick={handlePromoteBatch}
-                disabled={promoteLoading || (promoteScope === 'selected' && selectedIds.length === 0) || (promoteScope === 'reg_numbers' && !promoteRegNumbers.trim()) || (promoteScope === 'course_batch' && (!promoteCourse || !promoteYear))}
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#a855f7)', color: '#fff', fontWeight: 700, border: 'none', minWidth: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                {promoteLoading ? <><div className="spinner" style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: 0 }} /> Promoting...</> : '⚡ Apply Promotion'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {confirmDelete && (
         <div className="modal-overlay" onClick={() => { setConfirmDelete(null); setDeleteWarning(null); setBypassForceDelete(false); }}>

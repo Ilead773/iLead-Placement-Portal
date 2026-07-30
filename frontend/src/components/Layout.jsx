@@ -33,7 +33,8 @@ import {
   HelpCircle,
   Star,
   Video,
-  BookOpen
+  BookOpen,
+  ArrowUpCircle
 } from 'lucide-react';
 import useThemeStore from '../store/themeStore';
 import logo from '../logo.png';
@@ -210,7 +211,7 @@ export default function Layout() {
       if (item.to === '/admin/features') return false; // Only admin can manage features
 
       // Granular permission checks
-      if (['/students'].includes(item.to)) {
+      if (['/students', '/admin/promote-students'].includes(item.to)) {
         return user?.can_manage_students === true;
       }
       if (['/admin/pipeline', '/admin/jobs', '/admin/internships', '/jobs/create', '/internships/create', '/placements'].includes(item.to)) {
