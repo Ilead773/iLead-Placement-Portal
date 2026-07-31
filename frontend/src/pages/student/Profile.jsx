@@ -21,6 +21,16 @@ export default function StudentProfile() {
   const [completion, setCompletion] = useState(null);
   const fileInputRef = useRef(null);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeProfileTab, setActiveProfileTab] = useState('info');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Crop Photo States
   const [showCropModal, setShowCropModal] = useState(false);
@@ -652,446 +662,882 @@ export default function StudentProfile() {
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="space-y-6">
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <span>👤</span> Basic Info
-              </h3>
-              <button onClick={() => setShowBasicModal(true)} className="btn btn-secondary btn-sm">Edit</button>
-            </div>
-
-            <div className="avatar-upload-container">
-              <div className="avatar-wrapper" onClick={handlePhotoClick}>
-                {photoLoading && (
-                  <div className="avatar-spinner">
-                    <div className="spinner w-8 h-8"></div>
-                  </div>
-                )}
-                <div className="avatar-inner">
-                  {profile?.profile_picture ? (
-                    <img 
-                      src={getFullImageUrl(profile.profile_picture)} 
-                      alt="Student Profile" 
-                      className="avatar-image" 
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.parentNode.innerHTML = `<div class="avatar-fallback">${(profile?.student_name || 'S').charAt(0)}</div>`;
-                      }}
-                    />
-                  ) : (
-                    <div className="avatar-fallback">
-                      {profile?.student_name ? profile.student_name.charAt(0) : 'S'}
-                    </div>
-                  )}
-                  <div className="avatar-overlay">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 mb-1">
-                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                      <circle cx="12" cy="13" r="4"></circle>
-                    </svg>
-                    <span className="avatar-overlay-text">Upload</span>
-                  </div>
-                </div>
-              </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handlePhotoChange} 
-                accept="image/*" 
-                className="hidden" 
-              />
-              <h2 className="text-xl font-bold mt-4 mb-1 text-center">{profile?.student_name || 'Student'}</h2>
-              {profile?.profile_picture && (
-                <div className="avatar-actions">
-                  <button onClick={handleRemovePhoto} className="avatar-btn remove">
-                    Remove Photo
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="profile-info-list mt-6">
-              {/* Location */}
-              <div className="profile-info-item location">
-                <div className="profile-info-icon-wrapper">
-                  <MapPin size={18} />
-                </div>
-                <div className="profile-info-content">
-                  <span className="profile-info-label">Location</span>
-                  <span className="profile-info-value">{profile?.location || 'Not set'}</span>
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="profile-info-item phone">
-                <div className="profile-info-icon-wrapper">
-                  <Phone size={18} />
-                </div>
-                <div className="profile-info-content">
-                  <span className="profile-info-label">Phone</span>
-                  <span className="profile-info-value">{profile?.student_phone || 'Not set'}</span>
-                </div>
-              </div>
-
-              {/* Year */}
-              <div className="profile-info-item year">
-                <div className="profile-info-icon-wrapper">
-                  <GraduationCap size={18} />
-                </div>
-                <div className="profile-info-content">
-                  <span className="profile-info-label">Year</span>
-                  <span className="profile-info-value">{profile?.student_year ? `${profile.student_year} Year` : '—'}</span>
-                </div>
-              </div>
-
-              {/* Backlogs */}
-              <div className={`profile-info-item backlogs ${profile?.student_backlogs ? 'has-backlogs' : ''}`}>
-                <div className="profile-info-icon-wrapper">
-                  {profile?.student_backlogs ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
-                </div>
-                <div className="profile-info-content">
-                  <span className="profile-info-label">Backlogs</span>
-                  <div>
-                    <span className={`backlog-pill-badge ${profile?.student_backlogs ? 'has-backlogs' : 'no-backlogs'}`}>
-                      <span className="backlog-dot"></span>
-                      {profile?.student_backlogs ? 'Active Backlogs' : 'No Backlogs'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Summary Quote Card */}
-              <div className="profile-summary-card">
-                <div className="profile-summary-header">
-                  <Quote size={12} className="text-primary opacity-80" />
-                  <span>Professional Summary</span>
-                </div>
-                <p className="profile-summary-text">{profile?.professional_summary || 'No summary added yet. Introduce yourself to prospective employers...'}</p>
-              </div>
-
-              {/* Strengths */}
-              <div className="profile-info-item strengths mt-4">
-                <div className="profile-info-content w-full">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
-                    <button 
-                      onClick={() => {
-                        setShowBasicModal(true);
-                        setTimeout(() => {
-                          const el = document.getElementById('strengths-input');
-                          if (el) el.focus();
-                        }, 200);
-                      }} 
-                      className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
-                    >
-                      {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {profile?.strengths?.length > 0 ? (
-                      profile.strengths.map((str, idx) => (
-                        <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted italic">Not set</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Languages Known */}
-              <div className="profile-info-item languages mt-4">
-                <div className="profile-info-content w-full">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="profile-info-label font-bold text-xs uppercase text-muted block">Languages Known</span>
-                    <button 
-                      onClick={() => {
-                        setShowBasicModal(true);
-                        setTimeout(() => {
-                          const el = document.getElementById('languages-input');
-                          if (el) el.focus();
-                        }, 200);
-                      }} 
-                      className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
-                    >
-                      {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {profile?.languages_known?.length > 0 ? (
-                      profile.languages_known.map((lang, idx) => (
-                        <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2 py-0.5 rounded font-semibold border border-secondary/15">{lang}</span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted italic">Not set</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Buttons */}
-              <div className="flex flex-wrap gap-2 pt-2">
-                {profile?.linkedin && (
-                  <a 
-                    href={profile.linkedin} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
-                  >
-                    <Linkedin size={14} />
-                    LinkedIn
-                  </a>
-                )}
-                {profile?.github && profile?.student_department === 'Technology' && (
-                  <a 
-                    href={profile.github} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
-                  >
-                    <Github size={14} />
-                    GitHub
-                  </a>
-                )}
-                {profile?.portfolio && (
-                  <a 
-                    href={profile.portfolio} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#10b981] to-[#059669] hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
-                  >
-                    <span className="text-sm">🌐</span>
-                    Portfolio
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
-            <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-primary">
-              <span>📋</span> Profile Status: {completion?.suggestions?.length > 0 ? 'Fill All Data' : 'All Data Filled'}
-            </h3>
-            {completion?.suggestions?.length > 0 ? (
-              <>
-                <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
-                <ul className="space-y-2.5">
-                  {completion.suggestions.map((s, idx) => (
-                    <li 
-                      key={idx} 
-                      onClick={() => handleSuggestionClick(s)}
-                      className="text-xs text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
-                    >
-                      <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
-                      <span className="leading-relaxed underline decoration-dotted decoration-warning/20 group-hover:decoration-warning">{s}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-success font-bold">
-                <span>🎉</span>
-                <span>You have successfully filled all your profile data details!</span>
-              </div>
-            )}
-          </section>
+      {/* Mobile Profile Tab Bar */}
+      {isMobile && (
+        <div className="mobile-tabs-container">
+          <button 
+            onClick={() => setActiveProfileTab('info')}
+            className={`mobile-tab-btn ${activeProfileTab === 'info' ? 'active' : ''}`}
+          >
+            Basic Info
+          </button>
+          <button 
+            onClick={() => setActiveProfileTab('academics')}
+            className={`mobile-tab-btn ${activeProfileTab === 'academics' ? 'active' : ''}`}
+          >
+            Academics
+          </button>
+          <button 
+            onClick={() => setActiveProfileTab('experience')}
+            className={`mobile-tab-btn ${activeProfileTab === 'experience' ? 'active' : ''}`}
+          >
+            Experience ({profile?.experiences?.length || 0})
+          </button>
+          <button 
+            onClick={() => setActiveProfileTab('projects')}
+            className={`mobile-tab-btn ${activeProfileTab === 'projects' ? 'active' : ''}`}
+          >
+            Projects & Skills
+          </button>
+          <button 
+            onClick={() => setActiveProfileTab('activities')}
+            className={`mobile-tab-btn ${activeProfileTab === 'activities' ? 'active' : ''}`}
+          >
+            Certifications & More
+          </button>
         </div>
+      )}
 
-        {/* Right Column */}
-        <div className="lg:col-span-2 space-y-8">
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>💼</span> Experience</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowExpModal(true)}>+ Add</button>
-            </div>
+      {isMobile ? (
+        <div className="space-y-6">
+          {activeProfileTab === 'info' && (
             <div className="space-y-6">
-              {profile?.experiences?.length > 0 ? profile.experiences.map(exp => (
-                <div key={exp.id} className="experience-card group">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold">{exp.position}</h4>
-                      <p className="text-sm text-primary">{exp.company}</p>
-                      <p className="text-xs text-muted mt-1">{exp.description}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-xs text-muted font-bold">{exp.start_date} - {exp.is_current ? 'Present' : exp.end_date}</span>
-                      <div className="item-actions">
-                        <span onClick={() => startEditExperience(exp)} className="action-link edit">Edit</span>
-                        <span onClick={() => handleDeleteExperience(exp.id)} className="action-link delete">Delete</span>
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <span>👤</span> Basic Info
+                  </h3>
+                  <button onClick={() => setShowBasicModal(true)} className="btn btn-secondary btn-sm">Edit</button>
+                </div>
+
+                <div className="avatar-upload-container">
+                  <div className="avatar-wrapper" onClick={handlePhotoClick}>
+                    {photoLoading && (
+                      <div className="avatar-spinner">
+                        <div className="spinner w-8 h-8"></div>
+                      </div>
+                    )}
+                    <div className="avatar-inner">
+                      {profile?.profile_picture ? (
+                        <img 
+                          src={getFullImageUrl(profile.profile_picture)} 
+                          alt="Student Profile" 
+                          className="avatar-image" 
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentNode.innerHTML = `<div class="avatar-fallback">${(profile?.student_name || 'S').charAt(0)}</div>`;
+                          }}
+                        />
+                      ) : (
+                        <div className="avatar-fallback">
+                          {profile?.student_name ? profile.student_name.charAt(0) : 'S'}
+                        </div>
+                      )}
+                      <div className="avatar-overlay">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 mb-1">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span className="avatar-overlay-text">Upload</span>
                       </div>
                     </div>
                   </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                  <div className="avatar-info-text text-center mt-2">
+                    <span className="text-[10px] text-muted">Click to change picture</span>
+                  </div>
                 </div>
-              )) : <div className="text-muted text-sm italic">No experience added.</div>}
-            </div>
-          </section>
 
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>🎓</span> Education</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowEduModal(true)}>+ Add</button>
-            </div>
-            <div className="space-y-6">
-              {profile?.education_entries?.length > 0 ? profile.education_entries.map(edu => (
-                <div key={edu.id} className="experience-card group">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</h4>
-                      <p className="text-sm text-primary">{edu.institution}</p>
-                      {edu.gpa && <p className="text-xs text-muted mt-1">GPA: <span className="text-primary font-semibold">{edu.gpa}</span></p>}
-                      {edu.honors && <p className="text-xs text-muted">Honors: {edu.honors}</p>}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-xs text-muted font-bold">
-                        {edu.start_year ? `${edu.start_year} - ${edu.end_year || 'Present'}` : (edu.graduation_date || 'Ongoing')}
-                      </span>
-                      <div className="item-actions">
-                        <span onClick={() => startEditEducation(edu)} className="action-link edit">Edit</span>
-                        <span onClick={() => handleDeleteEducation(edu.id)} className="action-link delete">Delete</span>
-                      </div>
+                <div className="profile-info-fields mt-6 space-y-4">
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Student ID</span>
+                      <span className="profile-info-value">{profile?.student_id || 'N/A'}</span>
                     </div>
                   </div>
-                </div>
-              )) : <div className="text-muted text-sm italic">No education entries added.</div>}
-            </div>
-          </section>
-
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>⚡</span> Skills</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowSkillModal(true)}>+ Add</button>
-            </div>
-            <div className="skills-list">
-              {profile?.skills?.length > 0 ? profile.skills.map(skill => (
-                <div key={skill.id} className="skill-badge group">
-                  <span className="skill-name">{skill.name}</span>
-                  <div className="item-actions">
-                    <span onClick={() => startEditSkill(skill)} className="action-link edit">Edit</span>
-                    <span onClick={() => handleDeleteSkill(skill.id)} className="action-link delete">Delete</span>
-                  </div>
-                </div>
-              )) : <div className="text-muted text-sm italic">No skills added.</div>}
-            </div>
-          </section>
-
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>🚀</span> Projects</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowProjModal(true)}>+ Add</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {profile?.projects?.length > 0 ? profile.projects.map(proj => (
-                <div key={proj.id} className="project-card group">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold">{proj.title}</h4>
-                    <div className="item-actions">
-                      <span onClick={() => startEditProject(proj)} className="action-link edit">Edit</span>
-                      <span onClick={() => handleDeleteProject(proj.id)} className="action-link delete">Delete</span>
+                  
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Name</span>
+                      <span className="profile-info-value">{profile?.student_name || 'N/A'}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted mb-3">{proj.description}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {Array.isArray(proj.technologies) ? proj.technologies.map((t, i) => (
-                      <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t}</span>
-                    )) : proj.technologies?.split(',').map((t, i) => (
-                      <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t.trim()}</span>
-                    ))}
-                  </div>
-                </div>
-              )) : <div className="text-muted text-sm italic">No projects added.</div>}
-            </div>
-          </section>
 
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>📜</span> Certifications</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowCertModal(true)}>+ Add</button>
-            </div>
-            <div className="space-y-6">
-              {profile?.certifications?.length > 0 ? profile.certifications.map(cert => (
-                <div key={cert.id} className="experience-card group">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold">{cert.name}</h4>
-                      <p className="text-sm text-primary">{cert.issuer}</p>
-                      {cert.credential_url && (
-                        <a href={cert.credential_url} target="_blank" rel="noreferrer" className="text-xs text-primary/80 hover:text-primary hover:underline mt-1 inline-flex items-center gap-1">
-                          View Credential 🔗
-                        </a>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Email</span>
+                      <span className="profile-info-value">{profile?.student_email || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Location</span>
+                      <span className="profile-info-value">{profile?.location || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="profile-info-item professional-summary mt-4">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-1">Professional Summary</span>
+                      {profile?.professional_summary ? (
+                        <p className="text-xs leading-relaxed text-secondary font-medium">{profile.professional_summary}</p>
+                      ) : (
+                        <span className="text-xs text-muted italic">Not set</span>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {cert.date && <span className="text-xs text-muted font-bold">{cert.date}</span>}
-                      <div className="item-actions">
-                        <span onClick={() => startEditCertification(cert)} className="action-link edit">Edit</span>
-                        <span onClick={() => handleDeleteCertification(cert.id)} className="action-link delete">Delete</span>
-                      </div>
-                    </div>
                   </div>
-                </div>
-              )) : <div className="text-muted text-sm italic">No certifications added.</div>}
-            </div>
-          </section>
 
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>🏆</span> Awards & Achievements</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowAwardModal(true)}>+ Add</button>
-            </div>
-            <div className="space-y-6">
-              {profile?.achievements?.length > 0 ? profile.achievements.map(ach => (
-                <div key={ach.id} className="experience-card group">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold">{ach.title}</h4>
-                      {ach.issuer && <p className="text-sm text-primary">{ach.issuer}</p>}
-                      {ach.description && <p className="text-xs text-muted mt-1">{ach.description}</p>}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {ach.date && <span className="text-xs text-muted font-bold">{ach.date}</span>}
-                      <div className="item-actions">
-                        <span onClick={() => startEditAchievement(ach)} className="action-link edit">Edit</span>
-                        <span onClick={() => handleDeleteAchievement(ach.id)} className="action-link delete">Delete</span>
+                  {/* Strengths */}
+                  {profile?.strengths?.length > 0 && (
+                    <div className="profile-info-item strengths mt-4">
+                      <div className="profile-info-content">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
+                          <button 
+                            onClick={() => {
+                              setShowBasicModal(true);
+                              setTimeout(() => {
+                                const el = document.getElementById('strengths-input');
+                                if (el) el.focus();
+                              }, 200);
+                            }} 
+                            className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {profile.strengths.map((str, idx) => (
+                            <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )) : <div className="text-muted text-sm italic">No awards or achievements added.</div>}
-            </div>
-          </section>
+                  )}
 
-          {/* Extracurricular Activities */}
-          <section className="glass-panel p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold flex items-center gap-2"><span>🏃</span> Extracurricular Activities</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowExtraModal(true)}>+ Add</button>
-            </div>
-            <div className="space-y-6">
-              {profile?.extracurricular_activities?.length > 0 ? profile.extracurricular_activities.map(act => (
-                <div key={act.id} className="experience-card group">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold">{act.title}</h4>
-                      {act.description && <p className="text-xs text-muted mt-1">{act.description}</p>}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {act.date && <span className="text-xs text-muted font-bold">{act.date}</span>}
-                      <div className="item-actions">
-                        <span onClick={() => startEditExtra(act)} className="action-link edit">Edit</span>
-                        <span onClick={() => handleDeleteExtra(act.id)} className="action-link delete">Delete</span>
+                  {/* Languages Known */}
+                  <div className="profile-info-item languages mt-4">
+                    <div className="profile-info-content w-full">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="profile-info-label font-bold text-xs uppercase text-muted block">Languages Known</span>
+                        <button 
+                          onClick={() => {
+                            setShowBasicModal(true);
+                            setTimeout(() => {
+                              const el = document.getElementById('languages-input');
+                              if (el) el.focus();
+                            }, 200);
+                          }} 
+                          className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                        >
+                          {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {profile?.languages_known?.length > 0 ? (
+                          profile.languages_known.map((lang, idx) => (
+                            <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2 py-0.5 rounded font-semibold border border-secondary/15">{lang}</span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted italic">Not set</span>
+                        )}
                       </div>
                     </div>
                   </div>
+
+                  {/* Social Buttons */}
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {profile?.linkedin && (
+                      <a 
+                        href={profile.linkedin} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <Linkedin size={14} />
+                        LinkedIn
+                      </a>
+                    )}
+                    {profile?.github && profile?.student_department === 'Technology' && (
+                      <a 
+                        href={profile.github} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <Github size={14} />
+                        GitHub
+                      </a>
+                    )}
+                    {profile?.portfolio && (
+                      <a 
+                        href={profile.portfolio} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#10b981] to-[#059669] hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                      >
+                        <span className="text-sm">🌐</span>
+                        Portfolio
+                      </a>
+                    )}
+                  </div>
                 </div>
-              )) : <div className="text-muted text-sm italic">No extracurricular activities added.</div>}
+              </section>
+
+              <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
+                <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-primary">
+                  <span>📋</span> Profile Status: {completion?.suggestions?.length > 0 ? 'Fill All Data' : 'All Data Filled'}
+                </h3>
+                {completion?.suggestions?.length > 0 ? (
+                  <>
+                    <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
+                    <ul className="space-y-2.5">
+                      {completion.suggestions.map((s, idx) => (
+                        <li 
+                          key={idx} 
+                          onClick={() => handleSuggestionClick(s)}
+                          className="text-xs text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
+                        >
+                          <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
+                          <span className="leading-relaxed underline decoration-dotted decoration-warning/20 group-hover:decoration-warning">{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-success font-bold">
+                    <span>🎉</span>
+                    <span>You have successfully filled all your profile data details!</span>
+                  </div>
+                )}
+              </section>
             </div>
-          </section>
+          )}
+
+          {activeProfileTab === 'academics' && (
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>🎓</span> Education</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowEduModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.education_entries?.length > 0 ? profile.education_entries.map(edu => (
+                  <div key={edu.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</h4>
+                        <p className="text-sm text-primary">{edu.institution}</p>
+                        {edu.gpa && <p className="text-xs text-muted mt-1">GPA: <span className="text-primary font-semibold">{edu.gpa}</span></p>}
+                        {edu.honors && <p className="text-xs text-muted">Honors: {edu.honors}</p>}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs text-muted font-bold">
+                          {edu.start_year ? `${edu.start_year} - ${edu.end_year || 'Present'}` : (edu.graduation_date || 'Ongoing')}
+                        </span>
+                        <div className="item-actions">
+                          <span onClick={() => startEditEducation(edu)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteEducation(edu.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No education entries added.</div>}
+              </div>
+            </section>
+          )}
+
+          {activeProfileTab === 'experience' && (
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>💼</span> Experience</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowExpModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.experiences?.length > 0 ? profile.experiences.map(exp => (
+                  <div key={exp.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{exp.position}</h4>
+                        <p className="text-sm text-primary">{exp.company}</p>
+                        <p className="text-xs text-muted mt-1">{exp.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs text-muted font-bold">{exp.start_date} - {exp.is_current ? 'Present' : exp.end_date}</span>
+                        <div className="item-actions">
+                          <span onClick={() => startEditExperience(exp)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteExperience(exp.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No experience added.</div>}
+              </div>
+            </section>
+          )}
+
+          {activeProfileTab === 'projects' && (
+            <div className="space-y-6">
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>⚡</span> Skills</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowSkillModal(true)}>+ Add</button>
+                </div>
+                <div className="skills-list">
+                  {profile?.skills?.length > 0 ? profile.skills.map(skill => (
+                    <div key={skill.id} className="skill-badge group">
+                      <span className="skill-name">{skill.name}</span>
+                      <div className="item-actions">
+                        <span onClick={() => startEditSkill(skill)} className="action-link edit">Edit</span>
+                        <span onClick={() => handleDeleteSkill(skill.id)} className="action-link delete">Delete</span>
+                      </div>
+                    </div>
+                  )) : <div className="text-muted text-sm italic">No skills added.</div>}
+                </div>
+              </section>
+
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>🚀</span> Projects</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowProjModal(true)}>+ Add</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {profile?.projects?.length > 0 ? profile.projects.map(proj => (
+                    <div key={proj.id} className="project-card group">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold">{proj.title}</h4>
+                        <div className="item-actions">
+                          <span onClick={() => startEditProject(proj)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteProject(proj.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted mb-3">{proj.description}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.isArray(proj.technologies) ? proj.technologies.map((t, i) => (
+                          <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t}</span>
+                        )) : proj.technologies?.split(',').map((t, i) => (
+                          <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )) : <div className="text-muted text-sm italic">No projects added.</div>}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeProfileTab === 'activities' && (
+            <div className="space-y-6">
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>📜</span> Certifications</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowCertModal(true)}>+ Add</button>
+                </div>
+                <div className="space-y-6">
+                  {profile?.certifications?.length > 0 ? profile.certifications.map(cert => (
+                    <div key={cert.id} className="experience-card group">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold">{cert.name}</h4>
+                          <p className="text-sm text-primary">{cert.issuer}</p>
+                          {cert.credential_url && (
+                            <a href={cert.credential_url} target="_blank" rel="noreferrer" className="text-xs text-primary/80 hover:text-primary hover:underline mt-1 inline-flex items-center gap-1">
+                              View Credential 🔗
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {cert.date && <span className="text-xs text-muted font-bold">{cert.date}</span>}
+                          <div className="item-actions">
+                            <span onClick={() => startEditCertification(cert)} className="action-link edit">Edit</span>
+                            <span onClick={() => handleDeleteCertification(cert.id)} className="action-link delete">Delete</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )) : <div className="text-muted text-sm italic">No certifications added.</div>}
+                </div>
+              </section>
+
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>🏆</span> Awards & Achievements</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowAwardModal(true)}>+ Add</button>
+                </div>
+                <div className="space-y-6">
+                  {profile?.achievements?.length > 0 ? profile.achievements.map(ach => (
+                    <div key={ach.id} className="experience-card group">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold">{ach.title}</h4>
+                          {ach.issuer && <p className="text-sm text-primary">{ach.issuer}</p>}
+                          {ach.description && <p className="text-xs text-muted mt-1">{ach.description}</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {ach.date && <span className="text-xs text-muted font-bold">{ach.date}</span>}
+                          <div className="item-actions">
+                            <span onClick={() => startEditAchievement(ach)} className="action-link edit">Edit</span>
+                            <span onClick={() => handleDeleteAchievement(ach.id)} className="action-link delete">Delete</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )) : <div className="text-muted text-sm italic">No awards or achievements added.</div>}
+                </div>
+              </section>
+
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>🏃</span> Extracurricular Activities</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowExtraModal(true)}>+ Add</button>
+                </div>
+                <div className="space-y-6">
+                  {profile?.extracurricular_activities?.length > 0 ? profile.extracurricular_activities.map(act => (
+                    <div key={act.id} className="experience-card group">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold">{act.title}</h4>
+                          {act.description && <p className="text-xs text-muted mt-1">{act.description}</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {act.date && <span className="text-xs text-muted font-bold">{act.date}</span>}
+                          <div className="item-actions">
+                            <span onClick={() => startEditExtra(act)} className="action-link edit">Edit</span>
+                            <span onClick={() => handleDeleteExtra(act.id)} className="action-link delete">Delete</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )) : <div className="text-muted text-sm italic">No extracurricular activities added.</div>}
+                </div>
+              </section>
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="space-y-6">
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <span>👤</span> Basic Info
+                </h3>
+                <button onClick={() => setShowBasicModal(true)} className="btn btn-secondary btn-sm">Edit</button>
+              </div>
+
+              <div className="avatar-upload-container">
+                <div className="avatar-wrapper" onClick={handlePhotoClick}>
+                  {photoLoading && (
+                    <div className="avatar-spinner">
+                      <div className="spinner w-8 h-8"></div>
+                    </div>
+                  )}
+                  <div className="avatar-inner">
+                    {profile?.profile_picture ? (
+                      <img 
+                        src={getFullImageUrl(profile.profile_picture)} 
+                        alt="Student Profile" 
+                        className="avatar-image" 
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                          e.target.parentNode.innerHTML = `<div class="avatar-fallback">${(profile?.student_name || 'S').charAt(0)}</div>`;
+                        }}
+                      />
+                    ) : (
+                      <div className="avatar-fallback">
+                        {profile?.student_name ? profile.student_name.charAt(0) : 'S'}
+                      </div>
+                    )}
+                    <div className="avatar-overlay">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 mb-1">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                      </svg>
+                      <span className="avatar-overlay-text">Upload</span>
+                    </div>
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <div className="avatar-info-text text-center mt-2">
+                  <span className="text-[10px] text-muted">Click to change picture</span>
+                </div>
+              </div>
+
+              <div className="profile-info-fields mt-6 space-y-4">
+                <div className="profile-info-item">
+                  <div className="profile-info-content">
+                    <span className="profile-info-label">Student ID</span>
+                    <span className="profile-info-value">{profile?.student_id || 'N/A'}</span>
+                  </div>
+                </div>
+                
+                <div className="profile-info-item">
+                  <div className="profile-info-content">
+                    <span className="profile-info-label">Name</span>
+                    <span className="profile-info-value">{profile?.student_name || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="profile-info-item">
+                  <div className="profile-info-content">
+                    <span className="profile-info-label">Email</span>
+                    <span className="profile-info-value">{profile?.student_email || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="profile-info-item">
+                  <div className="profile-info-content">
+                    <span className="profile-info-label">Location</span>
+                    <span className="profile-info-value">{profile?.location || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="profile-info-item professional-summary mt-4">
+                  <div className="profile-info-content">
+                    <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-1">Professional Summary</span>
+                    {profile?.professional_summary ? (
+                      <p className="text-xs leading-relaxed text-secondary font-medium">{profile.professional_summary}</p>
+                    ) : (
+                      <span className="text-xs text-muted italic">Not set</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Strengths */}
+                <div className="profile-info-item strengths mt-4">
+                  <div className="profile-info-content">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
+                      <button 
+                        onClick={() => {
+                          setShowBasicModal(true);
+                          setTimeout(() => {
+                            const el = document.getElementById('strengths-input');
+                            if (el) el.focus();
+                          }, 200);
+                        }} 
+                        className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                      >
+                        {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {profile?.strengths?.length > 0 ? (
+                        profile.strengths.map((str, idx) => (
+                          <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted italic">Not set</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Languages Known */}
+                <div className="profile-info-item languages mt-4">
+                  <div className="profile-info-content w-full">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="profile-info-label font-bold text-xs uppercase text-muted block">Languages Known</span>
+                      <button 
+                        onClick={() => {
+                          setShowBasicModal(true);
+                          setTimeout(() => {
+                            const el = document.getElementById('languages-input');
+                            if (el) el.focus();
+                          }, 200);
+                        }} 
+                        className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                      >
+                        {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {profile?.languages_known?.length > 0 ? (
+                        profile.languages_known.map((lang, idx) => (
+                          <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2 py-0.5 rounded font-semibold border border-secondary/15">{lang}</span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted italic">Not set</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Social Buttons */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {profile?.linkedin && (
+                    <a 
+                      href={profile.linkedin} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <Linkedin size={14} />
+                      LinkedIn
+                    </a>
+                  )}
+                  {profile?.github && profile?.student_department === 'Technology' && (
+                    <a 
+                      href={profile.github} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <Github size={14} />
+                      GitHub
+                    </a>
+                  )}
+                  {profile?.portfolio && (
+                    <a 
+                      href={profile.portfolio} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#10b981] to-[#059669] hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
+                    >
+                      <span className="text-sm">🌐</span>
+                      Portfolio
+                    </a>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
+              <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-primary">
+                <span>📋</span> Profile Status: {completion?.suggestions?.length > 0 ? 'Fill All Data' : 'All Data Filled'}
+              </h3>
+              {completion?.suggestions?.length > 0 ? (
+                <>
+                  <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
+                  <ul className="space-y-2.5">
+                    {completion.suggestions.map((s, idx) => (
+                      <li 
+                        key={idx} 
+                        onClick={() => handleSuggestionClick(s)}
+                        className="text-xs text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
+                      >
+                        <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
+                        <span className="leading-relaxed underline decoration-dotted decoration-warning/20 group-hover:decoration-warning">{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-success font-bold">
+                  <span>🎉</span>
+                  <span>You have successfully filled all your profile data details!</span>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>💼</span> Experience</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowExpModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.experiences?.length > 0 ? profile.experiences.map(exp => (
+                  <div key={exp.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{exp.position}</h4>
+                        <p className="text-sm text-primary">{exp.company}</p>
+                        <p className="text-xs text-muted mt-1">{exp.description}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs text-muted font-bold">{exp.start_date} - {exp.is_current ? 'Present' : exp.end_date}</span>
+                        <div className="item-actions">
+                          <span onClick={() => startEditExperience(exp)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteExperience(exp.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No experience added.</div>}
+              </div>
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>🎓</span> Education</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowEduModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.education_entries?.length > 0 ? profile.education_entries.map(edu => (
+                  <div key={edu.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</h4>
+                        <p className="text-sm text-primary">{edu.institution}</p>
+                        {edu.gpa && <p className="text-xs text-muted mt-1">GPA: <span className="text-primary font-semibold">{edu.gpa}</span></p>}
+                        {edu.honors && <p className="text-xs text-muted">Honors: {edu.honors}</p>}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs text-muted font-bold">
+                          {edu.start_year ? `${edu.start_year} - ${edu.end_year || 'Present'}` : (edu.graduation_date || 'Ongoing')}
+                        </span>
+                        <div className="item-actions">
+                          <span onClick={() => startEditEducation(edu)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteEducation(edu.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No education entries added.</div>}
+              </div>
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>⚡</span> Skills</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowSkillModal(true)}>+ Add</button>
+              </div>
+              <div className="skills-list">
+                {profile?.skills?.length > 0 ? profile.skills.map(skill => (
+                  <div key={skill.id} className="skill-badge group">
+                    <span className="skill-name">{skill.name}</span>
+                    <div className="item-actions">
+                      <span onClick={() => startEditSkill(skill)} className="action-link edit">Edit</span>
+                      <span onClick={() => handleDeleteSkill(skill.id)} className="action-link delete">Delete</span>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No skills added.</div>}
+              </div>
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>🚀</span> Projects</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowProjModal(true)}>+ Add</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile?.projects?.length > 0 ? profile.projects.map(proj => (
+                  <div key={proj.id} className="project-card group">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold">{proj.title}</h4>
+                      <div className="item-actions">
+                        <span onClick={() => startEditProject(proj)} className="action-link edit">Edit</span>
+                        <span onClick={() => handleDeleteProject(proj.id)} className="action-link delete">Delete</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted mb-3">{proj.description}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(proj.technologies) ? proj.technologies.map((t, i) => (
+                        <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t}</span>
+                      )) : proj.technologies?.split(',').map((t, i) => (
+                        <span key={i} className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded">{t.trim()}</span>
+                      ))}
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No projects added.</div>}
+              </div>
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>📜</span> Certifications</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowCertModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.certifications?.length > 0 ? profile.certifications.map(cert => (
+                  <div key={cert.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{cert.name}</h4>
+                        <p className="text-sm text-primary">{cert.issuer}</p>
+                        {cert.credential_url && (
+                          <a href={cert.credential_url} target="_blank" rel="noreferrer" className="text-xs text-primary/80 hover:text-primary hover:underline mt-1 inline-flex items-center gap-1">
+                            View Credential 🔗
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {cert.date && <span className="text-xs text-muted font-bold">{cert.date}</span>}
+                        <div className="item-actions">
+                          <span onClick={() => startEditCertification(cert)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteCertification(cert.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No certifications added.</div>}
+              </div>
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>🏆</span> Awards & Achievements</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowAwardModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.achievements?.length > 0 ? profile.achievements.map(ach => (
+                  <div key={ach.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{ach.title}</h4>
+                        {ach.issuer && <p className="text-sm text-primary">{ach.issuer}</p>}
+                        {ach.description && <p className="text-xs text-muted mt-1">{ach.description}</p>}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {ach.date && <span className="text-xs text-muted font-bold">{ach.date}</span>}
+                        <div className="item-actions">
+                          <span onClick={() => startEditAchievement(ach)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteAchievement(ach.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No awards or achievements added.</div>}
+              </div>
+            </section>
+
+            {/* Extracurricular Activities */}
+            <section className="glass-panel p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold flex items-center gap-2"><span>🏃</span> Extracurricular Activities</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowExtraModal(true)}>+ Add</button>
+              </div>
+              <div className="space-y-6">
+                {profile?.extracurricular_activities?.length > 0 ? profile.extracurricular_activities.map(act => (
+                  <div key={act.id} className="experience-card group">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold">{act.title}</h4>
+                        {act.description && <p className="text-xs text-muted mt-1">{act.description}</p>}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        {act.date && <span className="text-xs text-muted font-bold">{act.date}</span>}
+                        <div className="item-actions">
+                          <span onClick={() => startEditExtra(act)} className="action-link edit">Edit</span>
+                          <span onClick={() => handleDeleteExtra(act.id)} className="action-link delete">Delete</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )) : <div className="text-muted text-sm italic">No extracurricular activities added.</div>}
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
 
       {/* --- MODALS --- */}
 
