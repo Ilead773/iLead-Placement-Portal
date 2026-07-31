@@ -72,3 +72,37 @@ export const COURSE_DEPARTMENTS = {
 
 /** Convenience: returns courses as { name } objects (for components that expect that shape) */
 export const ILEAD_COURSES_OBJ = ILEAD_COURSES.map((name) => ({ name }));
+
+/** Stream mapping for each of the official courses (aligns with production Schools) */
+export const COURSE_STREAMS = {
+  "BBA": ["School of Business"],
+  "BBA (Finance)": ["School of Business"],
+  "BBA in Digital Marketing (BBA DM)": ["School of Business"],
+  "BBA in Travel & Tourism Management (BBA TTM)": ["School of Business"],
+  "BBA in Entrepreneurship (BBA ENT)": ["School of Business"],
+  "BBA in Sports Management (BBA SM)": ["School of Business"],
+  "BBA in Hospital Management (BBA HM)": ["School of Business"],
+
+  "BSc in Media Science (BMS)": ["School of Creativity"],
+  "MSc in Media Science": ["School of Creativity"],
+  "BSc in Multimedia, Animation, Graphic Design (BMAGD)": ["School of Creativity"],
+  "MSc in Multimedia, Animation, Graphic Design (MMAGD)": ["School of Creativity"],
+  "BSc in Film and Television Production (FTP)": ["School of Creativity"],
+  "BSc in Interior Design": ["School of Creativity"],
+  "BSc in Sustainable Fashion Design & Management": ["School of Creativity"],
+
+  "Bachelor in Optometry": ["School of Sci & Tech"],
+  "BSc in Critical Care Technology (CCT)": ["School of Sci & Tech"],
+  "BSc in Medical Laboratory Technology (BMLT)": ["School of Sci & Tech"],
+  "BSc in Data Science": ["School of Sci & Tech"],
+  "BSc in Cyber Security": ["School of Sci & Tech"],
+  "BSc in Computer Application (BCA)": ["School of Sci & Tech"]
+};
+
+/** All unique streams flat list */
+export const ALL_STREAMS = [
+  "School of Business",
+  "School of Creativity",
+  "School of Sci & Tech"
+];
+

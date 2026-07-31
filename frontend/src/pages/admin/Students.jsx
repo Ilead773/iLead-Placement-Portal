@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
-import { ILEAD_COURSES } from '../../constants/courses';
+import { ILEAD_COURSES, COURSE_STREAMS, ALL_STREAMS } from '../../constants/courses';
 import { Eye, EyeOff } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
@@ -2931,25 +2931,38 @@ export default function Students() {
                         {/* Course */}
                         <div>
                           <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</label>
-                          <input 
-                            type="text" 
+                          <select 
                             className="input-field" 
                             value={editForm.course} 
-                            onChange={(e) => setEditForm({ ...editForm, course: e.target.value })} 
+                            onChange={(e) => {
+                              const selectedCourse = e.target.value;
+                              const validStreams = COURSE_STREAMS[selectedCourse] || [];
+                              const nextStream = validStreams.includes(editForm.stream) ? editForm.stream : (validStreams[0] || '');
+                              setEditForm({ ...editForm, course: selectedCourse, stream: nextStream });
+                            }} 
                             style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
-                          />
+                          >
+                            <option value="">Select Course</option>
+                            {ILEAD_COURSES.map(course => (
+                              <option key={course} value={course}>{course}</option>
+                            ))}
+                          </select>
                         </div>
 
                         {/* Stream */}
                         <div>
                           <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stream</label>
-                          <input 
-                            type="text" 
+                          <select 
                             className="input-field" 
                             value={editForm.stream} 
                             onChange={(e) => setEditForm({ ...editForm, stream: e.target.value })} 
                             style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
-                          />
+                          >
+                            <option value="">Select Stream</option>
+                            {(COURSE_STREAMS[editForm.course] || ALL_STREAMS).map(stream => (
+                              <option key={stream} value={stream}>{stream}</option>
+                            ))}
+                          </select>
                         </div>
 
                         {/* Year */}
@@ -3190,28 +3203,39 @@ export default function Students() {
                 {/* Course */}
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course *</label>
-                  <input 
-                    type="text" 
+                  <select 
                     className="input-field" 
                     required
                     value={addForm.course} 
-                    onChange={(e) => setAddForm({ ...addForm, course: e.target.value })} 
+                    onChange={(e) => {
+                      const selectedCourse = e.target.value;
+                      const validStreams = COURSE_STREAMS[selectedCourse] || [];
+                      const nextStream = validStreams.includes(addForm.stream) ? addForm.stream : (validStreams[0] || '');
+                      setAddForm({ ...addForm, course: selectedCourse, stream: nextStream });
+                    }} 
                     style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
-                    placeholder="e.g. BCA or B.Sc"
-                  />
+                  >
+                    <option value="">Select Course</option>
+                    {ILEAD_COURSES.map(course => (
+                      <option key={course} value={course}>{course}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Stream */}
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stream</label>
-                  <input 
-                    type="text" 
+                  <select 
                     className="input-field" 
                     value={addForm.stream} 
                     onChange={(e) => setAddForm({ ...addForm, stream: e.target.value })} 
                     style={{ width: '100%', boxSizing: 'border-box', height: 40 }}
-                    placeholder="e.g. Computer Science"
-                  />
+                  >
+                    <option value="">Select Stream</option>
+                    {(COURSE_STREAMS[addForm.course] || ALL_STREAMS).map(stream => (
+                      <option key={stream} value={stream}>{stream}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Year */}

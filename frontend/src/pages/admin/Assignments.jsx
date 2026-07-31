@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
+import { ILEAD_COURSES } from '../../constants/courses';
 
 const emptyQuestion = () => ({
   prompt: '',
@@ -555,28 +556,18 @@ export default function Assignments() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 }}>
               <label>
                 <span style={{ display: 'block', marginBottom: 6, fontWeight: 700 }}>Course Category</span>
-                {/* Smart combo: pick existing or type new */}
                 <div style={{ position: 'relative' }}>
                   <select
                     className="input-field"
                     style={{ appearance: 'none', paddingRight: 32 }}
-                    value={courses.includes(form.course) ? form.course : '__new__'}
-                    onChange={(e) => {
-                      if (e.target.value !== '__new__') setForm(prev => ({ ...prev, course: e.target.value }));
-                    }}
+                    value={form.course}
+                    onChange={(e) => setForm(prev => ({ ...prev, course: e.target.value }))}
                   >
-                    <option value="__new__">+ Type a new course below</option>
-                    {courses.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="">Select Course</option>
+                    {ILEAD_COURSES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <ChevronDown size={14} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
                 </div>
-                <input
-                  className="input-field"
-                  style={{ marginTop: 8 }}
-                  placeholder="Type new course name (e.g. BCA, MBA)…"
-                  value={form.course}
-                  onChange={(e) => setForm(prev => ({ ...prev, course: e.target.value }))}
-                />
               </label>
               <label>
                 <span style={{ display: 'block', marginBottom: 6, fontWeight: 700 }}>Assignment Title</span>

@@ -26,7 +26,33 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+
+const getDeadlineInfo = (message) => {
+  if (!message) return null;
+  const regex = /Deadline:\s*([A-Za-z]{3})\s*(\d{1,2}),?\s*(\d{4})/i;
+  const match = message.match(regex);
+  if (!match) {
+    const regexISO = /Deadline:\s*(\d{4})-(\d{2})-(\d{2})/i;
+    const matchISO = message.match(regexISO);
+    if (matchISO) {
+      const date = new Date(parseInt(matchISO[1]), parseInt(matchISO[2]) - 1, parseInt(matchISO[3]), 23, 59, 59);
+      return { date, isPassed: date < new Date() };
+    }
+    return null;
+  }
+  const monthNames = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+  const month = monthNames[match[1].toLowerCase()];
+  const day = parseInt(match[2]);
+  const year = parseInt(match[3]);
+  if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+    const date = new Date(year, month, day, 23, 59, 59);
+    return { date, isPassed: date < new Date() };
+  }
+  return null;
+};
 
 export default function Notifications() {
   const { 
@@ -631,6 +657,11 @@ export default function Notifications() {
                                 Action Required
                               </span>
                             )}
+                            {getDeadlineInfo(note.message)?.isPassed && (
+                              <span className="badge-pill bg-red-500/10 text-red-600 border border-red-500/20 text-[9px] font-extrabold uppercase flex items-center gap-0.5">
+                                <AlertCircle size={10} /> Expired
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -789,27 +820,42 @@ export default function Notifications() {
                 </div>
 
                 {/* Embedded Action CTA Box */}
-                {activeNotification.action_url && (
-                  <div className="detail-action-cta-card">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-[#2563eb]/10 text-[#2563eb] rounded-xl flex-shrink-0">
-                        <Calendar size={22} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-extrabold text-sm text-primary">Workflow Action Required</h4>
-                        <p className="text-[11px] text-secondary mt-1 leading-relaxed">
-                          This alert is bound to your placement pipeline. Navigate to the link below to submit resumes, view interview details, or accept job selections.
-                        </p>
-                        <button 
-                          onClick={() => navigate(activeNotification.action_url)}
-                          className="mt-4 py-1.5 px-4 text-xs font-semibold uppercase tracking-wider rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all inline-flex items-center gap-1.5 border-none cursor-pointer"
-                        >
-                          Access Action Dashboard <ChevronRight size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {activeNotification.action_url && (() => {
+                   const deadlineInfo = getDeadlineInfo(activeNotification.message);
+                   const isExpired = deadlineInfo?.isPassed;
+                   
+                   return (
+                     <div className="detail-action-cta-card">
+                       <div className="flex items-start gap-4">
+                         <div className="p-3 bg-[#2563eb]/10 text-[#2563eb] rounded-xl flex-shrink-0">
+                           <Calendar size={22} />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <h4 className="font-extrabold text-sm text-primary">Workflow Action Required</h4>
+                           <p className="text-[11px] text-secondary mt-1 leading-relaxed">
+                             This alert is bound to your placement pipeline. Navigate to the link below to submit resumes, view interview details, or accept job selections.
+                           </p>
+                           
+                           {isExpired && (
+                             <div className="mt-3 px-3 py-2 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg text-xs font-bold flex items-center gap-2">
+                               <AlertCircle size={14} />
+                               <span>Application Closed: The deadline ({deadlineInfo.date.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}) has passed. This job is no longer accepting submissions.</span>
+                             </div>
+                           )}
+                           
+                           <button 
+                             disabled={isExpired}
+                             onClick={() => !isExpired && navigate(activeNotification.action_url)}
+                             className={`mt-4 py-1.5 px-4 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all inline-flex items-center gap-1.5 border-none ${isExpired ? 'bg-slate-300 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'}`}
+                           >
+                             {isExpired ? 'Application Closed (Expired)' : 'Access Action Dashboard'} 
+                             {!isExpired && <ChevronRight size={14} />}
+                           </button>
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 })()}
               </div>
 
               {/* Key bindings tip line */}

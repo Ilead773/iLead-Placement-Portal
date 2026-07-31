@@ -782,11 +782,14 @@ export default function StudentDashboard() {
             </div>
 
             <div className="dash-card-body flex flex-col gap-3">
-              {notifications.length === 0 ? (
-                <p className="text-xs text-muted italic py-4 text-center">No notifications found.</p>
+              {notifications.filter(note => !note.is_read).length === 0 ? (
+                <p className="text-xs text-muted italic py-4 text-center">No unread notifications found.</p>
               ) : (
-                notifications.slice(0, 3).map((note) => {
-                  const isUnread = !note.is_read;
+                notifications
+                  .filter(note => !note.is_read)
+                  .slice(0, 3)
+                  .map((note) => {
+                    const isUnread = !note.is_read;
                   
                   return (
                     <div 
