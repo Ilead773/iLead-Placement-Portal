@@ -29,6 +29,7 @@ const JobDetailsModal = ({
   const isEligible = eligibility?.eligible;
   const hasApplied = job?.has_applied;
   const failingChecks = eligibility?.failing_checks || [];
+  const isOnlyDeadlineFailing = failingChecks.length > 0 && failingChecks.every(c => c.check_name === 'deadline');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -175,12 +176,14 @@ const JobDetailsModal = ({
 
               {/* Non-eligibility warning banner (only shown to student if not eligible and hasn't applied) */}
               {!isAdmin && !hasApplied && !isEligible && failingChecks.length > 0 && (
-                <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 text-red-400 text-sm flex items-start gap-3 mt-4">
-                  <ShieldAlert size={18} className="mt-0.5 flex-shrink-0 text-red-500" />
+                <div className={`p-4 rounded-xl text-sm flex items-start gap-3 mt-4 border ${isOnlyDeadlineFailing ? 'bg-amber-500/5 border-amber-500/10 text-amber-500' : 'bg-red-500/5 border-red-500/10 text-red-400'}`}>
+                  <ShieldAlert size={18} className={`mt-0.5 flex-shrink-0 ${isOnlyDeadlineFailing ? 'text-amber-500' : 'text-red-500'}`} />
                   <div>
-                    <h4 className="font-bold text-red-500 m-0">Not Eligible to Apply</h4>
+                    <h4 className={`font-bold m-0 ${isOnlyDeadlineFailing ? 'text-amber-500' : 'text-red-500'}`}>
+                      {isOnlyDeadlineFailing ? 'Application Closed' : 'Not Eligible to Apply'}
+                    </h4>
                     <p className="text-xs text-secondary mt-1 leading-relaxed">
-                      {failingChecks[0].reason}
+                      {isOnlyDeadlineFailing ? 'The deadline for submitting applications has passed.' : failingChecks[0].reason}
                     </p>
                   </div>
                 </div>
@@ -320,8 +323,8 @@ const JobDetailsModal = ({
                   Apply for this Role <ArrowRight size={14} className="ml-1" />
                 </button>
               ) : (
-                <div className="px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-500/5 text-secondary border border-slate-500/10 uppercase tracking-wider cursor-not-allowed">
-                  Not Eligible
+                <div className={`px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider cursor-not-allowed ${isOnlyDeadlineFailing ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-slate-500/5 text-secondary border border-slate-500/10'}`}>
+                  {isOnlyDeadlineFailing ? 'Expired / Closed' : 'Not Eligible'}
                 </div>
               )}
             </div>

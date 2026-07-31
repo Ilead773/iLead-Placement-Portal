@@ -85,9 +85,17 @@ const Internships = () => {
       const sorted = (response.data || []).sort(
         (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
       );
-      // Only show opportunities that are active and the student is eligible for or has already applied to
+      // Only show opportunities that are active and:
+      // - The student is eligible, OR
+      // - The student has already applied, OR
+      // - The job is expired (failed only the deadline check)
       const eligible = sorted.filter(
-        job => job.status === 'active' && (job.eligibility?.eligible || job.has_applied)
+        job => job.status === 'active' && (
+          job.eligibility?.eligible || 
+          job.has_applied || 
+          ((job.eligibility?.failing_checks || []).length > 0 && 
+           (job.eligibility?.failing_checks || []).every(c => c.check_name === 'deadline'))
+        )
       );
       setJobs(eligible);
     } catch (err) {

@@ -1,12 +1,12 @@
 # apps/scraped_jobs/course_config.py
 """
-Complete course search configuration for all 20 iLEAD courses.
+Complete course search configuration for all 19 iLEAD courses.
 Provides hardcoded defaults + DB-driven override via CourseSearchConfig model.
 """
 
 COURSE_SEARCH_CONFIG = {
     "BBA": {
-        "domain_terms": ["bba", "business", "administration", "management", "sales", "marketing", "hr", "operations"],
+        "domain_terms": ["bba", "business", "administration", "management", "sales", "marketing", "hr", "operations", "finance", "financial", "accounting", "tax", "audit", "wealth", "equity"],
         "keywords": [
             "Business Development Executive", "Marketing Executive", "Sales Executive",
             "HR Executive / HR Recruiter", "Operations Executive", "Customer Relationship Executive",
@@ -16,17 +16,8 @@ COURSE_SEARCH_CONFIG = {
             "Talent Acquisition Executive", "Brand Promotion Executive", "Event Management Executive",
             "Supply Chain / Logistics Executive", "E-commerce Executive", "Travel & Tourism Executive",
             "Hospital Administration Executive", "CRM Executive", "Market Research Associate",
-        ],
-        "internship_keywords": [
-            "business intern", "sales intern", "marketing intern", "operations intern", "HR intern",
-        ],
-        "exclude_keywords": ["10+ years", "VP", "director"],
-    },
-    "BBA (Finance)": {
-        "domain_terms": ["finance", "financial", "accounting", "tax", "audit", "wealth", "equity"],
-        "keywords": [
             "Finance Executive", "Financial Analyst (Entry Level)", "Accounts Executive",
-            "Accounts Payable/Receivable Executive", "Banking Associate", "Relationship Manager",
+            "Accounts Payable/Receivable Executive", "Relationship Manager",
             "Investment Banking Intern", "Equity Research Analyst Intern", "Taxation Executive",
             "Audit Associate", "Financial Planning Associate", "Insurance Advisor / Executive",
             "Loan Processing Executive", "Credit Analyst", "Wealth Management Associate",
@@ -35,9 +26,10 @@ COURSE_SEARCH_CONFIG = {
             "Corporate Finance Intern", "Billing Executive", "Junior Accountant", "Mutual Fund Advisor / Associate",
         ],
         "internship_keywords": [
+            "business intern", "sales intern", "marketing intern", "operations intern", "HR intern",
             "finance intern", "accounts intern", "investment banking intern", "equity research intern", "corporate finance intern",
         ],
-        "exclude_keywords": ["10+ years", "VP finance", "CFO", "director"],
+        "exclude_keywords": ["10+ years", "VP", "director", "CFO", "VP finance"],
     },
     "BBA in Digital Marketing (BBA DM)": {
         "domain_terms": ["digital marketing", "seo", "social media", "content", "performance marketing", "growth"],
@@ -318,10 +310,8 @@ COURSE_SEARCH_CONFIG = {
 }
 
 
-# ─── Course-to-department mapping ────────────────────────────────────────────
 COURSE_TO_DEPARTMENT_MAP = {
     "BBA": "Business & Management",
-    "BBA (Finance)": "Business & Management",
     "BBA in Digital Marketing (BBA DM)": "Business & Management",
     "BBA in Travel & Tourism Management (BBA TTM)": "Business & Management",
     "BBA in Entrepreneurship (BBA ENT)": "Business & Management",
@@ -384,8 +374,8 @@ def normalize_course_name(course_str: str) -> str:
         'bachelor of computer applications': 'BSc in Computer Application (BCA)',
         'bachelor of medical laboratory technology': 'BSc in Medical Laboratory Technology (BMLT)',
         'cloud computing technology': 'BSc in Critical Care Technology (CCT)',
-        'bba (finance)': 'BBA (Finance)',
-        'bba finance': 'BBA (Finance)',
+        'bba (finance)': 'BBA',
+        'bba finance': 'BBA',
         'digital marketing': 'BBA in Digital Marketing (BBA DM)',
         'bba dm': 'BBA in Digital Marketing (BBA DM)',
         'bba in digital marketing': 'BBA in Digital Marketing (BBA DM)',

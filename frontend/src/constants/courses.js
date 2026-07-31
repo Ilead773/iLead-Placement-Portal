@@ -11,7 +11,6 @@
 export const ILEAD_COURSES = [
   // ── Business & Management ──────────────────────────────────────
   "BBA",
-  "BBA (Finance)",
   "BBA in Digital Marketing (BBA DM)",
   "BBA in Travel & Tourism Management (BBA TTM)",
   "BBA in Entrepreneurship (BBA ENT)",
@@ -42,7 +41,6 @@ export const ILEAD_COURSES = [
 export const COURSE_DEPARTMENTS = {
   "Business & Management": [
     "BBA",
-    "BBA (Finance)",
     "BBA in Digital Marketing (BBA DM)",
     "BBA in Travel & Tourism Management (BBA TTM)",
     "BBA in Entrepreneurship (BBA ENT)",
@@ -73,10 +71,8 @@ export const COURSE_DEPARTMENTS = {
 /** Convenience: returns courses as { name } objects (for components that expect that shape) */
 export const ILEAD_COURSES_OBJ = ILEAD_COURSES.map((name) => ({ name }));
 
-/** Stream mapping for each of the official courses (aligns with production Schools) */
 export const COURSE_STREAMS = {
   "BBA": ["School of Business"],
-  "BBA (Finance)": ["School of Business"],
   "BBA in Digital Marketing (BBA DM)": ["School of Business"],
   "BBA in Travel & Tourism Management (BBA TTM)": ["School of Business"],
   "BBA in Entrepreneurship (BBA ENT)": ["School of Business"],

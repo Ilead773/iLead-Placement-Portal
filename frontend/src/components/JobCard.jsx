@@ -42,6 +42,7 @@ const JobCard = ({ job, eligibility, onApply }) => {
 
   const passingChecks = eligibility?.passing_checks || [];
   const failingChecks = eligibility?.failing_checks || [];
+  const isOnlyDeadlineFailing = failingChecks.length > 0 && failingChecks.every(c => c.check_name === 'deadline');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -139,9 +140,18 @@ const JobCard = ({ job, eligibility, onApply }) => {
         </div>
         
         {!hasApplied && !isEligible && failingChecks.length > 0 && (
-          <div className="mb-4 text-xs p-3 rounded-lg border bg-red-500/5 text-red-400 border-red-500/10">
-            <strong className="text-red-500 font-bold">Not Eligible: </strong>
-            {failingChecks[0].reason}
+          <div className={`mb-4 text-xs p-3 rounded-lg border ${isOnlyDeadlineFailing ? 'bg-amber-500/5 text-amber-500 border-amber-500/10' : 'bg-red-500/5 text-red-400 border-red-500/10'}`}>
+            {isOnlyDeadlineFailing ? (
+              <>
+                <strong className="text-amber-500 font-bold">Closed: </strong>
+                The application deadline has passed.
+              </>
+            ) : (
+              <>
+                <strong className="text-red-500 font-bold">Not Eligible: </strong>
+                {failingChecks[0].reason}
+              </>
+            )}
           </div>
         )}
 
@@ -160,8 +170,11 @@ const JobCard = ({ job, eligibility, onApply }) => {
             Apply Now <ArrowRight size={14} className="btn-arrow" />
           </button>
         ) : (
-          <div className="w-full text-center py-2.5 rounded-xl font-bold text-xs bg-slate-500/5 text-secondary border border-slate-500/10 uppercase tracking-wider mt-auto cursor-not-allowed" onClick={e => e.stopPropagation()}>
-            Not Eligible
+          <div 
+            className={`w-full text-center py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider mt-auto cursor-not-allowed ${isOnlyDeadlineFailing ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-slate-500/5 text-secondary border border-slate-500/10'}`} 
+            onClick={e => e.stopPropagation()}
+          >
+            {isOnlyDeadlineFailing ? 'Expired / Closed' : 'Not Eligible'}
           </div>
         )}
       </div>

@@ -65,7 +65,7 @@ SEARCH_POOLS = {
             "sales executive India",
             "MBA fresher India",
         ],
-        "courses": ["BBA", "BBA (Finance)", "BBA in Entrepreneurship (BBA ENT)", "BBA in Hospital Management (BBA HM)"],
+        "courses": ["BBA", "BBA in Entrepreneurship (BBA ENT)", "BBA in Hospital Management (BBA HM)"],
         "is_internship": False,
     },
     "creative": {
@@ -131,7 +131,7 @@ SEARCH_POOLS = {
             "fashion design intern India",
         ],
         "courses": [
-            "BBA in Digital Marketing (BBA DM)", "BBA", "BBA (Finance)",
+            "BBA in Digital Marketing (BBA DM)", "BBA",
             "BSc in Media Science (BMS)", "MSc in Media Science",
             "BBA in Entrepreneurship (BBA ENT)", "BSc in Sustainable Fashion Design & Management",
         ],
