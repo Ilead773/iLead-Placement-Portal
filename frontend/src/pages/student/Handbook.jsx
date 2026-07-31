@@ -8,11 +8,11 @@ import {
   FileText,
   ClipboardList,
   Briefcase,
-  AlertTriangle,
-  Info,
   ChevronRight,
   Sparkles,
-  ShieldAlert
+  ArrowRight,
+  Download,
+  Info
 } from 'lucide-react';
 
 const SECTIONS_DATA = [
@@ -23,59 +23,59 @@ const SECTIONS_DATA = [
         id: 'dashboard',
         title: 'Dashboard',
         icon: <LayoutDashboard size={20} />,
-        description: 'Your main page. Here you can see how many jobs you applied for, if your profile is complete, when your next interviews are, and new announcements.',
+        image: '/handbook_screenshots/dashboard.png',
+        description: 'Your main page showing your college details, CGPA, Attendance, profile readiness meter, recent announcements, and active job applications progress.',
         metrics: [
-          { name: 'Total Applications', desc: 'The number of jobs and internships you have applied for.' },
-          { name: 'Active Processes', desc: 'Jobs where you are currently doing interviews or waiting for results.' },
-          { name: 'Placement Status', desc: 'Your status: Unplaced (looking for a job), Placed (got a job offer), or Accepted (you accepted a job offer).' },
-          { name: 'Profile Completion Meter', desc: 'Shows how much of your profile is filled out. Keep this at 100% so you can apply for jobs!' }
+          { name: 'Profile Readiness', desc: 'Shows how complete your profile is (must be 100% complete to apply for jobs).' },
+          { name: 'Applications Pipeline', desc: 'Shows the step-by-step progress of jobs you have applied to.' },
+          { name: 'CGPA & Attendance', desc: 'Displays your current CGPA and attendance percentage.' },
+          { name: 'Inbox Alerts', desc: 'Shows updates from the placement office.' }
         ],
         steps: [
-          'Look at the cards at the top for quick numbers.',
-          'Check the interview timeline to see when your next interviews are.',
-          'Read the latest news from the placement team.',
-          'Click on any card to go directly to that section.'
+          'Open the portal to view the dashboard page.',
+          'Verify that your Profile Readiness is at 100% complete.',
+          'Check your CGPA and Attendance cards.',
+          'Look at the active Applications Pipeline in the center.',
+          'Read the Inbox Alerts for any announcement.'
         ],
-        tips: 'Make sure your profile is 100% complete. Some companies will not read your resume if your profile is incomplete.',
+        tips: 'Always make sure your profile readiness is 100% complete so you can apply for jobs.',
         type: 'info'
       },
       {
         id: 'profile',
         title: 'My Profile',
         icon: <User size={20} />,
-        description: 'Your school details and resume. This is what companies see when you apply.',
+        image: '/handbook_screenshots/profile.png',
+        description: 'Your educational portfolio containing your name, location, graduation year, experience, degrees, projects, and skills.',
         metrics: [
-          { name: 'CGPA', desc: 'Your college marks. Verified by the college and used to check if you can apply for a job.' },
-          { name: 'Active Backlogs', desc: 'Number of exams you failed and need to clear. Most companies only hire students with zero backlogs.' },
-          { name: 'Stream & Course', desc: 'Your course (like BCA or B.Sc. IT). This decides which jobs you can see.' },
-          { name: 'Skills & Projects', desc: 'The skills you know (like Java, Python) and the projects you have built.' }
+          { name: 'Basic Info', desc: 'Your name, year of study, location, phone, and email.' },
+          { name: 'Education & Experience', desc: 'Lists your MAKAUT degree GPA, Class XII, Class X marks, and previous internships.' }
         ],
         steps: [
-          'Go to My Profile in the menu.',
-          'Make sure your phone number and email are correct.',
-          'Check your marks for Class 10, Class 12, and CGPA.',
-          'Type in your projects, internships, and skills.',
-          'Click the Save button to save your changes.'
+          'Click My Profile in the menu.',
+          'Click Edit on Basic Info to enter your location and phone number.',
+          'Click Add under Experience to enter your past internships.',
+          'Click Add or Edit under Education to enter your MAKAUT GPA, Class 12, and Class 10 marks.',
+          'Scroll down to list your technical skills and academic projects, then click Save.'
         ],
-        warnings: 'Do not enter fake marks or hide backlogs. If you lie, you will be permanently blocked from all campus placements.',
-        type: 'warning'
+        tips: 'Ensure your phone number is correct so coordinators can contact you.',
+        type: 'info'
       },
       {
         id: 'notifications',
         title: 'Notifications',
         icon: <Bell size={20} />,
-        description: 'Announcements and updates from the placement office about your applications.',
+        image: '/handbook_screenshots/notifications.png',
+        description: 'The updates feed showing messages and announcements sent by the placement team.',
         metrics: [
-          { name: 'Important Alert (Orange)', desc: 'Important news, like new deadlines or schedule changes.' },
-          { name: 'Info Alert (Blue)', desc: 'General info and helpful tips.' },
-          { name: 'Shortlist Alert (Green)', desc: 'Good news showing you cleared an interview round or got selected.' }
+          { name: 'Announcements Feed', desc: 'Lists all notifications chronologically.' }
         ],
         steps: [
-          'Click the Bell icon at the top or click Notifications in the menu.',
-          'Click any message to read it or go to that page.',
-          'Click "Mark as Read" to clear old notifications.'
+          'Click Notifications in the menu.',
+          'View the list of announcements from the placement office.',
+          'Click on a notification card to read the details.'
         ],
-        tips: 'Check this page at least twice a day during placement season.',
+        tips: 'Check notifications daily to stay updated with deadlines.',
         type: 'info'
       }
     ]
@@ -87,77 +87,82 @@ const SECTIONS_DATA = [
         id: 'resumes',
         title: 'My Resumes',
         icon: <FileText size={20} />,
-        description: 'Add and manage your resumes. You can upload a PDF or build one inside the portal using templates.',
+        image: '/handbook_screenshots/resumes.png',
+        description: 'The section where you build your university-approved resumes using official templates.',
         metrics: [
-          { name: 'Primary Resume', desc: 'The main resume sent to companies when you apply. Marked with a star.' },
-          { name: 'PDF Upload Limit', desc: 'Only PDF files under 2MB are allowed.' },
-          { name: 'Resume Templates', desc: 'Simple, clean resumes created automatically from your profile info.' }
+          { name: 'Profile Prerequisite', desc: 'You must fill out your profile details (Basic Info, Education, Experience) before building a resume, as the builder automatically extracts your profile details to generate your resume.' },
+          { name: 'Resume Limit', desc: 'You can create and save a maximum of 5 resumes in the portal.' },
+          { name: 'Available Templates', desc: 'Layouts styled according to guidelines (e.g. iLEAD Kolkata Standard).' },
+          { name: 'Document History', desc: 'List of resumes you have generated.' },
+          { name: 'Active Resume', desc: 'The selected resume used for job applications. Only one resume can be active at a time.' }
         ],
         steps: [
-          'Go to My Resumes.',
-          'To upload: Click "Upload PDF", choose your file, and upload it.',
-          'To build: Click "Create Resume", fill in the blanks, and pick a design.',
-          'Click the star next to your main resume to mark it as Primary.'
+          'Make sure your profile details are fully filled out under My Profile.',
+          'Click My Resumes in the menu.',
+          'Hover over the template (like iLEAD Kolkata Standard) and click Use Template.',
+          'Fill in the resume form details and click Generate.',
+          'Locate your preferred resume in the Document History table (ensure you have not exceeded the 5 resume limit).',
+          'Click Set Active next to the resume you want to use. This makes it your main resume and applies a green ACTIVE tag.'
         ],
-        tips: 'Check your resume preview. A simple, clean design helps you get selected faster.',
-        type: 'info'
-      },
-      {
-        id: 'applications',
-        title: 'My Applications',
-        icon: <ClipboardList size={20} />,
-        description: 'Check the status of the jobs you applied for.',
-        metrics: [
-          { name: 'Applied (Blue)', desc: 'Applied successfully. The company is checking your profile.' },
-          { name: 'Shortlisted (Purple)', desc: 'You got shortlisted! Next are tests or interviews.' },
-          { name: 'Interviewing (Orange)', desc: 'You are currently doing interviews.' },
-          { name: 'Selected (Green)', desc: 'You got selected! Congratulations!' },
-          { name: 'Rejected (Red)', desc: 'You did not clear this round.' }
-        ],
-        steps: [
-          'Go to My Applications to see your jobs list.',
-          'Click "View Details" to see where you stand in each round.',
-          'Read marks and feedback left by the interviewers.'
-        ],
-        tips: 'If you do not get the job, read the feedback to do better next time.',
+        tips: 'The Set Active option is very important. When you apply for a job, the portal automatically sends the resume marked as ACTIVE. Make sure you set the correct resume as active before applying.',
         type: 'info'
       },
       {
         id: 'jobs',
         title: 'Jobs',
         icon: <Briefcase size={20} />,
-        description: 'Browse active jobs that match your marks and course.',
+        image: '/handbook_screenshots/jobs.png',
+        description: 'The job opportunities board where you can view and apply for active full-time job openings.',
         metrics: [
-          { name: 'Compensation (CTC)', desc: 'The yearly salary offered by the company (e.g., ₹6.5 Lakhs per year).' },
-          { name: 'Eligibility Status', desc: 'Checks if your marks, backlogs, and course match what the company wants.' },
-          { name: 'Job Description (JD)', desc: 'What the job is about and what skills you need.' }
+          { name: 'Stipend / CTC', desc: 'Salary package details for the job.' },
+          { name: 'Button Status', desc: 'APPLY NOW (to apply), APPLIED (submitted), EXPIRED/CLOSED (passed deadline).' }
         ],
         steps: [
-          'Go to the Jobs page.',
-          'Search for jobs by skill, location, or salary.',
-          'Click on a job card to see if you meet the requirements (green tick or red cross).',
-          'If you qualify, click "Apply Now", pick your resume, and submit.'
+          'Click Jobs in the menu.',
+          'Tap on any job card to open and view the description, CTC, location, and requirements.',
+          'Select the resume you want to send from the list.',
+          'Click Apply. The button will change to green APPLIED.'
         ],
-        warnings: 'We have a One-Student-One-Job rule. Once you get a job, you cannot apply for other jobs. You can only apply again if the placement cell gives you special permission to upgrade.',
-        type: 'warning'
+        tips: 'Tap on a job card to read the description and requirements before applying.',
+        type: 'info'
       },
       {
         id: 'internships',
         title: 'Internships',
         icon: <Briefcase size={20} />,
-        description: 'Find short-term internships to get work experience while studying.',
+        image: '/handbook_screenshots/jobs.png',
+        description: 'The internships opportunities board where you can view and apply for short-term internships.',
         metrics: [
-          { name: 'Stipend', desc: 'The monthly money paid to you during the internship.' },
-          { name: 'Duration', desc: 'How long the internship lasts (usually 2 to 6 months).' },
-          { name: 'PPO Opportunity', desc: 'Check if the company will offer you a full-time job if you do well.' }
+          { name: 'Stipend & Duration', desc: 'Monthly stipend and duration in months.' },
+          { name: 'Button Status', desc: 'APPLY NOW (to apply), APPLIED (submitted), EXPIRED/CLOSED (passed deadline).' }
         ],
         steps: [
-          'Go to Internships in the menu.',
-          'Make sure you can work for the full duration of the internship.',
-          'Click "Apply Now" using your main resume.',
-          'Track your rounds on the applications page.'
+          'Click Internships in the menu.',
+          'Tap on any internship card to open and view the description, stipend, and duration.',
+          'Select the resume you want to send from the list.',
+          'Click Apply. The button will change to green APPLIED.'
         ],
-        tips: 'If you get a full-time job offer (PPO) from your internship, you must tell the placement office within 24 hours.',
+        tips: 'Ensure you can commit to the full duration of the internship before applying.',
+        type: 'info'
+      },
+      {
+        id: 'applications',
+        title: 'My Applications',
+        icon: <ClipboardList size={20} />,
+        image: '/handbook_screenshots/applications.png',
+        description: 'The dashboard tracking all your submitted applications and recruitment stages.',
+        metrics: [
+          { name: 'Status Cards', desc: 'Displays counts of total applications, active processes, and placements.' },
+          { name: 'Applications Table', desc: 'Lists job roles, companies, applied dates, round progress, and overall status.' },
+          { name: 'Track Application', desc: 'Button to open and check scheduled interview dates.' }
+        ],
+        steps: [
+          'Click My Applications in the menu.',
+          'Scan the status cards at the top.',
+          'Locate your application in the table to see its status (Applied, Shortlisted, Placed, or Rejected).',
+          'Click Track Application next to a job to view scheduled interview dates.'
+        ],
+        tips: 'Track your application status to know when upcoming interview rounds are scheduled.',
         type: 'info'
       }
     ]
@@ -194,17 +199,18 @@ export default function StudentHandbook() {
         }
         @media (min-width: 992px) {
           .handbook-grid {
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 290px 1fr;
           }
         }
         .guide-card {
           background: var(--bg-card);
           border: 1px solid var(--border-color);
-          border-radius: 16px;
-          padding: 24px;
+          border-radius: 20px;
+          padding: 28px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
+          box-shadow: var(--shadow-sm);
         }
         .guide-card:hover {
           transform: translateY(-2px);
@@ -212,20 +218,19 @@ export default function StudentHandbook() {
           box-shadow: var(--shadow-md);
         }
         .guide-card-icon-wrapper {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: var(--accent-soft);
           color: var(--accent-primary);
-          margin-bottom: 16px;
         }
         .step-item {
           display: flex;
           gap: 12px;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
           font-size: 14.5px;
           line-height: 1.5;
           color: var(--text-secondary);
@@ -233,8 +238,8 @@ export default function StudentHandbook() {
         .step-number {
           background: var(--border-light);
           border-radius: 50%;
-          min-width: 22px;
-          height: 22px;
+          min-width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -245,13 +250,13 @@ export default function StudentHandbook() {
         .metric-pill {
           background: var(--bg-body);
           border: 1px solid var(--border-color);
-          border-radius: 8px;
-          padding: 8px 12px;
+          border-radius: 10px;
+          padding: 10px 14px;
           font-size: 13.5px;
         }
         .nav-list-item {
           padding: 12px 16px;
-          border-radius: 10px;
+          border-radius: 12px;
           cursor: pointer;
           font-weight: 600;
           font-size: 14.5px;
@@ -269,6 +274,26 @@ export default function StudentHandbook() {
           background: var(--accent-soft);
           color: var(--accent-primary);
         }
+        .handbook-img-container {
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid var(--border-color);
+          box-shadow: var(--shadow-sm);
+          transition: transform 0.3s ease;
+          background: var(--bg-body);
+          margin-bottom: 24px;
+        }
+        .handbook-img-container:hover {
+          transform: scale(1.008);
+          border-color: var(--accent-primary);
+        }
+        .flow-arrow {
+          display: inline-flex;
+          align-items: center;
+          color: var(--accent-primary);
+          margin: 0 4px;
+          vertical-align: middle;
+        }
       `}</style>
 
       {/* Glow Backdrops */}
@@ -276,30 +301,30 @@ export default function StudentHandbook() {
       <div style={{ position: 'absolute', bottom: '15%', left: '5%', width: '280px', height: '280px', backgroundColor: 'rgba(16, 185, 129, 0.03)', borderRadius: '50%', filter: 'blur(100px)', pointerEvents: 'none', zIndex: -1 }} />
 
       {/* Premium Header */}
-      <div style={{ position: 'relative', padding: '32px', borderRadius: '24px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', padding: '36px', borderRadius: '24px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.03, pointerEvents: 'none', color: 'var(--accent-primary)' }}>
           <BookOpen size={160} />
         </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', mdFlexDirection: 'row', justifyContent: 'space-between', zIndex: 1, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ padding: '16px', borderRadius: '16px', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BookOpen size={32} />
+            <div style={{ padding: '18px', borderRadius: '18px', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyCentent: 'center' }}>
+              <BookOpen size={36} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <span className="badge badge-info" style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Student Resources
+                  Student Manual
                 </span>
                 <span className="badge badge-success" style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <Sparkles size={8} /> Active Guide
+                  <Sparkles size={8} /> Interactive Handbook
                 </span>
               </div>
-              <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 850, margin: 0, background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Student Portal Handbook
+              <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, margin: 0, background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Student User Manual
               </h1>
-              <p style={{ margin: '6px 0 0 0', fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '750px', lineHeight: '1.5' }}>
-                A simple guide to help you use the placement portal, update your resume, apply for jobs, and clear your tests.
+              <p style={{ margin: '8px 0 0 0', fontSize: '15.5px', color: 'var(--text-secondary)', maxWidth: '800px', lineHeight: '1.5' }}>
+                An intuitive, visual guide with screenshots and steps to help you navigate the student portal.
               </p>
             </div>
           </div>
@@ -316,7 +341,7 @@ export default function StudentHandbook() {
               onClick={() => setActiveCategory(cat)}
               style={{
                 border: 'none',
-                padding: '8px 16px',
+                padding: '8px 18px',
                 borderRadius: '10px',
                 fontSize: '14px',
                 fontWeight: 700,
@@ -364,17 +389,17 @@ export default function StudentHandbook() {
 
       {/* Main Content Layout */}
       <div className="handbook-grid">
-        {/* Left Side: Sidebar Jump-To Menu */}
+        {/* Left Side: Sidebar Jump-To Menu & PDF Download */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: 'fit-content', position: 'sticky', top: '100px' }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', fontFamily: 'var(--font-heading)' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', fontFamily: 'var(--font-heading)' }}>
               Jump To Section
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {filteredData.map(category => (
                 <div key={category.category} style={{ marginBottom: '10px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {category.category}
                   </div>
                   {category.items.map(item => (
@@ -401,19 +426,42 @@ export default function StudentHandbook() {
             </div>
           </div>
 
-          {/* Quick Notice Panel */}
-          <div style={{ background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.02) 0%, rgba(16, 185, 129, 0.02) 100%)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 700, fontSize: '14.5px' }}>
-              <ShieldAlert size={18} /> Rules to Remember
+          {/* PDF Download Panel */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.02) 0%, rgba(16, 185, 129, 0.02) 100%)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 800, fontSize: '14.5px' }}>
+              <BookOpen size={18} /> Official Manual PDF
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              You are bound by the <strong>One-Student-One-Job</strong> rule and exam integrity rules. Academic updates are checked and verified by administrators.
+              Download the placement cell's certified PDF manual containing screenshots and step-by-step guidelines.
             </p>
+            <a 
+              href="/STUDENT_HANDBOOK.pdf" 
+              download="iLEAD_Student_Handbook.pdf" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px', 
+                padding: '12px', 
+                borderRadius: '12px', 
+                backgroundColor: 'var(--accent-primary)', 
+                color: '#ffffff', 
+                textDecoration: 'none', 
+                fontWeight: '700', 
+                fontSize: '13.5px', 
+                transition: 'all 0.2s ease', 
+                textAlign: 'center',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)'
+              }}
+            >
+              <Download size={16} /> Download PDF Manual
+            </a>
           </div>
         </div>
 
         {/* Right Side: Guide Cards List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          
           {filteredData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--bg-card)', border: '1.5px dashed var(--border-color)', borderRadius: '24px' }}>
               <Search size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
@@ -424,7 +472,7 @@ export default function StudentHandbook() {
             filteredData.map(category => (
               <div key={category.category} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 900, margin: 0, color: 'var(--text-primary)' }}>
                     {category.category} Sections
                   </h2>
                   <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
@@ -451,16 +499,10 @@ export default function StudentHandbook() {
                               {item.title}
                             </h3>
                             <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              Route: /student/{item.id === 'dashboard' ? '' : item.id === 'support-guide' ? 'handbook' : item.id}
+                              URL Route: /student{item.id === 'dashboard' ? '' : `/${item.id}`}
                             </span>
                           </div>
                         </div>
-
-                        {item.warnings && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(239, 68, 68, 0.08)', color: 'var(--danger)', fontSize: '11px', fontWeight: 800, padding: '6px 12px', borderRadius: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            <AlertTriangle size={12} /> Rules Alert
-                          </div>
-                        )}
                       </div>
 
                       {/* Description */}
@@ -468,12 +510,48 @@ export default function StudentHandbook() {
                         {item.description}
                       </p>
 
+                      {/* Screenshot Image */}
+                      {item.image && (
+                        <div className="handbook-img-container">
+                          <img 
+                            src={item.image} 
+                            alt={`${item.title} Screenshot`} 
+                            style={{ width: '100%', height: 'auto', display: 'block' }} 
+                          />
+                        </div>
+                      )}
+
                       {/* Two Column details: Metrics & How To Use */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', mdGridTemplateColumns: '1fr 1fr' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', mdGridTemplateColumns: '1.1fr 0.9fr' }}>
+                        
+                        {/* Steps Column (Primary Focus) */}
+                        <div>
+                          <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            How to use (Steps)
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {item.steps.map((step, idx) => {
+                              return (
+                                <div key={idx} className="step-item">
+                                  <span className="step-number">{idx + 1}</span>
+                                  <span>
+                                    {step.split('➔').map((chunk, i, arr) => (
+                                      <React.Fragment key={i}>
+                                        {chunk}
+                                        {i < arr.length - 1 && <span className="flow-arrow"><ArrowRight size={13} style={{ margin: '0 2px' }} /></span>}
+                                      </React.Fragment>
+                                    ))}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         {/* Metrics/Fields column */}
                         {item.metrics && item.metrics.length > 0 && (
                           <div>
-                            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
                               Key Terms & Info
                             </h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -491,45 +569,31 @@ export default function StudentHandbook() {
                           </div>
                         )}
 
-                        {/* Steps Column */}
-                        <div>
-                          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            How to use
-                          </h4>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            {item.steps.map((step, idx) => (
-                              <div key={idx} className="step-item">
-                                <span className="step-number">{idx + 1}</span>
-                                <span>{step}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
                       </div>
 
-                      {/* Warnings / Tip Callout box */}
-                      {(item.warnings || item.tips) && (
+                      {/* Tips Callout box */}
+                      {item.tips && (
                         <div 
                           style={{ 
-                            marginTop: '20px', 
+                            marginTop: '24px', 
                             padding: '16px', 
                             borderRadius: '12px', 
-                            backgroundColor: item.warnings ? 'rgba(239, 68, 68, 0.04)' : 'rgba(16, 185, 129, 0.04)',
-                            border: `1px solid ${item.warnings ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'}`,
+                            backgroundColor: 'var(--accent-soft)',
+                            border: '1px solid var(--border-color)',
                             display: 'flex',
                             gap: '12px',
                             alignItems: 'flex-start'
                           }}
                         >
-                          <div style={{ color: item.warnings ? 'var(--danger)' : 'var(--success)', marginTop: '2px' }}>
-                            {item.warnings ? <AlertTriangle size={18} /> : <Info size={18} />}
+                          <div style={{ color: 'var(--accent-primary)', marginTop: '2px' }}>
+                            <Info size={18} />
                           </div>
                           <div>
-                            <strong style={{ color: item.warnings ? 'var(--danger)' : 'var(--success)', display: 'block', fontSize: '13.5px', marginBottom: '4px' }}>
-                              {item.warnings ? 'Important Rule' : 'Helpful Tip'}
+                            <strong style={{ color: 'var(--accent-primary)', display: 'block', fontSize: '13.5px', marginBottom: '4px' }}>
+                              Helpful Tip
                             </strong>
                             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                              {item.warnings || item.tips}
+                              {item.tips}
                             </p>
                           </div>
                         </div>

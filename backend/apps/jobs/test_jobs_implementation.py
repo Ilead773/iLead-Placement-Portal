@@ -188,3 +188,64 @@ class TestJobSecurityAndRounds:
         # Verify r1 is completely deleted from the database
         assert not JobRound.objects.filter(id=r1.id).exists()
 
+    def test_student_cannot_see_confidential_fields(self, api_client, student_user):
+        job = Job.objects.create(
+            company_name='ConfidentialCorp',
+            role='Developer',
+            description='Secret work.',
+            package=12.00,
+            location='Kolkata',
+            application_deadline=timezone.now() + timezone.timedelta(days=1),
+            status='active',
+            category='A',
+            hr_email='hr@confidentialcorp.com'
+        )
+        api_client.force_authenticate(user=student_user)
+        
+        # Test retrieve
+        response = api_client.get(f'/api/v1/jobs/jobs/{job.id}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert 'hr_email' not in response.data
+        assert 'category' not in response.data
+        
+        # Test list
+        response_list = api_client.get('/api/v1/jobs/jobs/')
+        assert response_list.status_code == status.HTTP_200_OK
+        # Find our job in list
+        our_job = next((j for j in response_list.data if j['id'] == str(job.id)), None)
+        assert our_job is not None
+        assert 'hr_email' not in our_job
+        assert 'category' not in our_job
+
+    def test_admin_can_see_confidential_fields(self, api_client, coordinator_user):
+        coordinator_user.can_manage_placements = True
+        coordinator_user.save()
+        
+        job = Job.objects.create(
+            company_name='ConfidentialCorp',
+            role='Developer',
+            description='Secret work.',
+            package=12.00,
+            location='Kolkata',
+            application_deadline=timezone.now() + timezone.timedelta(days=1),
+            status='active',
+            category='A',
+            hr_email='hr@confidentialcorp.com'
+        )
+        api_client.force_authenticate(user=coordinator_user)
+        
+        # Test retrieve
+        response = api_client.get(f'/api/v1/jobs/jobs/{job.id}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['hr_email'] == 'hr@confidentialcorp.com'
+        assert response.data['category'] == 'A'
+        
+        # Test list
+        response_list = api_client.get('/api/v1/jobs/jobs/')
+        assert response_list.status_code == status.HTTP_200_OK
+        our_job = next((j for j in response_list.data if j['id'] == str(job.id)), None)
+        assert our_job is not None
+        assert our_job['hr_email'] == 'hr@confidentialcorp.com'
+        assert our_job['category'] == 'A'
+
+

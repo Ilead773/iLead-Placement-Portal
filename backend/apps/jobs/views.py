@@ -120,12 +120,19 @@ class JobViewSet(viewsets.ModelViewSet):
             student_profile._has_primary_uploaded = ResumeUpload.objects.filter(student=student_profile, is_primary=True, is_deleted=False).exists()
         
         results = []
+        is_admin_or_coordinator = request.user and (
+            request.user.role == 'admin' or 
+            (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_placements', False))
+        )
         for job in jobs:
             data = get_serialized_job_data(job).copy()
             if student_profile:
                 eligibility = check_eligibility(student_profile, job, ignore_profile_resume=True)
                 data['eligibility'] = eligibility
                 data['has_applied'] = job.id in applied_job_ids
+            if not is_admin_or_coordinator:
+                data.pop('hr_email', None)
+                data.pop('category', None)
             results.append(data)
         
         response = Response(results)
@@ -143,6 +150,13 @@ class JobViewSet(viewsets.ModelViewSet):
             eligibility = check_eligibility(student_profile, instance, ignore_profile_resume=True)
             data['eligibility'] = eligibility
             data['has_applied'] = instance.applications.filter(student=student_profile, is_deleted=False).exists()
+        is_admin_or_coordinator = request.user and (
+            request.user.role == 'admin' or 
+            (request.user.role == 'coordinator' and getattr(request.user, 'can_manage_placements', False))
+        )
+        if not is_admin_or_coordinator:
+            data.pop('hr_email', None)
+            data.pop('category', None)
         response = Response(data)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response['Pragma'] = 'no-cache'
@@ -192,7 +206,11 @@ class JobViewSet(viewsets.ModelViewSet):
         ranked_jobs.sort(key=lambda x: x['score'], reverse=True)
         top_10 = [item['job'] for item in ranked_jobs[:10]]
         
-        return Response(self.get_serializer(top_10, many=True).data)
+        serialized_jobs = self.get_serializer(top_10, many=True).data
+        for job_data in serialized_jobs:
+            job_data.pop('hr_email', None)
+            job_data.pop('category', None)
+        return Response(serialized_jobs)
 
     @action(detail=True, methods=['post'])
     def publish(self, request, pk=None):

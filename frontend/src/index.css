@@ -1819,14 +1819,25 @@ section { margin-bottom: var(--section-margin); position: relative; }
 
 /* ─── Responsive Utilities ────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .page-content { padding: 12px !important; }
   .dashboard-container { padding: 12px !important; }
-  .grid { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
-  .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+  .grid { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
   .card { padding: 16px !important; }
   .text-3xl { font-size: 1.75rem !important; }
   .text-2xl { font-size: 1.5rem !important; }
   .flex-justify-between { flex-direction: column; align-items: flex-start; gap: 12px; }
   
+  /* Compact Cards for student mobile flow */
+  .dash-card { border-radius: 12px !important; }
+  .dash-card-header { padding: 12px 14px !important; }
+  .dash-card-body { padding: 14px !important; }
+  .job-card { padding: 14px !important; }
+  
+  /* Topbar brand centering fix */
+  .topbar-brand-text { display: none !important; }
+  .topbar-brand-center { padding: 6px 12px !important; gap: 0 !important; }
+
   /* Mobile Table Optimization */
   .table-container {
     overflow-x: auto;
@@ -1839,6 +1850,28 @@ section { margin-bottom: var(--section-margin); position: relative; }
   .input-field { font-size: 16px !important; } /* Prevents iOS zoom on focus */
   .modal { width: 95% !important; padding: 20px !important; }
 }
+
+/* Default styles for Pipeline Card */
+.pipeline-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 12px rgba(0, 0, 0, 0.03);
+}
+[data-theme='dark'] .pipeline-card {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+@media (max-width: 768px) {
+  .pipeline-card {
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+}
+
 
 .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -10321,14 +10354,14 @@ tr:hover .company-logo-badge {
 /* Academic Snapshot Premium Cards Grid */
 .academic-snapshot-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 20px;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
 }
 
-@media (min-width: 640px) {
+@media (max-width: 480px) {
   .academic-snapshot-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 }
 
@@ -10352,6 +10385,15 @@ tr:hover .company-logo-badge {
   justify-content: space-between;
   min-height: 160px;
 }
+
+@media (max-width: 768px) {
+  .snapshot-stat-card {
+    padding: 12px 14px !important;
+    min-height: 120px !important;
+    border-radius: 12px !important;
+  }
+}
+
 
 .snapshot-stat-card::before {
   content: '';
@@ -11445,4 +11487,173 @@ tr:hover .company-logo-badge {
   to   { width: 94%; }
 }
 
+/* ═════════════════════════════════════════════════
+   STUDENT MOBILE-ONLY PREMIUM OVERRIDES
+   ═════════════════════════════════════════════════ */
 
+/* Mobile Swipe Carousel Support */
+@media (max-width: 768px) {
+  .mobile-carousel {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 12px !important;
+    padding: 4px 4px 12px 4px !important;
+    margin: 0 -4px !important;
+    scrollbar-width: none !important; /* Hide scrollbars */
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .mobile-carousel::-webkit-scrollbar {
+    display: none !important; /* Hide scrollbars on webkit */
+  }
+  .mobile-carousel > * {
+    scroll-snap-align: start !important;
+    flex-shrink: 0 !important;
+    width: 86% !important; /* Allow the next card to peep in from the side */
+    max-width: 300px !important;
+  }
+
+  /* Quick Actions Layout */
+  .quick-actions-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+  }
+  .quick-action-pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .quick-action-pill:active {
+    transform: scale(0.95);
+    background: var(--bg-card-hover);
+  }
+  .quick-action-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .quick-action-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  /* Mobile Dashboard Section Tabs */
+  .mobile-tabs-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    padding: 4px 0 12px 0 !important;
+    margin-bottom: 20px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+  .mobile-tabs-container::-webkit-scrollbar {
+    display: none !important;
+  }
+  .mobile-tab-btn {
+    padding: 8px 16px !important;
+    border-radius: 9999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-secondary) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+  }
+  .mobile-tab-btn.active {
+    background: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+  }
+
+  /* Mobile-Only Vertical Pipeline Stepper Override */
+  .pipeline-card .flex.items-center.justify-between.w-full.relative {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding-left: 12px !important;
+    padding-top: 4px !important;
+  }
+  .pipeline-card .pipeline-connector-line {
+    display: none !important; /* Hide horizontal line */
+  }
+  /* Draw a vertical line */
+  .pipeline-card .flex.items-center.justify-between.w-full.relative::before {
+    content: '';
+    position: absolute;
+    left: 21px;
+    top: 12px;
+    bottom: 28px;
+    width: 2px;
+    background: var(--border-color);
+    z-index: 1;
+  }
+  .pipeline-card .flex.flex-col.items-center.gap-2.relative.z-10.bg-card.px-2 {
+    flex-direction: row !important;
+    gap: 12px !important;
+    background: transparent !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .pipeline-card .pipeline-step-node {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.75rem !important;
+    z-index: 2 !important;
+    flex-shrink: 0 !important;
+  }
+  .pipeline-card span.text-\[10px\] {
+    font-size: 0.8rem !important;
+    text-align: left !important;
+    margin-top: 0 !important;
+  }
+
+  /* Full Screen Modal Drawer Override for mobile */
+  .job-detail-overlay {
+    padding: 8px !important;
+  }
+  .job-detail-panel {
+    max-height: calc(100vh - 16px) !important;
+    border-radius: 16px !important;
+    height: 100% !important;
+  }
+  .job-detail-header {
+    padding: 16px !important;
+  }
+  .job-detail-body {
+    padding: 16px !important;
+    gap: 20px !important;
+  }
+  .job-detail-footer {
+    padding: 16px !important;
+  }
+  .job-detail-title-row {
+    gap: 8px !important;
+  }
+  .job-detail-title {
+    font-size: 1.25rem !important;
+  }
+}

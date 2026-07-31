@@ -275,8 +275,8 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     if not is_cat_eligible:
         failing_checks.append({
             'check_name': 'category',
-            'reason': f'Your Category ({student_cat}) does not allow you to apply to a Category {job_cat} opportunity.',
-            'how_to_fix': f'Category {student_cat} students can only apply to: ' + ('B and C' if student_cat == 'B' else 'C') + ' category companies.'
+            'reason': 'Your current placement status does not allow you to apply to this opportunity.',
+            'how_to_fix': 'Please contact the placement department for eligibility queries.'
         })
     else:
         passing_checks.append('category')

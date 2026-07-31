@@ -76,7 +76,7 @@ const JobDetailsModal = ({
               <div className="job-detail-header-left">
                 <div className="job-detail-title-row">
                   <h2 className="job-detail-title">{job.role}</h2>
-                  {job.category && (
+                  {isAdmin && job.category && (
                     <span className="category-badge">Category {job.category}</span>
                   )}
                   <span className="round-type-tag capitalize">
@@ -189,62 +189,64 @@ const JobDetailsModal = ({
                 </div>
               )}
 
-              {/* Eligibility Rules & Requirements */}
-              <div className="job-detail-eligibility-wrap mt-6">
-                <h4 className="section-title flex items-center gap-2 font-bold text-base mb-3">
-                  <Award size={20} className="text-blue-500" /> Eligibility & Requirements
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-500/5 dark:bg-zinc-800/20 rounded-xl border border-border-color/30 text-sm">
-                  <div>
-                    <span className="text-secondary font-medium block mb-0.5">Eligible Courses</span>
-                    <span className="font-bold text-primary">
-                      {job.eligibility_rules?.allowed_branches && job.eligibility_rules.allowed_branches.length > 0
-                        ? job.eligibility_rules.allowed_branches.join(', ')
-                        : 'All Courses'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-secondary font-medium block mb-0.5">Minimum CGPA Required</span>
-                    <span className="font-bold text-primary">
-                      {job.eligibility_rules?.min_cgpa !== undefined && job.eligibility_rules.min_cgpa !== '' && Number(job.eligibility_rules.min_cgpa) !== 0
-                        ? `${job.eligibility_rules.min_cgpa}`
-                        : 'None'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-secondary font-medium block mb-0.5">Minimum Attendance Required</span>
-                    <span className="font-bold text-primary">
-                      {job.eligibility_rules?.min_attendance !== undefined && job.eligibility_rules.min_attendance !== '' && Number(job.eligibility_rules.min_attendance) !== 0
-                        ? `${job.eligibility_rules.min_attendance}%`
-                        : 'None'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-secondary font-medium block mb-0.5">Maximum Allowed Backlogs</span>
-                    <span className="font-bold text-primary">
-                      {job.eligibility_rules?.max_backlogs !== undefined && job.eligibility_rules.max_backlogs !== ''
-                        ? `${job.eligibility_rules.max_backlogs}`
-                        : 'No Limit'}
-                    </span>
-                  </div>
-                  {job.eligibility_rules?.allowed_years && job.eligibility_rules.allowed_years.length > 0 && (
+              {/* Eligibility Rules & Requirements (Only visible to admin/staff) */}
+              {isAdmin && (
+                <div className="job-detail-eligibility-wrap mt-6">
+                  <h4 className="section-title flex items-center gap-2 font-bold text-base mb-3">
+                    <Award size={20} className="text-blue-500" /> Eligibility & Requirements
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-500/5 dark:bg-zinc-800/20 rounded-xl border border-border-color/30 text-sm">
                     <div>
-                      <span className="text-secondary font-medium block mb-0.5">Eligible Batches (Graduation Year)</span>
+                      <span className="text-secondary font-medium block mb-0.5">Eligible Courses</span>
                       <span className="font-bold text-primary">
-                        {job.eligibility_rules.allowed_years.join(', ')}
+                        {job.eligibility_rules?.allowed_branches && job.eligibility_rules.allowed_branches.length > 0
+                          ? job.eligibility_rules.allowed_branches.join(', ')
+                          : 'All Courses'}
                       </span>
                     </div>
-                  )}
-                  {job.hr_email && (
                     <div>
-                      <span className="text-secondary font-medium block mb-0.5">HR Email Contact</span>
-                      <span className="font-bold text-primary flex items-center gap-1">
-                        <Mail size={14} className="text-muted" /> {job.hr_email}
+                      <span className="text-secondary font-medium block mb-0.5">Minimum CGPA Required</span>
+                      <span className="font-bold text-primary">
+                        {job.eligibility_rules?.min_cgpa !== undefined && job.eligibility_rules.min_cgpa !== '' && Number(job.eligibility_rules.min_cgpa) !== 0
+                          ? `${job.eligibility_rules.min_cgpa}`
+                          : 'None'}
                       </span>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-secondary font-medium block mb-0.5">Minimum Attendance Required</span>
+                      <span className="font-bold text-primary">
+                        {job.eligibility_rules?.min_attendance !== undefined && job.eligibility_rules.min_attendance !== '' && Number(job.eligibility_rules.min_attendance) !== 0
+                          ? `${job.eligibility_rules.min_attendance}%`
+                          : 'None'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-secondary font-medium block mb-0.5">Maximum Allowed Backlogs</span>
+                      <span className="font-bold text-primary">
+                        {job.eligibility_rules?.max_backlogs !== undefined && job.eligibility_rules.max_backlogs !== ''
+                          ? `${job.eligibility_rules.max_backlogs}`
+                          : 'No Limit'}
+                      </span>
+                    </div>
+                    {job.eligibility_rules?.allowed_years && job.eligibility_rules.allowed_years.length > 0 && (
+                      <div>
+                        <span className="text-secondary font-medium block mb-0.5">Eligible Batches (Graduation Year)</span>
+                        <span className="font-bold text-primary">
+                          {job.eligibility_rules.allowed_years.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {job.hr_email && (
+                      <div>
+                        <span className="text-secondary font-medium block mb-0.5">HR Email Contact</span>
+                        <span className="font-bold text-primary flex items-center gap-1">
+                          <Mail size={14} className="text-muted" /> {job.hr_email}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Selection rounds timeline */}
               {job.rounds && job.rounds.length > 0 && (

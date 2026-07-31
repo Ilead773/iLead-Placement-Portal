@@ -113,7 +113,19 @@ export default function StudentDashboard() {
   const [showAllApplications, setShowAllApplications] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'applications', 'prep'
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const { notifications, fetchNotifications, markRead } = useNotificationStore();
+
 
   useEffect(() => {
     if (profile?.id) {
@@ -462,449 +474,793 @@ export default function StudentDashboard() {
         </div>
       </motion.div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Section */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Profile Completion Suggestions (Compact Flat Checklist) */}
-          {completion?.suggestions?.length > 0 && (
-            <motion.div className="dash-card" variants={itemVariants}>
-              <div className="dash-card-header">
-                <h3 className="dash-card-title">
-                  <Sparkles size={18} className="text-primary animate-pulse" /> Boost Your Profile
-                </h3>
-                <span className="badge badge-info">{completion.suggestions.length} Actions</span>
-              </div>
-              <div className="dash-card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {completion.suggestions.map((sug, i) => {
-                  let targetTab = "/student/profile";
-                  if (sug.toLowerCase().includes("skill")) targetTab = "/student/profile?tab=skills";
-                  else if (sug.toLowerCase().includes("project")) targetTab = "/student/profile?tab=projects";
-                  else if (sug.toLowerCase().includes("experience") || sug.toLowerCase().includes("internship")) targetTab = "/student/profile?tab=experience";
-                  else if (sug.toLowerCase().includes("strength")) targetTab = "/student/profile?focus=strengths";
-                  else if (sug.toLowerCase().includes("language")) targetTab = "/student/profile?focus=languages_known";
-                  else if (sug.toLowerCase().includes("summary")) targetTab = "/student/profile?focus=summary";
-                  else if (sug.toLowerCase().includes("linkedin")) targetTab = "/student/profile?focus=linkedin";
-                  else if (sug.toLowerCase().includes("github")) targetTab = "/student/profile?focus=github";
-                  
-                  return (
-                    <div key={i} className="boost-item p-3 border border-border-color rounded-xl flex justify-between items-center bg-slate-50/50 dark:bg-zinc-900/50">
-                      <div className="boost-checkbox-container flex items-center gap-2.5">
-                        <div className="boost-checkbox w-4 h-4 rounded border border-border-color flex items-center justify-center shrink-0 bg-card">
-                          {/* Empty checkbox */}
-                        </div>
-                        <span className="text-xs text-secondary font-medium">{sug}</span>
-                      </div>
-                      <Link to={targetTab} className="text-[10px] font-bold text-primary flex items-center gap-0.5 hover:underline flex-shrink-0">
-                        Fix <ArrowRight size={10} />
-                      </Link>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-
-          {/* AI Mock Interview Readiness Hub */}
+      {/* Mobile Sticky Tab Bar */}
+      {isMobile && (
+        <div className="mobile-tabs-container">
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className={`mobile-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          >
+            Overview
+          </button>
+          <button 
+            onClick={() => setActiveTab('applications')}
+            className={`mobile-tab-btn ${activeTab === 'applications' ? 'active' : ''}`}
+          >
+            Applications ({applications.length + placements.length})
+          </button>
           {user?.features?.['mock-interview'] !== false && (
-            <motion.div className="dash-card" variants={itemVariants}>
-              <div className="dash-card-header">
-                <h3 className="dash-card-title">
-                  <BrainCircuit size={18} className="text-orange-500" /> AI Interview Readiness
-                </h3>
-                <Link to="/student/mock-interview" className="text-xs font-bold text-orange-500 hover:underline flex items-center gap-1">
-                  Mock Portal <ChevronRight size={14} />
-                </Link>
-              </div>
+            <button 
+              onClick={() => setActiveTab('prep')}
+              className={`mobile-tab-btn ${activeTab === 'prep' ? 'active' : ''}`}
+            >
+              AI Prep Hub
+            </button>
+          )}
+        </div>
+      )}
 
-              <div className="dash-card-body">
-                {interviewSessions.length === 0 ? (
-                  <div className="py-8 text-center flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl mb-3 border border-orange-500/20">
-                      🎯
+      {isMobile ? (
+        <div className="space-y-6">
+          {activeTab === 'overview' && (
+            <>
+              {/* Inbox Alerts */}
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">
+                    <Bell size={18} className="text-primary" /> Inbox Alerts
+                  </h3>
+                  <Link to="/student/notifications" className="text-xs font-bold text-primary hover:underline">
+                    View All
+                  </Link>
+                </div>
+                <div className="dash-card-body flex flex-col gap-3">
+                  {notifications.filter(note => !note.is_read).length === 0 ? (
+                    <p className="text-xs text-muted italic py-4 text-center">No unread notifications found.</p>
+                  ) : (
+                    <div className="mobile-carousel">
+                      {notifications
+                        .filter(note => !note.is_read)
+                        .slice(0, 4)
+                        .map((note) => {
+                          const isUnread = !note.is_read;
+                          return (
+                            <div 
+                              key={note.id} 
+                              onClick={() => handleNotificationClick(note)}
+                              className={`inbox-alert-item ${isUnread ? 'unread' : ''}`}
+                              style={{ width: '280px', flexShrink: 0 }}
+                            >
+                              <div className="inbox-alert-icon-wrapper">
+                                {note.title?.toLowerCase().includes('job') || note.title?.toLowerCase().includes('opportunity') ? (
+                                  <Building2 size={16} />
+                                ) : note.title?.toLowerCase().includes('interview') ? (
+                                  <Calendar size={16} />
+                                ) : (
+                                  <Bell size={16} />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex justify-between items-center gap-2 mb-1">
+                                  <h4 className={`text-xs truncate text-primary ${isUnread ? 'font-bold' : 'font-semibold'}`}>
+                                    {note.title}
+                                  </h4>
+                                  <span className="text-[9px] text-muted font-semibold whitespace-nowrap shrink-0">
+                                    {new Date(note.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                                  </span>
+                                </div>
+                                <p className={`text-[10px] line-clamp-2 leading-relaxed ${isUnread ? 'text-secondary font-semibold' : 'text-muted'}`}>
+                                  {note.message}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                     </div>
-                    <h4 className="font-bold text-base text-primary mb-1">Evaluate Your Domain Competencies</h4>
-                    <p className="text-xs text-secondary max-w-sm mb-5 leading-relaxed">
-                      Practice domain-specific mock interviews, pinpoint your gaps, and build a targeted learning path.
-                    </p>
-                    <Link to="/student/mock-interview" className="btn btn-primary btn-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: '#ea580c', borderColor: '#ea580c' }}>
-                      <Play size={12} fill="currentColor" /> Start First Mock Interview
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Hot Opportunities Carousel */}
+              {user?.features?.['jobs'] !== false && (
+                <motion.div className="dash-card" variants={itemVariants}>
+                  <div className="dash-card-header">
+                    <h3 className="dash-card-title text-orange-500">
+                      <Flame size={18} className="text-orange-500 animate-pulse" /> Hot Opportunities
+                    </h3>
+                    <Link to="/student/jobs" className="text-xs font-bold text-orange-500 hover:underline">
+                      View All
                     </Link>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Performance stats row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="ai-stat-widget score flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Avg Score</span>
-                        <span className="text-xl font-bold text-primary mt-1">
-                          {Math.round(
-                            interviewSessions.filter(s => s.total_score !== null).reduce((acc, curr) => acc + curr.total_score, 0) / 
-                            (interviewSessions.filter(s => s.total_score !== null).length || 1)
-                          )}%
-                        </span>
+                  <div className="dash-card-body">
+                    {profile?.upcoming_jobs?.length === 0 ? (
+                      <p className="text-xs text-muted italic">No upcoming deadlines.</p>
+                    ) : (
+                      <div className="mobile-carousel">
+                        {profile?.upcoming_jobs?.map(job => {
+                          const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
+                          return (
+                            <div 
+                              key={job.id} 
+                              onClick={() => navigate('/student/jobs')}
+                              className="opp-card"
+                              style={{ width: '260px', flexShrink: 0 }}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="company-logo-avatar shrink-0">
+                                  {job.company_name?.charAt(0) || 'J'}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="opp-card-title truncate" title={job.role}>
+                                    {job.role}
+                                  </h4>
+                                  <p className="opp-card-company truncate">{job.company_name}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                {job.has_applied ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    ✓ Applied
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
+                                    {(() => {
+                                      if (!job.package) return 'Not Specified';
+                                      const pkgStr = String(job.package).trim();
+                                      const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                                      if (!isNumeric) return pkgStr;
+                                      if (job.listing_type === 'internship') {
+                                        return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
+                                      }
+                                      return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
+                                    })()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex justify-between items-center pt-2 mt-2 border-t border-border-color/40 text-[9px] font-medium text-muted">
+                                <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
+                                  <Calendar size={10} />
+                                  {job.deadline ? format(new Date(job.deadline), 'dd MMM') : 'No Deadline'}
+                                </span>
+                                {isUrgent ? (
+                                  <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-0.5">
+                                    Urgent
+                                  </span>
+                                ) : (
+                                  <span className="text-primary font-bold flex items-center gap-0.5">
+                                    Apply <ArrowRight size={10} />
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="ai-stat-widget attempts flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Attempts</span>
-                        <span className="text-xl font-bold text-primary mt-1">{interviewSessions.length}</span>
-                      </div>
-                      <div className="ai-stat-widget rating flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-muted tracking-wider">Top Rating</span>
-                        <span className="text-xl font-bold text-primary mt-1">
-                          {Math.round(
-                            Math.max(...(interviewSessions.filter(s => s.total_score !== null).map(s => s.total_score) || [0]))
-                          )}%
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </motion.div>
+                </motion.div>
+              )}
+            </>
           )}
 
-          {/* Job Applications (Recruitment Pipeline Tracker) */}
-          <motion.div className="dash-card" variants={itemVariants}>
-            <div className="dash-card-header">
-              <h3 className="dash-card-title">My Applications Pipeline</h3>
-              <span className="badge badge-info">{applications.length} Total</span>
-            </div>
-            <div className="dash-card-body space-y-6">
-              {applications.length === 0 ? (
-                <div className="py-12 text-center text-secondary italic text-sm">You haven't applied to any jobs yet.</div>
-              ) : (
-                <>
-                  <div className="space-y-6">
-                    {(showAllApplications ? applications : applications.slice(0, 3)).map((app) => {
-                      const pipelineSteps = getPipelineSteps(app.status);
-                      const currentIndex = getStatusStepIndex(app.status);
-                      
-                      return (
-                        <div key={app.id} className="pipeline-card">
-                          {/* Card Header info */}
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-5 pb-4 border-b border-border-color/60">
-                            <div>
-                              <h4 className="font-bold text-sm text-primary flex items-center gap-1.5">
-                                <Link to={`/student/applications/${app.id}`} className="hover:underline">
-                                  {app.job_title || app.role}
-                                </Link>
-                              </h4>
-                              <div className="flex items-center gap-2 text-xs text-secondary mt-1 font-semibold">
-                                <Building2 size={12} className="text-muted" />
-                                <span>{app.company_name}</span>
-                                <span className="text-muted">&bull;</span>
-                                <span className="text-muted">Applied: {new Date(app.applied_at).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <span className={`badge ${STATUS_BADGE[app.status] || STATUS_BADGE.applied}`} style={{ textTransform: 'capitalize' }}>
-                                {app.job_type === 'external' && app.status === 'selected' ? 'Placed (Off-Campus)' : app.status}
-                              </span>
-                              {app.job_status === 'closed' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black bg-danger/10 text-danger border border-danger/20 tracking-wider uppercase">
-                                  Closed
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Visual Stepper / Funnel */}
-                          <div className="mb-5 px-2">
-                            <div className="flex items-center justify-between w-full relative">
-                              {/* Background Connector Lines */}
-                              <div className="pipeline-connector-line">
-                                <div 
-                                  className="pipeline-connector-line-progress"
-                                  style={{ width: `${currentIndex === -1 ? '0%' : currentIndex === 0 ? '0%' : currentIndex === 1 ? '33%' : currentIndex === 2 ? '66%' : '100%'}` }}
-                                />
+          {activeTab === 'applications' && (
+            <>
+              {/* Applications Pipeline Card */}
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">My Applications Pipeline</h3>
+                  <span className="badge badge-info">{applications.length} Total</span>
+                </div>
+                <div className="dash-card-body space-y-6">
+                  {applications.length === 0 ? (
+                    <div className="py-8 text-center text-secondary italic text-xs">You haven't applied to any jobs yet.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {applications.map((app) => {
+                        const pipelineSteps = getPipelineSteps(app.status);
+                        const currentIndex = getStatusStepIndex(app.status);
+                        
+                        return (
+                          <div key={app.id} className="pipeline-card">
+                            <div className="flex flex-col gap-2 mb-3 pb-3 border-b border-border-color/60">
+                              <div>
+                                <h4 className="font-bold text-sm text-primary flex items-center gap-1.5">
+                                  <Link to={`/student/applications/${app.id}`} className="hover:underline">
+                                    {app.job_title || app.role}
+                                  </Link>
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs text-secondary mt-1 font-semibold">
+                                  <Building2 size={12} className="text-muted" />
+                                  <span>{app.company_name}</span>
+                                  <span className="text-muted">&bull;</span>
+                                  <span className="text-muted">{new Date(app.applied_at).toLocaleDateString()}</span>
+                                </div>
                               </div>
                               
-                              {pipelineSteps.map((step, idx) => {
-                                let stepStateClass = "pending";
-                                let textClass = "text-muted font-medium";
-                                
-                                if (step.state === 'completed') {
-                                  stepStateClass = "completed";
-                                  textClass = "text-emerald-500 font-bold";
-                                } else if (step.state === 'active') {
-                                  stepStateClass = "active";
-                                  textClass = "text-blue-500 font-bold";
-                                } else if (step.state === 'failed') {
-                                  stepStateClass = "failed";
-                                  textClass = "text-red-500 font-bold";
-                                }
-                                
-                                return (
-                                  <div key={idx} className="flex flex-col items-center gap-2 relative z-10 bg-card px-2">
-                                    <div className={`pipeline-step-node ${stepStateClass}`}>
-                                      {step.state === 'completed' ? '✓' : idx + 1}
-                                    </div>
-                                    <span className={`text-[10px] tracking-tight ${textClass}`}>{step.label}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          {/* Upcoming / Scheduled round details */}
-                          {app.current_round && (
-                            <div className="active-round-banner text-xs space-y-2 mt-4">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-primary flex items-center gap-1.5">
-                                  <Clock size={12} className="text-blue-500" /> 
-                                  Upcoming: {app.current_round.round_name || `Round ${app.current_round.round_number}`}
+                              <div className="flex items-center justify-between mt-1">
+                                <span className={`badge ${STATUS_BADGE[app.status] || STATUS_BADGE.applied}`} style={{ textTransform: 'capitalize', fontSize: '9px' }}>
+                                  {app.job_type === 'external' && app.status === 'selected' ? 'Placed (Off-Campus)' : app.status}
                                 </span>
-                                <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 font-bold text-[9px] border border-blue-500/20 uppercase tracking-wider">
-                                  {app.current_round.status}
-                                </span>
-                              </div>
-                              <p className="text-secondary">
-                                Scheduled on <span className="font-semibold text-primary">{new Date(app.current_round.scheduled_date).toLocaleString()}</span>
-                                {app.current_round.interviewer_name && (
-                                  <span> with <span className="font-semibold text-primary">{app.current_round.interviewer_name}</span></span>
+                                {app.job_status === 'closed' && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black bg-danger/10 text-danger border border-danger/20 tracking-wider uppercase">
+                                    Closed
+                                  </span>
                                 )}
-                              </p>
-                              {app.current_round.interview_link && (
-                                <div className="flex items-center gap-2 mt-2">
-                                  <a 
-                                    href={app.current_round.interview_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover transition-colors text-[10px]"
-                                    style={{ backgroundColor: 'var(--accent-primary)' }}
-                                  >
-                                    Join Video Interview <ArrowUpRight size={10} />
-                                  </a>
-                                  <span className="pulse-icon-dot" title="Interview is active" />
+                              </div>
+                            </div>
+
+                            {/* Funnel Stepper */}
+                            <div className="mb-4 px-1">
+                              <div className="flex items-center justify-between w-full relative">
+                                <div className="pipeline-connector-line">
+                                  <div 
+                                    className="pipeline-connector-line-progress"
+                                    style={{ width: `${currentIndex === -1 ? '0%' : currentIndex === 0 ? '0%' : currentIndex === 1 ? '33%' : currentIndex === 2 ? '66%' : '100%'}` }}
+                                  />
                                 </div>
+                                
+                                {pipelineSteps.map((step, idx) => {
+                                  let stepStateClass = "pending";
+                                  let textClass = "text-muted font-medium";
+                                  
+                                  if (step.state === 'completed') {
+                                    stepStateClass = "completed";
+                                    textClass = "text-emerald-500 font-bold";
+                                  } else if (step.state === 'active') {
+                                    stepStateClass = "active";
+                                    textClass = "text-blue-500 font-bold";
+                                  } else if (step.state === 'failed') {
+                                    stepStateClass = "failed";
+                                    textClass = "text-red-500 font-bold";
+                                  }
+                                  
+                                  return (
+                                    <div key={idx} className="flex flex-col items-center gap-2 relative z-10 bg-card px-2">
+                                      <div className={`pipeline-step-node ${stepStateClass}`}>
+                                        {step.state === 'completed' ? '✓' : idx + 1}
+                                      </div>
+                                      <span className={`text-[10px] tracking-tight ${textClass}`}>{step.label}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Upcoming Interview Round */}
+                            {app.current_round && (
+                              <div className="active-round-banner text-xs space-y-2 mt-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-primary flex items-center gap-1">
+                                    <Clock size={11} className="text-blue-500" /> 
+                                    {app.current_round.round_name || `Round ${app.current_round.round_number}`}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 font-bold text-[8px]">
+                                    {app.current_round.status}
+                                  </span>
+                                </div>
+                                <p className="text-secondary text-[11px]">
+                                  Scheduled: <span className="font-semibold text-primary">{new Date(app.current_round.scheduled_date).toLocaleString([], {hour: '2-digit', minute:'2-digit', month: 'short', day: 'numeric'})}</span>
+                                </p>
+                                {app.current_round.interview_link && (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <a 
+                                      href={app.current_round.interview_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary text-white font-bold rounded-md hover:bg-primary-hover transition-colors text-[9px]"
+                                      style={{ backgroundColor: 'var(--accent-primary)' }}
+                                    >
+                                      Join Interview <ArrowUpRight size={8} />
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-2 mt-3 pt-2.5 border-t border-border-color/40">
+                              <Link to={`/student/applications/${app.id}`} className="px-2.5 py-1 bg-slate-50 dark:bg-zinc-900 border border-border-color text-primary font-bold text-[9px] rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+                                Details
+                              </Link>
+                              {app.status === 'selected' && (
+                                <Link 
+                                  to={app.job_type === 'external' ? `/student/applications/${app.id}` : "/student/applications"}
+                                  className="px-2.5 py-1 bg-success text-white font-bold text-[9px] rounded-md hover:bg-emerald-600 transition-colors"
+                                >
+                                  {app.job_type === 'external' ? 'Upload Offer' : 'Respond'}
+                                </Link>
                               )}
                             </div>
-                          )}
-
-                          {/* Action Buttons */}
-                          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border-color/40">
-                            <Link to={`/student/applications/${app.id}`} className="px-3 py-1.5 bg-slate-50 dark:bg-zinc-900 border border-border-color text-primary font-bold text-[10px] rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
-                              Details
-                            </Link>
-                            
-                            {app.status === 'selected' && (
-                              <Link 
-                                to={app.job_type === 'external' ? `/student/applications/${app.id}` : "/student/applications"}
-                                className="px-3 py-1.5 bg-success text-white font-bold text-[10px] rounded-lg hover:bg-emerald-600 transition-colors"
-                              >
-                                {app.job_type === 'external' ? 'Upload Offer Letter' : 'Respond to Offer'}
-                              </Link>
-                            )}
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Direct Assignments Table converted to Cards on Mobile */}
+              {placements.length > 0 && (
+                <motion.div className="dash-card" variants={itemVariants}>
+                  <div className="dash-card-header">
+                    <h3 className="dash-card-title">Direct Assignments</h3>
+                    <span className="badge badge-neutral">{placements.length} Total</span>
+                  </div>
+                  <div className="dash-card-body space-y-4">
+                    {placements.map((p) => (
+                      <div key={p.id} className="p-3 border border-border-color rounded-xl bg-slate-50/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-primary">{p.company_name}</span>
+                          <span className={`badge ${STATUS_BADGE[p.status] || STATUS_BADGE.assigned}`} style={{ fontSize: '9px' }}>
+                            {p.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-secondary mt-1">
+                          <span>Role: <strong className="text-primary">{p.position}</strong></span>
+                          <span>Salary: <strong className="text-primary">₹{Number(p.salary).toLocaleString()}</strong></span>
+                        </div>
+                        <div className="text-[10px] text-muted text-right mt-2 border-t border-border-color/30 pt-2">
+                          Assigned: {new Date(p.assigned_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'prep' && (
+            <>
+              {/* Profile Completion Suggestions */}
+              {completion?.suggestions?.length > 0 && (
+                <motion.div className="dash-card" variants={itemVariants}>
+                  <div className="dash-card-header">
+                    <h3 className="dash-card-title">
+                      <Sparkles size={16} className="text-primary animate-pulse" /> Boost Your Profile
+                    </h3>
+                    <span className="badge badge-info">{completion.suggestions.length} Actions</span>
+                  </div>
+                  <div className="dash-card-body flex flex-col gap-3">
+                    {completion.suggestions.map((sug, i) => {
+                      let targetTab = "/student/profile";
+                      if (sug.toLowerCase().includes("skill")) targetTab = "/student/profile?tab=skills";
+                      else if (sug.toLowerCase().includes("project")) targetTab = "/student/profile?tab=projects";
+                      else if (sug.toLowerCase().includes("experience") || sug.toLowerCase().includes("internship")) targetTab = "/student/profile?tab=experience";
+                      
+                      return (
+                        <div key={i} className="boost-item p-3 border border-border-color rounded-xl flex justify-between items-center bg-slate-50/50 dark:bg-zinc-900/50">
+                          <span className="text-xs text-secondary font-medium">{sug}</span>
+                          <Link to={targetTab} className="text-[10px] font-bold text-primary flex items-center gap-0.5 hover:underline flex-shrink-0">
+                            Fix <ArrowRight size={10} />
+                          </Link>
                         </div>
                       );
                     })}
                   </div>
-
-                  {applications.length > 3 && (
-                    <div className="p-4 text-center border-t border-border-color mt-4">
-                      <button 
-                        onClick={() => setShowAllApplications(!showAllApplications)}
-                        className="text-xs font-bold text-primary hover:underline"
-                      >
-                        {showAllApplications ? 'Show Less' : `Show ${applications.length - 3} More Applications`}
-                      </button>
-                    </div>
-                  )}
-                </>
+                </motion.div>
               )}
-            </div>
-          </motion.div>
 
-          {/* Placement Assignments (Direct Assignments) */}
-          {placements.length > 0 && (
-            <motion.div className="dash-card" variants={itemVariants}>
-              <div className="dash-card-header">
-                <h3 className="dash-card-title">Direct Assignments</h3>
-                <span className="badge badge-neutral">{placements.length} Total</span>
-              </div>
-              <div className="dash-card-body p-0">
-                <div className="dash-table-container">
-                  <table className="dash-table">
-                    <thead>
-                      <tr>
-                        <th>Company</th>
-                        <th>Position</th>
-                        <th>Salary</th>
-                        <th>Status</th>
-                        <th className="text-right">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {placements.map((p) => (
-                        <tr key={p.id}>
-                          <td>
-                            <div className="flex items-center gap-2 text-secondary font-semibold">
-                              <div className="company-logo-badge" style={{ width: '26px', height: '26px' }}>
-                                <Building2 size={12} />
-                              </div>
-                              <span className="truncate">{p.company_name}</span>
-                            </div>
-                          </td>
-                          <td className="text-secondary">{p.position}</td>
-                          <td className="font-bold text-primary">₹{Number(p.salary).toLocaleString()}</td>
-                          <td>
-                            <span className={`badge ${STATUS_BADGE[p.status] || STATUS_BADGE.assigned}`}>
-                              {p.status}
-                            </span>
-                          </td>
-                          <td className="text-right text-xs text-muted">
-                            {new Date(p.assigned_date).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* AI Mock Interview Hub */}
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">
+                    <BrainCircuit size={16} className="text-orange-500" /> AI Interview Readiness
+                  </h3>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-8">
-          
-          {/* Notifications Inbox Mini feed */}
-          <motion.div className="dash-card" variants={itemVariants}>
-            <div className="dash-card-header">
-              <h3 className="dash-card-title">
-                <Bell size={18} className="text-primary" /> Inbox Alerts
-              </h3>
-              <Link to="/student/notifications" className="text-xs font-bold text-primary hover:underline">
-                View All
-              </Link>
-            </div>
-
-            <div className="dash-card-body flex flex-col gap-3">
-              {notifications.filter(note => !note.is_read).length === 0 ? (
-                <p className="text-xs text-muted italic py-4 text-center">No unread notifications found.</p>
-              ) : (
-                notifications
-                  .filter(note => !note.is_read)
-                  .slice(0, 3)
-                  .map((note) => {
-                    const isUnread = !note.is_read;
-                  
-                  return (
-                    <div 
-                      key={note.id} 
-                      onClick={() => handleNotificationClick(note)}
-                      className={`inbox-alert-item ${isUnread ? 'unread' : ''}`}
-                    >
-                      <div className="inbox-alert-icon-wrapper">
-                        {note.title?.toLowerCase().includes('job') || note.title?.toLowerCase().includes('opportunity') ? (
-                          <Building2 size={16} />
-                        ) : note.title?.toLowerCase().includes('interview') ? (
-                          <Calendar size={16} />
-                        ) : (
-                          <Bell size={16} />
-                        )}
+                <div className="dash-card-body">
+                  {interviewSessions.length === 0 ? (
+                    <div className="py-6 text-center flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl mb-3 border border-orange-500/20">
+                        🎯
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-center gap-2 mb-1">
-                          <h4 className={`text-xs truncate text-primary ${isUnread ? 'font-bold' : 'font-semibold'}`}>
-                            {note.title}
-                          </h4>
-                          <span className="text-[9px] text-muted font-semibold whitespace-nowrap shrink-0">
-                            {new Date(note.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                      <h4 className="font-bold text-sm text-primary mb-1">Evaluate Competencies</h4>
+                      <p className="text-xs text-secondary max-w-sm mb-4 leading-relaxed">
+                        Practice mock interviews, pinpoint gaps, and build learning paths.
+                      </p>
+                      <Link to="/student/mock-interview" className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm" style={{ backgroundColor: '#ea580c', borderColor: '#ea580c', fontSize: '11px', padding: '6px 12px' }}>
+                        <Play size={10} fill="currentColor" /> Start Prep
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="p-2 bg-slate-50/50 rounded-lg flex flex-col items-center">
+                          <span className="text-[8px] font-black uppercase text-muted tracking-wider">Avg Score</span>
+                          <span className="text-sm font-bold text-primary mt-1">
+                            {Math.round(
+                              interviewSessions.filter(s => s.total_score !== null).reduce((acc, curr) => acc + curr.total_score, 0) / 
+                              (interviewSessions.filter(s => s.total_score !== null).length || 1)
+                            )}%
                           </span>
                         </div>
-                        <p className={`text-[11px] line-clamp-2 leading-relaxed ${isUnread ? 'text-secondary font-semibold' : 'text-muted'}`}>
-                          {note.message}
-                        </p>
-                        
-                        {isUnread && (
-                          <div className="mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                            <span className="w-1 h-1 rounded-full bg-blue-600" /> New Alert
-                          </div>
-                        )}
+                        <div className="p-2 bg-slate-50/50 rounded-lg flex flex-col items-center">
+                          <span className="text-[8px] font-black uppercase text-muted tracking-wider">Attempts</span>
+                          <span className="text-sm font-bold text-primary mt-1">{interviewSessions.length}</span>
+                        </div>
+                        <div className="p-2 bg-slate-50/50 rounded-lg flex flex-col items-center">
+                          <span className="text-[8px] font-black uppercase text-muted tracking-wider">Top Rating</span>
+                          <span className="text-sm font-bold text-primary mt-1">
+                            {Math.round(
+                              Math.max(...(interviewSessions.filter(s => s.total_score !== null).map(s => s.total_score) || [0]))
+                            )}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-center pt-2">
+                        <Link to="/student/mock-interview" className="px-4 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-sm">
+                          Go to Prep Portal <ChevronRight size={14} />
+                        </Link>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Section */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Profile Completion Suggestions (Compact Flat Checklist) */}
+            {completion?.suggestions?.length > 0 && (
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">
+                    <Sparkles size={18} className="text-primary animate-pulse" /> Boost Your Profile
+                  </h3>
+                  <span className="badge badge-info">{completion.suggestions.length} Actions</span>
+                </div>
+                <div className="dash-card-body grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {completion.suggestions.map((sug, i) => {
+                    let targetTab = "/student/profile";
+                    if (sug.toLowerCase().includes("skill")) targetTab = "/student/profile?tab=skills";
+                    else if (sug.toLowerCase().includes("project")) targetTab = "/student/profile?tab=projects";
+                    else if (sug.toLowerCase().includes("experience") || sug.toLowerCase().includes("internship")) targetTab = "/student/profile?tab=experience";
+                    else if (sug.toLowerCase().includes("strength")) targetTab = "/student/profile?focus=strengths";
+                    else if (sug.toLowerCase().includes("language")) targetTab = "/student/profile?focus=languages_known";
+                    else if (sug.toLowerCase().includes("summary")) targetTab = "/student/profile?focus=summary";
+                    else if (sug.toLowerCase().includes("linkedin")) targetTab = "/student/profile?focus=linkedin";
+                    else if (sug.toLowerCase().includes("github")) targetTab = "/student/profile?focus=github";
+                    
+                    return (
+                      <div key={i} className="boost-item p-3 border border-border-color rounded-xl flex justify-between items-center bg-slate-50/50 dark:bg-zinc-900/50">
+                        <div className="boost-checkbox-container flex items-center gap-2.5">
+                          <div className="boost-checkbox w-4 h-4 rounded border border-border-color flex items-center justify-center shrink-0 bg-card">
+                            {/* Empty checkbox */}
+                          </div>
+                          <span className="text-xs text-secondary font-medium">{sug}</span>
+                        </div>
+                        <Link to={targetTab} className="text-[10px] font-bold text-primary flex items-center gap-0.5 hover:underline flex-shrink-0">
+                          Fix <ArrowRight size={10} />
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
-          {/* Hot Opportunities */}
-          {user?.features?.['jobs'] !== false && (
+            {/* AI Mock Interview Readiness Hub */}
+            {user?.features?.['mock-interview'] !== false && (
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">
+                    <BrainCircuit size={18} className="text-orange-500" /> AI Interview Readiness
+                  </h3>
+                  <Link to="/student/mock-interview" className="text-xs font-bold text-orange-500 hover:underline flex items-center gap-1">
+                    Mock Portal <ChevronRight size={14} />
+                  </Link>
+                </div>
+
+                <div className="dash-card-body">
+                  {interviewSessions.length === 0 ? (
+                    <div className="py-8 text-center flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl mb-3 border border-orange-500/20">
+                        🎯
+                      </div>
+                      <h4 className="font-bold text-base text-primary mb-1">Evaluate Your Domain Competencies</h4>
+                      <p className="text-xs text-secondary max-w-sm mb-5 leading-relaxed">
+                        Practice domain-specific mock interviews, pinpoint your gaps, and build a targeted learning path.
+                      </p>
+                      <Link to="/student/mock-interview" className="btn btn-primary btn-sm flex items-center gap-2 shadow-sm" style={{ backgroundColor: '#ea580c', borderColor: '#ea580c' }}>
+                        <Play size={12} fill="currentColor" /> Start First Mock Interview
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Performance stats row */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="ai-stat-widget score flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-muted tracking-wider">Avg Score</span>
+                          <span className="text-xl font-bold text-primary mt-1">
+                            {Math.round(
+                              interviewSessions.filter(s => s.total_score !== null).reduce((acc, curr) => acc + curr.total_score, 0) / 
+                              (interviewSessions.filter(s => s.total_score !== null).length || 1)
+                            )}%
+                          </span>
+                        </div>
+                        <div className="ai-stat-widget attempts flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-muted tracking-wider">Attempts</span>
+                          <span className="text-xl font-bold text-primary mt-1">{interviewSessions.length}</span>
+                        </div>
+                        <div className="ai-stat-widget rating flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-muted tracking-wider">Top Rating</span>
+                          <span className="text-xl font-bold text-primary mt-1">
+                            {Math.round(
+                              Math.max(...(interviewSessions.filter(s => s.total_score !== null).map(s => s.total_score) || [0]))
+                            )}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Job Applications (Recruitment Pipeline Tracker) */}
             <motion.div className="dash-card" variants={itemVariants}>
               <div className="dash-card-header">
-                <h3 className="dash-card-title text-orange-500">
-                  <Flame size={18} className="text-orange-500" /> Hot Opportunities
+                <h3 className="dash-card-title">My Applications Pipeline</h3>
+                <span className="badge badge-info">{applications.length} Total</span>
+              </div>
+              <div className="dash-card-body space-y-6">
+                {applications.length === 0 ? (
+                  <div className="py-12 text-center text-secondary italic text-sm">You haven't applied to any jobs yet.</div>
+                ) : (
+                  <>
+                    <div className="space-y-6">
+                      {(showAllApplications ? applications : applications.slice(0, 3)).map((app) => {
+                        const pipelineSteps = getPipelineSteps(app.status);
+                        const currentIndex = getStatusStepIndex(app.status);
+                        
+                        return (
+                          <div key={app.id} className="pipeline-card">
+                            {/* Card Header info */}
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-5 pb-4 border-b border-border-color/60">
+                              <div>
+                                <h4 className="font-bold text-sm text-primary flex items-center gap-1.5">
+                                  <Link to={`/student/applications/${app.id}`} className="hover:underline">
+                                    {app.job_title || app.role}
+                                  </Link>
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs text-secondary mt-1 font-semibold">
+                                  <Building2 size={12} className="text-muted" />
+                                  <span>{app.company_name}</span>
+                                  <span className="text-muted">&bull;</span>
+                                  <span className="text-muted">Applied: {new Date(app.applied_at).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <span className={`badge ${STATUS_BADGE[app.status] || STATUS_BADGE.applied}`} style={{ textTransform: 'capitalize' }}>
+                                  {app.job_type === 'external' && app.status === 'selected' ? 'Placed (Off-Campus)' : app.status}
+                                </span>
+                                {app.job_status === 'closed' && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black bg-danger/10 text-danger border border-danger/20 tracking-wider uppercase">
+                                    Closed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Visual Stepper / Funnel */}
+                            <div className="mb-5 px-2">
+                              <div className="flex items-center justify-between w-full relative">
+                                {/* Background Connector Lines */}
+                                <div className="pipeline-connector-line">
+                                  <div 
+                                    className="pipeline-connector-line-progress"
+                                    style={{ width: `${currentIndex === -1 ? '0%' : currentIndex === 0 ? '0%' : currentIndex === 1 ? '33%' : currentIndex === 2 ? '66%' : '100%'}` }}
+                                  />
+                                </div>
+                                
+                                {pipelineSteps.map((step, idx) => {
+                                  let stepStateClass = "pending";
+                                  let textClass = "text-muted font-medium";
+                                  
+                                  if (step.state === 'completed') {
+                                    stepStateClass = "completed";
+                                    textClass = "text-emerald-500 font-bold";
+                                  } else if (step.state === 'active') {
+                                    stepStateClass = "active";
+                                    textClass = "text-blue-500 font-bold";
+                                  } else if (step.state === 'failed') {
+                                    stepStateClass = "failed";
+                                    textClass = "text-red-500 font-bold";
+                                  }
+                                  
+                                  return (
+                                    <div key={idx} className="flex flex-col items-center gap-2 relative z-10 bg-card px-2">
+                                      <div className={`pipeline-step-node ${stepStateClass}`}>
+                                        {step.state === 'completed' ? '✓' : idx + 1}
+                                      </div>
+                                      <span className={`text-[10px] tracking-tight ${textClass}`}>{step.label}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Upcoming / Scheduled round details */}
+                            {app.current_round && (
+                              <div className="active-round-banner text-xs space-y-2 mt-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-primary flex items-center gap-1.5">
+                                    <Clock size={12} className="text-blue-500" /> 
+                                    Upcoming: {app.current_round.round_name || `Round ${app.current_round.round_number}`}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 font-bold text-[9px] border border-blue-500/20 uppercase tracking-wider">
+                                    {app.current_round.status}
+                                  </span>
+                                </div>
+                                <p className="text-secondary">
+                                  Scheduled on <span className="font-semibold text-primary">{new Date(app.current_round.scheduled_date).toLocaleString()}</span>
+                                  {app.current_round.interviewer_name && (
+                                    <span> with <span className="font-semibold text-primary">{app.current_round.interviewer_name}</span></span>
+                                  )}
+                                </p>
+                                {app.current_round.interview_link && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <a 
+                                      href={app.current_round.interview_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white font-bold rounded-lg hover:bg-primary-hover transition-colors text-[10px]"
+                                      style={{ backgroundColor: 'var(--accent-primary)' }}
+                                    >
+                                      Join Video Interview <ArrowUpRight size={10} />
+                                    </a>
+                                    <span className="pulse-icon-dot" title="Interview is active" />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border-color/40">
+                              <Link to={`/student/applications/${app.id}`} className="px-3 py-1.5 bg-slate-50 dark:bg-zinc-900 border border-border-color text-primary font-bold text-[10px] rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+                                Details
+                              </Link>
+                              
+                              {app.status === 'selected' && (
+                                <Link 
+                                  to={app.job_type === 'external' ? `/student/applications/${app.id}` : "/student/applications"}
+                                  className="px-3 py-1.5 bg-success text-white font-bold text-[10px] rounded-lg hover:bg-emerald-600 transition-colors"
+                                >
+                                  {app.job_type === 'external' ? 'Upload Offer Letter' : 'Respond to Offer'}
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {applications.length > 3 && (
+                      <div className="p-4 text-center border-t border-border-color mt-4">
+                        <button 
+                          onClick={() => setShowAllApplications(!showAllApplications)}
+                          className="text-xs font-bold text-primary hover:underline"
+                        >
+                          {showAllApplications ? 'Show Less' : `Show ${applications.length - 3} More Applications`}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Placement Assignments (Direct Assignments) */}
+            {placements.length > 0 && (
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title">Direct Assignments</h3>
+                  <span className="badge badge-neutral">{placements.length} Total</span>
+                </div>
+                <div className="dash-card-body p-0">
+                  <div className="dash-table-container">
+                    <table className="dash-table">
+                      <thead>
+                        <tr>
+                          <th>Company</th>
+                          <th>Position</th>
+                          <th>Salary</th>
+                          <th>Status</th>
+                          <th className="text-right">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {placements.map((p) => (
+                          <tr key={p.id}>
+                            <td>
+                              <div className="flex items-center gap-2 text-secondary font-semibold">
+                                <div className="company-logo-badge" style={{ width: '26px', height: '26px' }}>
+                                  <Building2 size={12} />
+                                </div>
+                                <span className="truncate">{p.company_name}</span>
+                              </div>
+                            </td>
+                            <td className="text-secondary">{p.position}</td>
+                            <td className="font-bold text-primary">₹{Number(p.salary).toLocaleString()}</td>
+                            <td>
+                              <span className={`badge ${STATUS_BADGE[p.status] || STATUS_BADGE.assigned}`}>
+                                {p.status}
+                              </span>
+                            </td>
+                            <td className="text-right text-xs text-muted">
+                              {new Date(p.assigned_date).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-8">
+            
+            {/* Notifications Inbox Mini feed */}
+            <motion.div className="dash-card" variants={itemVariants}>
+              <div className="dash-card-header">
+                <h3 className="dash-card-title">
+                  <Bell size={18} className="text-primary" /> Inbox Alerts
                 </h3>
-                <Link to="/student/jobs" className="text-xs font-bold text-orange-500 hover:underline">
+                <Link to="/student/notifications" className="text-xs font-bold text-primary hover:underline">
                   View All
                 </Link>
               </div>
 
-              <div className="dash-card-body flex flex-col gap-4">
-                {profile?.upcoming_jobs?.length === 0 ? (
-                  <p className="text-xs text-muted italic">No upcoming deadlines.</p>
+              <div className="dash-card-body flex flex-col gap-3">
+                {notifications.filter(note => !note.is_read).length === 0 ? (
+                  <p className="text-xs text-muted italic py-4 text-center">No unread notifications found.</p>
                 ) : (
-                  profile?.upcoming_jobs?.map(job => {
-                    const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
+                  notifications
+                    .filter(note => !note.is_read)
+                    .slice(0, 3)
+                    .map((note) => {
+                      const isUnread = !note.is_read;
+                    
                     return (
                       <div 
-                        key={job.id} 
-                        onClick={() => navigate('/student/jobs')}
-                        className="opp-card"
+                        key={note.id} 
+                        onClick={() => handleNotificationClick(note)}
+                        className={`inbox-alert-item ${isUnread ? 'unread' : ''}`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="company-logo-avatar shrink-0">
-                            {job.company_name?.charAt(0) || 'J'}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="opp-card-title truncate" title={job.role}>
-                              {job.role}
-                            </h4>
-                            <p className="opp-card-company truncate">{job.company_name}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {job.has_applied ? (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                              ✓ Applied
-                            </span>
+                        <div className="inbox-alert-icon-wrapper">
+                          {note.title?.toLowerCase().includes('job') || note.title?.toLowerCase().includes('opportunity') ? (
+                            <Building2 size={16} />
+                          ) : note.title?.toLowerCase().includes('interview') ? (
+                            <Calendar size={16} />
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
-                              {(() => {
-                                if (!job.package) return 'Not Specified';
-                                const pkgStr = String(job.package).trim();
-                                const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
-                                if (!isNumeric) return pkgStr;
-                                if (job.listing_type === 'internship') {
-                                  return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
-                                }
-                                return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
-                              })()}
-                            </span>
+                            <Bell size={16} />
                           )}
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">
-                            Full-time
-                          </span>
                         </div>
-
-                        <div className="flex justify-between items-center pt-3 mt-1 border-t border-border-color/40 text-[10px] font-medium text-muted">
-                          <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
-                            <Calendar size={11} />
-                            {job.deadline ? format(new Date(job.deadline), 'dd MMM, h:mm a') : 'No Deadline'}
-                          </span>
-                          {isUrgent ? (
-                            <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-1 text-[10px]">
-                              <Flame size={11} /> Urgent
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between items-center gap-2 mb-1">
+                            <h4 className={`text-xs truncate text-primary ${isUnread ? 'font-bold' : 'font-semibold'}`}>
+                              {note.title}
+                            </h4>
+                            <span className="text-[9px] text-muted font-semibold whitespace-nowrap shrink-0">
+                              {new Date(note.created_at).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
                             </span>
-                          ) : (
-                            <span className="opp-card-apply-text text-primary font-bold flex items-center gap-0.5 text-[10px]">
-                              Apply <ArrowRight size={11} />
-                            </span>
+                          </div>
+                          <p className={`text-[11px] line-clamp-2 leading-relaxed ${isUnread ? 'text-secondary font-semibold' : 'text-muted'}`}>
+                            {note.message}
+                          </p>
+                          
+                          {isUnread && (
+                            <div className="mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                              <span className="w-1 h-1 rounded-full bg-blue-600" /> New Alert
+                            </div>
                           )}
                         </div>
                       </div>
@@ -913,10 +1269,94 @@ export default function StudentDashboard() {
                 )}
               </div>
             </motion.div>
-          )}
 
+            {/* Hot Opportunities */}
+            {user?.features?.['jobs'] !== false && (
+              <motion.div className="dash-card" variants={itemVariants}>
+                <div className="dash-card-header">
+                  <h3 className="dash-card-title text-orange-500">
+                    <Flame size={18} className="text-orange-500" /> Hot Opportunities
+                  </h3>
+                  <Link to="/student/jobs" className="text-xs font-bold text-orange-500 hover:underline">
+                    View All
+                  </Link>
+                </div>
+
+                <div className="dash-card-body flex flex-col gap-4">
+                  {profile?.upcoming_jobs?.length === 0 ? (
+                    <p className="text-xs text-muted italic">No upcoming deadlines.</p>
+                  ) : (
+                    profile?.upcoming_jobs?.map(job => {
+                      const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
+                      return (
+                        <div 
+                          key={job.id} 
+                          onClick={() => navigate('/student/jobs')}
+                          className="opp-card"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="company-logo-avatar shrink-0">
+                              {job.company_name?.charAt(0) || 'J'}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="opp-card-title truncate" title={job.role}>
+                                {job.role}
+                              </h4>
+                              <p className="opp-card-company truncate">{job.company_name}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {job.has_applied ? (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                ✓ Applied
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20 font-bold">
+                                {(() => {
+                                  if (!job.package) return 'Not Specified';
+                                  const pkgStr = String(job.package).trim();
+                                  const isNumeric = /^\d+(\.\d+)?$/.test(pkgStr);
+                                  if (!isNumeric) return pkgStr;
+                                  if (job.listing_type === 'internship') {
+                                    return `₹${Number(pkgStr).toLocaleString('en-IN')}/mo`;
+                                  }
+                                  return pkgStr < 100 ? `₹${pkgStr} LPA` : `₹${Number(pkgStr).toLocaleString('en-IN')}`;
+                                })()}
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">
+                              Full-time
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center pt-3 mt-1 border-t border-border-color/40 text-[10px] font-medium text-muted">
+                            <span className={`flex items-center gap-1 ${isUrgent ? 'text-danger font-semibold' : ''}`}>
+                              <Calendar size={11} />
+                              {job.deadline ? format(new Date(job.deadline), 'dd MMM, h:mm a') : 'No Deadline'}
+                            </span>
+                            {isUrgent ? (
+                              <span className="text-danger font-black uppercase tracking-wider animate-pulse flex items-center gap-1 text-[10px]">
+                                <Flame size={11} /> Urgent
+                              </span>
+                            ) : (
+                              <span className="opp-card-apply-text text-primary font-bold flex items-center gap-0.5 text-[10px]">
+                                Apply <ArrowRight size={11} />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+          </div>
         </div>
-      </div>
+      )}
+
     </motion.div>
   );
 }

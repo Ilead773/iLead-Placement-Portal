@@ -18,6 +18,7 @@ import {
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import JobDetailsModal from './JobDetailsModal';
+import useAuthStore from '../store/authStore';
 
 const CHECK_LABELS = {
   profile_complete: 'Profile Information Completed',
@@ -35,6 +36,8 @@ const CHECK_LABELS = {
 };
 
 const JobCard = ({ job, eligibility, onApply }) => {
+  const { user } = useAuthStore();
+  const isAdminOrCoordinator = user?.role === 'admin' || user?.role === 'coordinator';
   const [showModal, setShowModal] = useState(false);
   const isEligible = eligibility?.eligible;
   const hasApplied = job.has_applied;
@@ -94,7 +97,7 @@ const JobCard = ({ job, eligibility, onApply }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {job.category && (
+            {isAdminOrCoordinator && job.category && (
               <span className="category-badge">Cat {job.category}</span>
             )}
           </div>
@@ -184,6 +187,7 @@ const JobCard = ({ job, eligibility, onApply }) => {
         onClose={() => setShowModal(false)}
         job={job}
         eligibility={eligibility}
+        isAdmin={isAdminOrCoordinator}
         onApply={onApply}
       />
     </>
