@@ -11823,4 +11823,252 @@ tr:hover .company-logo-badge {
     height: auto !important;
     max-height: none !important;
   }
+
+  /* Segmented Tab Control Container (Dashboard, Profile, Resumes, Applications) */
+  .mobile-tabs-container, .tracker-tabs {
+    background: rgba(0, 0, 0, 0.03) !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border-color) !important;
+    gap: 4px !important;
+    margin-bottom: 24px !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  [data-theme='dark'] .mobile-tabs-container, 
+  [data-theme='dark'] .tracker-tabs {
+    background: #18181b !important;
+    border: 1px solid var(--border-color) !important;
+  }
+
+  .mobile-tabs-container::-webkit-scrollbar, 
+  .tracker-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Segmented Tab Control Buttons matching default active style */
+  .mobile-tab-btn, .tracker-tab {
+    flex: 1 0 auto !important;
+    text-align: center !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-secondary) !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-tab-btn.active, .tracker-tab.active {
+    background: var(--accent-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18) !important;
+  }
+
+  [data-theme='dark'] .mobile-tab-btn.active, 
+  [data-theme='dark'] .tracker-tab.active {
+    background: var(--accent-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25) !important;
+  }
+
+  /* Search Inputs & Layouts */
+  .search-input-wrapper {
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+  .search-input-field {
+    width: 100% !important;
+    border-radius: 12px !important;
+    padding: 10px 14px 10px 36px !important;
+  }
+
+  /* Solid Cards matching default theme with active press animations */
+  .glass-panel, .card, .job-card, .project-card, .experience-card, .template-card {
+    border-radius: 16px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .glass-panel:active, .card:active, .job-card:active, 
+  .project-card:active, .experience-card:active, .template-card:active {
+    transform: scale(0.975) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  }
+
+  /* Premium Stat Cards (Dashboard Overview) */
+  .grid-cols-1.md-grid-cols-3 .card {
+    padding: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+  .grid-cols-1.md-grid-cols-3 .card > div:first-child {
+    order: 2 !important;
+  }
+  .grid-cols-1.md-grid-cols-3 .card > div:last-child {
+    order: 1 !important;
+    width: 48px !important;
+    height: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 14px !important;
+    background: var(--accent-soft) !important;
+  }
+
+  /* Job Card Optimization */
+  .job-card {
+    padding: 20px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .job-card-title {
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    margin-bottom: 6px !important;
+    color: var(--text-primary) !important;
+  }
+  .job-meta-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin: 16px 0 !important;
+    padding: 12px 0 !important;
+    border-top: 1px dashed var(--border-light) !important;
+    border-bottom: 1px dashed var(--border-light) !important;
+  }
+  .job-meta-item {
+    gap: 8px !important;
+    background: rgba(0, 0, 0, 0.02) !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  [data-theme='dark'] .job-meta-item {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid var(--border-color) !important;
+  }
+  .meta-text {
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+  }
+  .job-action-btn, .job-card .w-full.text-center {
+    border-radius: 12px !important;
+    font-size: 0.78rem !important;
+    padding: 10px 14px !important;
+    font-weight: 700 !important;
+  }
+
+  /* Profile Cell Groups matching website styling */
+  .profile-info-fields {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-card) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01) !important;
+  }
+  .profile-info-item {
+    margin: 0 !important;
+    padding: 14px 18px !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  .profile-info-item:last-child {
+    border-bottom: none !important;
+  }
+  .profile-info-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+  .profile-info-label {
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    text-transform: none !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+  }
+  .profile-info-value {
+    font-size: 0.76rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    text-align: right !important;
+  }
+
+  /* Custom styles for block rows in profile */
+  .profile-info-item.strengths,
+  .profile-info-item.languages,
+  .profile-info-item.professional-summary {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .profile-info-item.strengths .profile-info-content,
+  .profile-info-item.languages .profile-info-content,
+  .profile-info-item.professional-summary .profile-info-content {
+    display: block !important;
+  }
+  .profile-info-item.strengths .profile-info-label,
+  .profile-info-item.languages .profile-info-label,
+  .profile-info-item.professional-summary .profile-info-label {
+    margin-bottom: 6px !important;
+  }
+
+  /* Compact layout for student applications cardification */
+  .dash-table-container td:nth-child(4),
+  .dash-table-container td:nth-child(5) {
+    display: inline-block !important;
+    width: auto !important;
+    margin-right: 12px !important;
+  }
+  .dash-table-container td:nth-child(3) {
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-top: -2px !important;
+  }
+
+  /* Bottom sheet modal styling for mobile viewport editing */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 28px 28px 0 0 !important;
+    padding: 24px 20px !important;
+    margin: 0 !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    border: 1px solid var(--border-color) !important;
+    border-bottom: none !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
+    animation: modal-slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards !important;
+  }
+
+  @keyframes modal-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-header {
+    border-bottom: 1px solid var(--border-light) !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 18px !important;
+  }
 }

@@ -746,7 +746,7 @@ export default function StudentProfile() {
                   <input 
                     type="file" 
                     ref={fileInputRef} 
-                    onChange={handleFileChange} 
+                    onChange={handlePhotoChange} 
                     accept="image/*" 
                     className="hidden" 
                   />
@@ -1169,7 +1169,7 @@ export default function StudentProfile() {
                 <input 
                   type="file" 
                   ref={fileInputRef} 
-                  onChange={handleFileChange} 
+                  onChange={handlePhotoChange} 
                   accept="image/*" 
                   className="hidden" 
                 />

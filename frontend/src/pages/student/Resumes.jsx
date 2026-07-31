@@ -22,6 +22,17 @@ import ResumeGeneratingOverlay from '../../components/ResumeGeneratingOverlay';
 
 export default function StudentResumes() {
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeResumeTab, setActiveResumeTab] = useState('templates');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [resumes, setResumes] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -331,8 +342,27 @@ export default function StudentResumes() {
           </div>
         </header>
 
+        {/* Mobile Resume tab bar */}
+        {isMobile && (
+          <div className="mobile-tabs-container">
+            <button 
+              onClick={() => setActiveResumeTab('templates')}
+              className={`mobile-tab-btn ${activeResumeTab === 'templates' ? 'active' : ''}`}
+            >
+              Available Templates
+            </button>
+            <button 
+              onClick={() => setActiveResumeTab('history')}
+              className={`mobile-tab-btn ${activeResumeTab === 'history' ? 'active' : ''}`}
+            >
+              Saved Resumes ({resumes?.length || 0})
+            </button>
+          </div>
+        )}
+
         {/* Templates Gallery */}
-        <section className="mb-12">
+        {(!isMobile || activeResumeTab === 'templates') && (
+          <section className="mb-12">
           <div className="section-label label-caps">
             <Layout size={14} className="text-orange-500" /> Available Templates
           </div>
@@ -479,9 +509,11 @@ export default function StudentResumes() {
             ))}
           </div>
         </section>
+        )}
 
         {/* My Resumes List */}
-        <section>
+        {(!isMobile || activeResumeTab === 'history') && (
+          <section>
           <div className="section-label label-caps">
             <History size={14} className="text-orange-500" /> Document History
           </div>
@@ -623,6 +655,7 @@ export default function StudentResumes() {
             </table>
           </div>
         </section>
+        )}
 
 
       </div>
