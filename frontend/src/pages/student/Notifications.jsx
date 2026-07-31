@@ -26,6 +26,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const getDeadlineInfo = (message) => {
   if (!message) return null;
