@@ -741,15 +741,7 @@ export default function StudentProfile() {
       {isMobile && (
         <div className="space-y-4 mb-6">
           {/* Avatar Details Card */}
-          <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm relative overflow-hidden">
-            {/* Absolutely positioned Edit button */}
-            <button 
-              onClick={() => setShowBasicModal(true)}
-              className="absolute top-4 right-4 btn btn-primary btn-sm flex items-center gap-1.5 py-1 px-3 text-[10px] rounded-xl font-bold cursor-pointer hover:opacity-90"
-            >
-              <Edit size={10} /> Edit Profile
-            </button>
-
+          <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
             <div className="flex items-center gap-4">
               {/* Circular Avatar with blue border and green check */}
               <div className="relative shrink-0 cursor-pointer" onClick={handlePhotoClick}>
@@ -780,14 +772,14 @@ export default function StudentProfile() {
               {/* User Details */}
               <div className="min-w-0 flex-1">
                 <div>
-                  <h2 className="text-md font-bold text-primary truncate leading-tight pr-24">{profile?.student_name || 'N/A'}</h2>
-                  <p className="text-[11px] text-blue-500 font-bold mt-1.5">
+                  <h2 className="text-md font-bold text-primary leading-snug">{profile?.student_name || 'N/A'}</h2>
+                  <p className="text-[11px] text-blue-500 font-bold mt-1">
                     {profile?.course} {profile?.stream ? `(${profile.stream})` : ''}
                   </p>
                 </div>
                 
                 {/* Student ID Tag */}
-                <div className="inline-block mt-2 px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-md border border-border-color">
+                <div className="inline-block mt-1.5 px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-md border border-border-color">
                   <span className="text-[9px] font-bold text-secondary">
                     Student ID: {profile?.student_id || 'N/A'}
                   </span>
@@ -798,6 +790,14 @@ export default function StudentProfile() {
                   <MapPin size={10} className="text-muted" />
                   <span>{profile?.location || 'Not Set'}</span>
                 </div>
+
+                {/* Edit Button */}
+                <button 
+                  onClick={() => setShowBasicModal(true)}
+                  className="btn btn-primary btn-sm flex items-center gap-1.5 mt-3 py-1 px-3 text-[10px] rounded-xl font-bold cursor-pointer w-fit"
+                >
+                  <Edit size={10} /> Edit Profile
+                </button>
               </div>
             </div>
             

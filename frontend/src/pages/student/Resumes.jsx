@@ -311,7 +311,7 @@ export default function StudentResumes() {
     <>
     {/* Creative overlay shown while resume is processing */}
     <ResumeGeneratingOverlay visible={isGenerating || hasProcessing} />
-    <div className="resumes-container compact-layout p-4 md:p-6 animate-in">
+    <div className="resumes-container compact-layout p-0 md:p-6 animate-in">
       
       {profileWarning && (
         <div className="mb-6 p-4 bg-warning/10 border border-warning/30 text-warning-content rounded-lg flex items-start gap-3">
@@ -323,7 +323,7 @@ export default function StudentResumes() {
         </div>
       )}
 
-      <div className="dash-page animate-in">
+      <div className={`${isMobile ? '' : 'dash-page'} animate-in`}>
         <header className="page-header mb-8">
           <div>
             <h1 className="text-3xl font-black mb-1 tracking-tight">Resume Engine</h1>
@@ -357,52 +357,41 @@ export default function StudentResumes() {
 
               {/* Template Card Details */}
               {templates?.length > 0 ? (
-                <div className="flex items-start gap-4">
-                  {/* Left side: Template image preview */}
-                  <div className="w-20 h-28 border border-border-color rounded-xl overflow-hidden shadow-sm shrink-0 bg-slate-50 dark:bg-zinc-800 p-1 flex items-center justify-center">
-                    {/* Simplified preview mockup */}
-                    <div className="w-full h-full p-2 space-y-1.5 bg-white dark:bg-zinc-950 rounded-lg">
-                      <div className="w-2/3 h-1.5 bg-blue-500/20 rounded"></div>
-                      <div className="w-1/2 h-1 bg-slate-200 dark:bg-zinc-850 rounded"></div>
-                      <div className="pt-2.5 w-full h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
-                      <div className="w-3/4 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
-                      <div className="w-5/6 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    {/* Left side: Template image preview */}
+                    <div className="w-28 h-36 border border-border-color rounded-xl overflow-hidden shadow-sm shrink-0 bg-slate-50 dark:bg-zinc-800 p-1 flex items-center justify-center">
+                      {/* Simplified preview mockup */}
+                      <div className="w-full h-full p-2.5 space-y-2 bg-white dark:bg-zinc-950 rounded-lg">
+                        <div className="w-2/3 h-2 bg-blue-500/20 rounded"></div>
+                        <div className="w-1/2 h-1.5 bg-slate-200 dark:bg-zinc-850 rounded"></div>
+                        <div className="pt-3 w-full h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                        <div className="w-3/4 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                        <div className="w-5/6 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                      </div>
+                    </div>
+
+                    {/* Right side: details */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-black text-primary leading-none">{templates[0].name}</h4>
+                        <span className="text-[8px] bg-blue-500/10 text-blue-500 font-bold px-1.5 py-0.5 rounded">V{templates[0].version}</span>
+                      </div>
+                      
+                      <p className="text-[10px] text-muted mt-2 leading-relaxed line-clamp-5">
+                        {templates[0].description}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Right side: details */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="text-sm font-black text-primary leading-none">{templates[0].name}</h4>
-                      <span className="text-[8px] bg-blue-500/10 text-blue-500 font-bold px-1.5 py-0.5 rounded">V{templates[0].version}</span>
-                    </div>
-                    
-                    <p className="text-[10px] text-muted mt-2 leading-relaxed line-clamp-3">
-                      {templates[0].description}
-                    </p>
-
-                    {/* Badges */}
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      <span className="text-[8px] font-bold text-emerald-600 bg-emerald-500/5 border border-emerald-500/15 px-2 py-0.5 rounded-full">
-                        ✓ ATS Friendly
-                      </span>
-                      <span className="text-[8px] font-bold text-purple-600 bg-purple-500/5 border border-purple-500/15 px-2 py-0.5 rounded-full">
-                        ⌨ Professional
-                      </span>
-                      <span className="text-[8px] font-bold text-amber-600 bg-emerald-500/5 border border-emerald-500/15 px-2 py-0.5 rounded-full">
-                        💡 iLEAD Approved
-                      </span>
-                    </div>
-
-                    {/* Choose & Generate Button */}
-                    <button 
-                      onClick={() => handleGenerate(templates[0].id)}
-                      disabled={isGenerating}
-                      className="btn btn-primary w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold rounded-xl cursor-pointer"
-                    >
-                      {isGenerating ? 'Generating...' : 'Choose Template & Generate →'}
-                    </button>
-                  </div>
+                  {/* Choose & Generate Button stretches full width under both */}
+                  <button 
+                    onClick={() => handleGenerate(templates[0].id)}
+                    disabled={isGenerating}
+                    className="btn btn-primary w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold rounded-xl cursor-pointer"
+                  >
+                    {isGenerating ? 'Generating...' : 'Choose Template & Generate →'}
+                  </button>
                 </div>
               ) : (
                 <div className="py-6 text-center text-muted italic text-xs">
