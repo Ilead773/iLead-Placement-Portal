@@ -504,6 +504,122 @@ export default function StudentDashboard() {
         <div className="space-y-6">
           {activeTab === 'overview' && (
             <>
+              {/* ─── Academic Snapshot Cards Grid ─── */}
+              <motion.div
+                className="academic-snapshot-grid"
+                variants={itemVariants}
+              >
+                {/* ── CGPA Card ── */}
+                <div className="snapshot-stat-card cgpa-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase text-muted tracking-widest">CGPA</span>
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md border ${profile?.backlogs ? 'chip-backlog text-red-500 bg-red-500/10 border-red-500/20' : 'chip-clear text-emerald-500 bg-emerald-500/10 border-emerald-500/20'}`}>
+                      {profile?.backlogs ? '⚠ Backlogs' : '✓ Clear'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 my-2">
+                    <div className="relative shrink-0 w-12 h-12">
+                      <svg viewBox="0 0 56 56" width="48" height="48" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border-color)" strokeWidth="4" />
+                        <circle
+                          cx="28" cy="28" r="22" fill="none"
+                          stroke="#3b82f6" strokeWidth="4"
+                          strokeLinecap="round"
+                          strokeDasharray={`${2 * Math.PI * 22}`}
+                          strokeDashoffset={`${2 * Math.PI * 22 * (1 - (profile?.cgpa || 0) / 10)}`}
+                          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)' }}
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-primary">
+                        {profile?.cgpa?.toFixed(1) || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black text-primary leading-none">
+                        {profile?.cgpa?.toFixed(2) || 'N/A'}
+                      </p>
+                      <span className="text-[10px] font-semibold text-muted">Out of 10.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Attendance Card ── */}
+                <div className="snapshot-stat-card attendance-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase text-muted tracking-widest">Attendance</span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${(profile?.attendance || 0) >= 75 ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-red-500 bg-red-500/10 border-red-500/20'}`}>
+                      {(profile?.attendance || 0) >= 75 ? '▲ Safe' : '▼ At risk'}
+                    </span>
+                  </div>
+                  <div className="my-1">
+                    <p className="text-2xl font-black text-primary leading-none">
+                      {profile?.attendance || 0}%
+                    </p>
+                    <div className="relative h-2 bg-border-color rounded-full overflow-hidden w-full mt-2.5">
+                      <div
+                        className="absolute left-0 top-0 h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${Math.min(profile?.attendance || 0, 100)}%`,
+                          backgroundColor: (profile?.attendance || 0) < 65 ? 'var(--danger)' : (profile?.attendance || 0) < 75 ? 'var(--warning)' : '#10b981'
+                        }}
+                      />
+                      <div className="absolute top-0 bottom-0 w-[1.5px] bg-slate-400/60" style={{ left: '75%' }} />
+                    </div>
+                    <p className="text-[9px] text-muted mt-1.5 font-medium">Target: 75% min requirement</p>
+                  </div>
+                </div>
+
+                {/* ── Programme Card ── */}
+                <div className="snapshot-stat-card programme-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase text-muted tracking-widest">Programme</span>
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                      Active
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-primary leading-snug truncate" title={profile?.course}>
+                      {profile?.course || '—'}
+                    </p>
+                    <p className="text-[10px] text-secondary mt-0.5 truncate" title={profile?.stream}>
+                      {profile?.stream || '—'}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                      {profile?.semester && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-zinc-800 text-secondary border border-border-color">
+                          Sem {profile.semester}
+                        </span>
+                      )}
+                      {profile?.passing_year && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+                          Batch '{String(profile.passing_year).slice(-2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Applications Card ── */}
+                <div className="snapshot-stat-card applications-card">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-black uppercase text-muted tracking-widest">Applications</span>
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      Active
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    <div className="flex items-center justify-between text-secondary">
+                      <span className="text-[10px] font-medium">Applied</span>
+                      <span className="text-xs font-bold text-primary">{applications.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-secondary">
+                      <span className="text-[10px] font-medium">Placed</span>
+                      <span className="text-xs font-bold text-emerald-500">{applications.filter(a => ['selected','accepted'].includes(a.status)).length}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
               {/* Inbox Alerts */}
               <motion.div className="dash-card" variants={itemVariants}>
                 <div className="dash-card-header">
@@ -518,7 +634,7 @@ export default function StudentDashboard() {
                   {notifications.filter(note => !note.is_read).length === 0 ? (
                     <p className="text-xs text-muted italic py-4 text-center">No unread notifications found.</p>
                   ) : (
-                    <div className="mobile-carousel">
+                    <div className="flex flex-col gap-2.5">
                       {notifications
                         .filter(note => !note.is_read)
                         .slice(0, 4)
@@ -529,7 +645,6 @@ export default function StudentDashboard() {
                               key={note.id} 
                               onClick={() => handleNotificationClick(note)}
                               className={`inbox-alert-item ${isUnread ? 'unread' : ''}`}
-                              style={{ width: '280px', flexShrink: 0 }}
                             >
                               <div className="inbox-alert-icon-wrapper">
                                 {note.title?.toLowerCase().includes('job') || note.title?.toLowerCase().includes('opportunity') ? (
@@ -561,7 +676,7 @@ export default function StudentDashboard() {
                 </div>
               </motion.div>
 
-              {/* Hot Opportunities Carousel */}
+              {/* Hot Opportunities List */}
               {user?.features?.['jobs'] !== false && (
                 <motion.div className="dash-card" variants={itemVariants}>
                   <div className="dash-card-header">
@@ -576,7 +691,7 @@ export default function StudentDashboard() {
                     {profile?.upcoming_jobs?.length === 0 ? (
                       <p className="text-xs text-muted italic">No upcoming deadlines.</p>
                     ) : (
-                      <div className="mobile-carousel">
+                      <div className="flex flex-col gap-2.5">
                         {profile?.upcoming_jobs?.map(job => {
                           const isUrgent = new Date(job.deadline) - new Date() < 86400000 && !job.has_applied;
                           return (
@@ -584,7 +699,6 @@ export default function StudentDashboard() {
                               key={job.id} 
                               onClick={() => navigate('/student/jobs')}
                               className="opp-card"
-                              style={{ width: '260px', flexShrink: 0 }}
                             >
                               <div className="flex items-center gap-3">
                                 <div className="company-logo-avatar shrink-0">

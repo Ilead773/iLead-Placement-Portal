@@ -796,32 +796,34 @@ export default function StudentProfile() {
                   </div>
 
                   {/* Strengths */}
-                  {profile?.strengths?.length > 0 && (
-                    <div className="profile-info-item strengths mt-4">
-                      <div className="profile-info-content">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
-                          <button 
-                            onClick={() => {
-                              setShowBasicModal(true);
-                              setTimeout(() => {
-                                const el = document.getElementById('strengths-input');
-                                if (el) el.focus();
-                              }, 200);
-                            }} 
-                            className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {profile.strengths.map((str, idx) => (
+                  <div className="profile-info-item strengths mt-4">
+                    <div className="profile-info-content w-full">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
+                        <button 
+                          onClick={() => {
+                            setShowBasicModal(true);
+                            setTimeout(() => {
+                              const el = document.getElementById('strengths-input');
+                              if (el) el.focus();
+                            }, 200);
+                          }} 
+                          className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
+                        >
+                          {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {profile?.strengths?.length > 0 ? (
+                          profile.strengths.map((str, idx) => (
                             <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
-                          ))}
-                        </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted italic">Not set</span>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Languages Known */}
                   <div className="profile-info-item languages mt-4">
@@ -923,11 +925,66 @@ export default function StudentProfile() {
           )}
 
           {activeProfileTab === 'academics' && (
-            <section className="glass-panel p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold flex items-center gap-2"><span>🎓</span> Education</h3>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowEduModal(true)}>+ Add</button>
-              </div>
+            <div className="space-y-6">
+              {/* Synced Academic Records Card */}
+              <section className="glass-panel p-6">
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-4"><span>🏫</span> Synced Academic Records</h3>
+                <div className="profile-info-fields space-y-4">
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Course / Program</span>
+                      <span className="profile-info-value">{profile?.course || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Stream / Branch</span>
+                      <span className="profile-info-value">{profile?.stream || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Current Semester</span>
+                      <span className="profile-info-value">{profile?.semester ? `Semester ${profile.semester}` : 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Passing Year</span>
+                      <span className="profile-info-value">{profile?.passing_year || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Current CGPA</span>
+                      <span className="profile-info-value font-bold text-primary">{profile?.cgpa?.toFixed(2) || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Attendance</span>
+                      <span className={`profile-info-value font-bold ${(profile?.attendance || 0) >= 75 ? 'text-emerald-500' : 'text-danger'}`}>
+                        {profile?.attendance ? `${profile.attendance}%` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="profile-info-item">
+                    <div className="profile-info-content">
+                      <span className="profile-info-label">Active Backlogs</span>
+                      <span className={`profile-info-value font-bold ${profile?.backlogs ? 'text-danger' : 'text-emerald-500'}`}>
+                        {profile?.backlogs ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted mt-3 italic text-center">Synced from college academic database (Read-only)</p>
+              </section>
+
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>🎓</span> Education</h3>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowEduModal(true)}>+ Add</button>
+                </div>
               <div className="space-y-6">
                 {profile?.education_entries?.length > 0 ? profile.education_entries.map(edu => (
                   <div key={edu.id} className="experience-card group">
@@ -952,7 +1009,8 @@ export default function StudentProfile() {
                 )) : <div className="text-muted text-sm italic">No education entries added.</div>}
               </div>
             </section>
-          )}
+          </div>
+        )}
 
           {activeProfileTab === 'experience' && (
             <section className="glass-panel p-6">

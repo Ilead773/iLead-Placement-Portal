@@ -12071,4 +12071,30 @@ tr:hover .company-logo-badge {
     padding-bottom: 14px !important;
     margin-bottom: 18px !important;
   }
+
+  /* Resume Template Grid mobile adjustments */
+  @media (max-width: 480px) {
+    .template-grid {
+      grid-template-columns: 1fr !important;
+      gap: 16px !important;
+    }
+  }
+
+  /* Table actions left alignment for mobile card view */
+  .table-container td .flex.justify-end, 
+  .dash-table-container td .flex.justify-end {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Prevent horizontal wiggle/bounce of cards on mobile */
+  .card, .glass-panel, .job-card, .dash-card, .pipeline-card, .experience-card, .project-card, .template-card {
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+
+  .table-container, .dash-table-container {
+    overflow-x: hidden !important;
+  }
 }
