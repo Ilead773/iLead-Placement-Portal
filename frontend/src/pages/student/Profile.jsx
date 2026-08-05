@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote, FileText, Download, User, Briefcase, FileCode, Award, ChevronRight } from 'lucide-react';
+import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote, FileText, Download, User, Briefcase, FileCode, Award, ChevronRight, Edit } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
