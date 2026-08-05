@@ -2009,7 +2009,8 @@ section { margin-bottom: var(--section-margin); position: relative; }
   }
 
   .editor-modal-body {
-    padding: 16px 8px !important;
+    padding: 8px 0 !important;
+    overflow-x: hidden !important;
   }
 
   .editor-modal-footer {
@@ -2023,16 +2024,22 @@ section { margin-bottom: var(--section-margin); position: relative; }
     margin: 0 !important;
   }
   
+  /* Scale wrapper clips overflow at 100vw */
   .editor-scale-wrapper {
-    height: calc(1122px * (100vw - 32px) / 850) !important;
+    width: 100vw !important;
     overflow: hidden !important;
+    /* Height matches iframe after scale so no empty gap forms below */
+    height: calc(1122px * 100vw / 850) !important;
   }
   
+  /* Paper is full 850px wide, then CSS-scaled down proportionally */
   .editor-paper-container {
     width: 850px !important;
-    transform: scale(calc((100vw - 32px) / 850)) !important;
-    transform-origin: top center !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
     flex-shrink: 0 !important;
+    transform: scale(calc(100vw / 850)) !important;
+    transform-origin: top left !important;
   }
 }
 
