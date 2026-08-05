@@ -1,9 +1,9 @@
 // src/pages/student/Profile.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote } from 'lucide-react';
+import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote, FileText, Download } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
@@ -23,6 +23,8 @@ export default function StudentProfile() {
   const [photoLoading, setPhotoLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeProfileTab, setActiveProfileTab] = useState('info');
+  const [primaryResume, setPrimaryResume] = useState(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -206,6 +208,7 @@ export default function StudentProfile() {
 
   useEffect(() => {
     fetchProfile();
+    fetchResumesData();
   }, []);
 
   useEffect(() => {
@@ -308,6 +311,77 @@ export default function StudentProfile() {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchResumesData = async () => {
+    try {
+      const [builtRes, uploadRes] = await Promise.all([
+        api.get('resumes/'),
+        api.get('resumes/uploads/')
+      ]);
+      
+      const built = Array.isArray(builtRes.data) ? builtRes.data.map(r => ({ ...r, type: 'built' })) : [];
+      const uploaded = Array.isArray(uploadRes.data) ? uploadRes.data.map(r => ({ ...r, type: 'uploaded' })) : [];
+      
+      const all = [...built, ...uploaded];
+      const primary = all.find(r => r.is_primary === true);
+      setPrimaryResume(primary || null);
+    } catch (err) {
+      console.error('Failed to load resumes on profile', err);
+    }
+  };
+
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are allowed');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File size exceeds 2MB limit');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setUploadingResume(true);
+      const uploadRes = await api.post('resumes/uploads/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Resume PDF uploaded successfully!');
+      
+      await api.post(`resumes/uploads/${uploadRes.data.id}/set-primary/`);
+      toast.success('Uploaded resume set as active!');
+      
+      fetchResumesData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to upload resume');
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
+  const handleDownloadResume = async (resume) => {
+    try {
+      const endpoint = resume.type === 'uploaded' 
+        ? `resumes/uploads/${resume.id}/download/` 
+        : `resumes/${resume.id}/download/`;
+        
+      const response = await api.get(endpoint, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', resume.title || resume.original_filename || 'resume.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      toast.error('Failed to download resume');
     }
   };
 
@@ -672,6 +746,12 @@ export default function StudentProfile() {
             Basic Info
           </button>
           <button 
+            onClick={() => setActiveProfileTab('resume')}
+            className={`mobile-tab-btn ${activeProfileTab === 'resume' ? 'active' : ''}`}
+          >
+            Resume
+          </button>
+          <button 
             onClick={() => setActiveProfileTab('academics')}
             className={`mobile-tab-btn ${activeProfileTab === 'academics' ? 'active' : ''}`}
           >
@@ -922,6 +1002,71 @@ export default function StudentProfile() {
                 )}
               </section>
             </div>
+          )}
+
+          {activeProfileTab === 'resume' && (
+            <section className="glass-panel p-6">
+              <h3 className="text-xl font-bold flex items-center gap-2 mb-4"><span>📄</span> Professional Resume</h3>
+              
+              {primaryResume ? (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
+                      <FileText size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate text-primary">{primaryResume.title || primaryResume.original_filename}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider font-semibold mt-0.5">
+                        {primaryResume.type === 'uploaded' ? 'Uploaded PDF' : `Template: ${primaryResume.template_name || 'Classic'}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-dashed border-primary/10">
+                    <button 
+                      onClick={() => handleDownloadResume(primaryResume)}
+                      className="btn btn-xs btn-secondary flex items-center gap-1"
+                    >
+                      <Download size={12} /> Download
+                    </button>
+                    {primaryResume.type === 'built' && (
+                      <Link 
+                        to="/student/resumes"
+                        className="btn btn-xs btn-primary"
+                      >
+                        Edit Builder
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-dashed border-border-color rounded-xl mb-4 bg-muted/5">
+                  <span className="text-2xl">📭</span>
+                  <p className="text-xs text-muted mt-2 italic">No active resume set.</p>
+                </div>
+              )}
+
+              {/* Upload PDF Section */}
+              <div className="space-y-3 mt-6 pt-4 border-t border-dashed border-border-color">
+                <label className="text-xs font-bold uppercase text-muted tracking-wider block">Upload Custom PDF Resume</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="file" 
+                    id="profile-resume-file-mobile" 
+                    accept=".pdf"
+                    onChange={handleResumeUpload}
+                    className="hidden" 
+                  />
+                  <button 
+                    onClick={() => document.getElementById('profile-resume-file-mobile').click()}
+                    className="btn btn-sm btn-secondary w-full flex items-center justify-center gap-2"
+                    disabled={uploadingResume}
+                  >
+                    {uploadingResume ? 'Uploading...' : 'Upload PDF'}
+                  </button>
+                </div>
+                <span className="text-[10px] text-muted block text-center mt-1">PDF only. Max size 2MB. Setting this active will display it to HR/recruiters.</span>
+              </div>
+            </section>
           )}
 
           {activeProfileTab === 'academics' && (
@@ -1372,6 +1517,71 @@ export default function StudentProfile() {
                     </a>
                   )}
                 </div>
+              </div>
+            </section>
+
+            {/* Resume Upload Card */}
+            <section className="glass-panel p-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <span>📄</span> Professional Resume
+              </h3>
+              {primaryResume ? (
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
+                      <FileText size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate text-primary">{primaryResume.title || primaryResume.original_filename}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider font-semibold mt-0.5">
+                        {primaryResume.type === 'uploaded' ? 'Uploaded PDF' : `Template: ${primaryResume.template_name || 'Classic'}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-dashed border-primary/10">
+                    <button 
+                      onClick={() => handleDownloadResume(primaryResume)}
+                      className="btn btn-xs btn-secondary flex items-center gap-1"
+                    >
+                      <Download size={12} /> Download
+                    </button>
+                    {primaryResume.type === 'built' && (
+                      <Link 
+                        to="/student/resumes"
+                        className="btn btn-xs btn-primary"
+                      >
+                        Edit Builder
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-dashed border-border-color rounded-xl mb-4 bg-muted/5">
+                  <span className="text-2xl">📭</span>
+                  <p className="text-xs text-muted mt-2 italic">No active resume set.</p>
+                </div>
+              )}
+
+              {/* Upload PDF Section */}
+              <div className="space-y-3 mt-6 pt-4 border-t border-dashed border-border-color">
+                <label className="text-[10px] font-black uppercase text-muted tracking-wider block">Upload Custom PDF Resume</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="file" 
+                    id="profile-resume-file-desktop" 
+                    accept=".pdf"
+                    onChange={handleResumeUpload}
+                    className="hidden" 
+                  />
+                  <button 
+                    onClick={() => document.getElementById('profile-resume-file-desktop').click()}
+                    className="btn btn-sm btn-secondary w-full flex items-center justify-center gap-2"
+                    disabled={uploadingResume}
+                  >
+                    {uploadingResume ? 'Uploading...' : 'Upload PDF'}
+                  </button>
+                </div>
+                <span className="text-[9px] text-muted block text-center mt-1">PDF only. Max size 2MB. Setting this active will display it to HR/recruiters.</span>
               </div>
             </section>
 

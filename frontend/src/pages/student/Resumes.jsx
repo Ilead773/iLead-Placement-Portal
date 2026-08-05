@@ -513,148 +513,251 @@ export default function StudentResumes() {
 
         {/* My Resumes List */}
         {(!isMobile || activeResumeTab === 'history') && (
-          <section>
-          <div className="section-label label-caps">
-            <History size={14} className="text-orange-500" /> Document History
-          </div>
+          <section className="mb-12">
+            <div className="section-label label-caps mb-4">
+              <History size={14} className="text-orange-500" /> Document History
+            </div>
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Resume Details</th>
-                  <th>Status</th>
-                  <th>Created At</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resumes?.length > 0 ? resumes.map(resume => (
-                  <tr key={resume.id}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-500/10 rounded-lg">
-                          <FileText size={18} className="text-orange-500" />
+            {isMobile ? (
+              <div className="space-y-4">
+                {resumes?.length > 0 ? (
+                  resumes.map(resume => (
+                    <div key={resume.id} className="card p-4 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="p-2 bg-orange-500/10 rounded-lg shrink-0">
+                            <FileText size={18} className="text-orange-500" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {editingTitleId === resume.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <input 
+                                  type="text" 
+                                  value={editTitleVal} 
+                                  onChange={(e) => setEditTitleVal(e.target.value)} 
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveTitle(resume.id);
+                                    else if (e.key === 'Escape') setEditingTitleId(null);
+                                  }}
+                                  className="input-field py-1 px-2 text-xs"
+                                  autoFocus
+                                />
+                                <button onClick={() => handleSaveTitle(resume.id)} className="btn btn-sm btn-primary py-1 px-2.5 text-xs">Save</button>
+                                <button onClick={() => setEditingTitleId(null)} className="btn btn-sm btn-secondary py-1 px-2.5 text-xs">Cancel</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-sm truncate max-w-[140px]">{resume.title}</span>
+                                <button 
+                                  onClick={() => {
+                                    setEditingTitleId(resume.id);
+                                    setEditTitleVal(resume.title);
+                                  }}
+                                  className="text-gray-400 hover:text-orange-500 transition-colors p-1"
+                                >
+                                  <Edit size={11} />
+                                </button>
+                                {resume.is_primary && (
+                                  <span className="status-badge status-generated text-[8px] px-1.5 py-0.5 inline-flex items-center gap-0.5">
+                                    <Star size={8} fill="currentColor" /> Active
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <div className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">{resume.template_name}</div>
+                          </div>
                         </div>
-                        <div>
-                          {editingTitleId === resume.id ? (
-                            <div className="flex items-center gap-2 mt-1">
-                              <input 
-                                type="text" 
-                                value={editTitleVal} 
-                                onChange={(e) => setEditTitleVal(e.target.value)} 
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleSaveTitle(resume.id);
-                                  } else if (e.key === 'Escape') {
-                                    setEditingTitleId(null);
-                                  }
-                                }}
-                                className="input-field"
-                                style={{ 
-                                  padding: '4px 8px', 
-                                  fontSize: '13px', 
-                                  width: '200px', 
-                                  height: '32px',
-                                  borderRadius: 'var(--radius-sm)'
-                                }}
-                                autoFocus
-                              />
-                              <button 
-                                onClick={() => handleSaveTitle(resume.id)} 
-                                className="btn btn-sm btn-primary px-3 py-1"
-                                style={{ height: '32px', fontSize: '12px' }}
-                              >
-                                Save
-                              </button>
-                              <button 
-                                onClick={() => setEditingTitleId(null)} 
-                                className="btn btn-sm btn-secondary px-3 py-1"
-                                style={{ height: '32px', fontSize: '12px' }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">{resume.title}</span>
-                              <button 
-                                onClick={() => {
-                                  setEditingTitleId(resume.id);
-                                  setEditTitleVal(resume.title);
-                                }}
-                                className="text-gray-400 hover:text-orange-500 transition-colors p-1"
-                                title="Edit Resume Name"
-                              >
-                                <Edit size={12} />
-                              </button>
-                              {resume.is_primary && (
-                                <span className="status-badge status-generated" style={{ fontSize: '8px', padding: '2px 8px' }}>
-                                  <Star size={8} fill="currentColor" /> Active
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{resume.template_name}</div>
+                        <div className="shrink-0">
+                          {getStatusBadge(resume.state)}
                         </div>
                       </div>
-                    </td>
-                    <td>
-                      {getStatusBadge(resume.state)}
-                    </td>
-                    <td className="text-[11px] font-semibold text-secondary">
-                      {new Date(resume.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {(resume.state === 'generated' || resume.state === 'parsed') && (
-                          <>
-                            {!resume.is_primary && (
+                      
+                      <div className="flex justify-between items-center pt-2 border-t border-dashed border-border-color">
+                        <span className="text-[10px] text-muted font-semibold">
+                          {new Date(resume.created_at).toLocaleDateString()}
+                        </span>
+                        <div className="flex gap-2">
+                          {(resume.state === 'generated' || resume.state === 'parsed') && (
+                            <>
+                              {!resume.is_primary && (
+                                <button 
+                                  onClick={() => handleSetPrimary(resume.id)} 
+                                  className="btn btn-xs btn-secondary py-1 px-2 text-[9px] font-bold"
+                                >
+                                  Set Active
+                                </button>
+                              )}
                               <button 
-                                onClick={() => handleSetPrimary(resume.id)} 
-                                className="btn btn-sm btn-secondary"
-                                style={{ fontSize: '10px' }}
+                                onClick={() => handleDownload(resume.id, resume.title)} 
+                                className="btn btn-xs btn-secondary p-1"
+                                title="Download PDF"
                               >
-                                Set Active
+                                <Download size={12} />
                               </button>
+                              <button 
+                                onClick={() => handleEditClick(resume.id)}
+                                className="btn btn-xs btn-primary py-1 px-2 text-[9px] font-bold"
+                              >
+                                Edit
+                              </button>
+                            </>
+                          )}
+                          <button 
+                            onClick={() => handleDelete(resume.id)}
+                            className="btn btn-xs btn-danger p-1"
+                            title="Delete Resume"
+                          >
+                             <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="card p-8 text-center text-muted italic text-xs">
+                    No resumes found. Generate one above.
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th>Resume Details</th>
+                      <th>Status</th>
+                      <th>Created At</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resumes?.length > 0 ? resumes.map(resume => (
+                      <tr key={resume.id}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-500/10 rounded-lg">
+                              <FileText size={18} className="text-orange-500" />
+                            </div>
+                            <div>
+                              {editingTitleId === resume.id ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <input 
+                                    type="text" 
+                                    value={editTitleVal} 
+                                    onChange={(e) => setEditTitleVal(e.target.value)} 
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSaveTitle(resume.id);
+                                      } else if (e.key === 'Escape') {
+                                        setEditingTitleId(null);
+                                      }
+                                    }}
+                                    className="input-field"
+                                    style={{ 
+                                      padding: '4px 8px', 
+                                      fontSize: '13px', 
+                                      width: '200px', 
+                                      height: '32px',
+                                      borderRadius: 'var(--radius-sm)'
+                                    }}
+                                    autoFocus
+                                  />
+                                  <button 
+                                    onClick={() => handleSaveTitle(resume.id)} 
+                                    className="btn btn-sm btn-primary px-3 py-1"
+                                    style={{ height: '32px', fontSize: '12px' }}
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    onClick={() => setEditingTitleId(null)} 
+                                    className="btn btn-sm btn-secondary px-3 py-1"
+                                    style={{ height: '32px', fontSize: '12px' }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold">{resume.title}</span>
+                                  <button 
+                                    onClick={() => {
+                                      setEditingTitleId(resume.id);
+                                      setEditTitleVal(resume.title);
+                                    }}
+                                    className="text-gray-400 hover:text-orange-500 transition-colors p-1"
+                                    title="Edit Resume Name"
+                                  >
+                                    <Edit size={12} />
+                                  </button>
+                                  {resume.is_primary && (
+                                    <span className="status-badge status-generated" style={{ fontSize: '8px', padding: '2px 8px' }}>
+                                      <Star size={8} fill="currentColor" /> Active
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <div className="text-[9px] font-bold text-muted uppercase tracking-wider">{resume.template_name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          {getStatusBadge(resume.state)}
+                        </td>
+                        <td className="text-[11px] font-semibold text-secondary">
+                          {new Date(resume.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {(resume.state === 'generated' || resume.state === 'parsed') && (
+                              <>
+                                {!resume.is_primary && (
+                                  <button 
+                                    onClick={() => handleSetPrimary(resume.id)} 
+                                    className="btn btn-sm btn-secondary"
+                                    style={{ fontSize: '10px' }}
+                                  >
+                                    Set Active
+                                  </button>
+                                )}
+                                <button 
+                                  onClick={() => handleDownload(resume.id, resume.title)} 
+                                  className="btn btn-sm btn-secondary"
+                                  title="Download PDF"
+                                >
+                                  <Download size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => handleEditClick(resume.id)}
+                                  className="btn btn-sm btn-primary"
+                                  style={{ fontSize: '10px' }}
+                                >
+                                  Edit
+                                </button>
+                              </>
                             )}
                             <button 
-                              onClick={() => handleDownload(resume.id, resume.title)} 
-                              className="btn btn-sm btn-secondary"
-                              title="Download PDF"
+                              onClick={() => handleDelete(resume.id)}
+                              className="btn btn-sm btn-danger p-2"
+                              title="Delete Resume"
                             >
-                              <Download size={14} />
+                               <Trash2 size={14} />
                             </button>
-                            <button 
-                              onClick={() => handleEditClick(resume.id)}
-                              className="btn btn-sm btn-primary"
-                              style={{ fontSize: '10px' }}
-                            >
-                              Edit
-                            </button>
-                          </>
-                        )}
-                        <button 
-                          onClick={() => handleDelete(resume.id)}
-                          className="btn btn-sm btn-danger p-2"
-                          title="Delete Resume"
-                        >
-                           <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan="4" className="py-16 text-center text-muted italic text-sm">
-                       No resumes found. Generate one above.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                          </div>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="4" className="py-16 text-center text-muted italic text-sm">
+                           No resumes found. Generate one above.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         )}
 
 
