@@ -741,7 +741,15 @@ export default function StudentProfile() {
       {isMobile && (
         <div className="space-y-4 mb-6">
           {/* Avatar Details Card */}
-          <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+          <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm relative overflow-hidden">
+            {/* Absolutely positioned Edit button */}
+            <button 
+              onClick={() => setShowBasicModal(true)}
+              className="absolute top-4 right-4 btn btn-primary btn-sm flex items-center gap-1.5 py-1 px-3 text-[10px] rounded-xl font-bold cursor-pointer hover:opacity-90"
+            >
+              <Edit size={10} /> Edit Profile
+            </button>
+
             <div className="flex items-center gap-4">
               {/* Circular Avatar with blue border and green check */}
               <div className="relative shrink-0 cursor-pointer" onClick={handlePhotoClick}>
@@ -771,19 +779,11 @@ export default function StudentProfile() {
 
               {/* User Details */}
               <div className="min-w-0 flex-1">
-                <div className="flex justify-between items-start gap-1">
-                  <div>
-                    <h2 className="text-md font-bold text-primary truncate leading-tight">{profile?.student_name || 'N/A'}</h2>
-                    <p className="text-[11px] text-blue-500 font-bold mt-1">
-                      {profile?.course} {profile?.stream ? `(${profile.stream})` : ''}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setShowBasicModal(true)}
-                    className="btn btn-primary btn-sm flex items-center gap-1 py-1 px-2.5 text-[10px] shrink-0 rounded-xl font-bold"
-                  >
-                    <Edit size={10} /> Edit Profile
-                  </button>
+                <div>
+                  <h2 className="text-md font-bold text-primary truncate leading-tight pr-24">{profile?.student_name || 'N/A'}</h2>
+                  <p className="text-[11px] text-blue-500 font-bold mt-1.5">
+                    {profile?.course} {profile?.stream ? `(${profile.stream})` : ''}
+                  </p>
                 </div>
                 
                 {/* Student ID Tag */}
@@ -975,75 +975,6 @@ export default function StudentProfile() {
                 </div>
               </div>
 
-              {/* Quick Stats Section */}
-              <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
-                <h3 className="text-md font-bold flex items-center gap-2 text-primary mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4.5 h-4.5 text-blue-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v16.5M12 5.25M12 18.75m0-13.5a1.5 1.5 0 0 0-3 0v13.5a1.5 1.5 0 0 0 3 0M20.25 10.5M20.25 18.75m0-8.25a1.5 1.5 0 0 0-3 0v8.25a1.5 1.5 0 0 0 3 0m-16.5 0h16.5" />
-                  </svg>
-                  Quick Stats
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {/* Projects Stats */}
-                  <div className="p-2.5 bg-purple-500/5 border border-purple-500/10 rounded-xl flex flex-col items-center justify-center text-center">
-                    <span className="text-base font-black text-purple-600 leading-none">{profile?.projects?.length || 0}</span>
-                    <span className="text-[8px] font-black text-purple-500/80 mt-1.5 uppercase tracking-wider">Projects</span>
-                  </div>
-
-                  {/* Experience Stats */}
-                  <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex flex-col items-center justify-center text-center">
-                    <span className="text-base font-black text-emerald-600 leading-none">{profile?.experiences?.length || 0}</span>
-                    <span className="text-[8px] font-black text-emerald-500/80 mt-1.5 uppercase tracking-wider">Experience</span>
-                  </div>
-
-                  {/* Certificates Stats */}
-                  <div className="p-2.5 bg-amber-500/5 border border-amber-500/10 rounded-xl flex flex-col items-center justify-center text-center">
-                    <span className="text-base font-black text-amber-600 leading-none">{profile?.certifications?.length || 0}</span>
-                    <span className="text-[8px] font-black text-amber-500/80 mt-1.5 uppercase tracking-wider">Certificates</span>
-                  </div>
-
-                  {/* CGPA Stats */}
-                  <div className="p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-xl flex flex-col items-center justify-center text-center">
-                    <span className="text-base font-black text-blue-600 leading-none">{profile?.cgpa?.toFixed(2) || 'N/A'}</span>
-                    <span className="text-[8px] font-black text-blue-500/80 mt-1.5 uppercase tracking-wider">CGPA</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Strengths & Languages */}
-              <div className="grid grid-cols-1 gap-4">
-                <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Strengths</h4>
-                    <button onClick={() => setShowBasicModal(true)} className="text-[10px] text-primary font-black uppercase bg-transparent border-none cursor-pointer">Edit</button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {profile?.strengths?.length > 0 ? (
-                      profile.strengths.map((str, idx) => (
-                        <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-lg font-semibold">{str}</span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted italic">Not set</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Languages Known</h4>
-                    <button onClick={() => setShowBasicModal(true)} className="text-[10px] text-primary font-black uppercase bg-transparent border-none cursor-pointer">Edit</button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {profile?.languages_known?.length > 0 ? (
-                      profile.languages_known.map((lang, idx) => (
-                        <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2.5 py-1 rounded-lg font-semibold border border-secondary/15">{lang}</span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted italic">Not set</span>
-                    )}
-                  </div>
-                </div>
-              </div>
 
               {/* Social Profiles Grid */}
               <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
@@ -1244,6 +1175,34 @@ export default function StudentProfile() {
                 </div>
               </section>
 
+              {/* Strengths Card */}
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>💪</span> Strengths</h3>
+                  <button 
+                    onClick={() => {
+                      setShowBasicModal(true);
+                      setTimeout(() => {
+                        const el = document.getElementById('strengths-input');
+                        if (el) el.focus();
+                      }, 200);
+                    }} 
+                    className="btn btn-primary btn-sm"
+                  >
+                    {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile?.strengths?.length > 0 ? (
+                    profile.strengths.map((str, idx) => (
+                      <span key={idx} className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-semibold border border-primary/20">{str}</span>
+                    ))
+                  ) : (
+                    <div className="text-muted text-sm italic">No strengths added.</div>
+                  )}
+                </div>
+              </section>
+
               <section className="glass-panel p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold flex items-center gap-2"><span>🚀</span> Projects</h3>
@@ -1357,6 +1316,34 @@ export default function StudentProfile() {
                       </div>
                     </div>
                   )) : <div className="text-muted text-sm italic">No extracurricular activities added.</div>}
+                </div>
+              </section>
+
+              {/* Languages Card */}
+              <section className="glass-panel p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2"><span>🗣️</span> Languages Known</h3>
+                  <button 
+                    onClick={() => {
+                      setShowBasicModal(true);
+                      setTimeout(() => {
+                        const el = document.getElementById('languages-input');
+                        if (el) el.focus();
+                      }, 200);
+                    }} 
+                    className="btn btn-primary btn-sm"
+                  >
+                    {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profile?.languages_known?.length > 0 ? (
+                    profile.languages_known.map((lang, idx) => (
+                      <span key={idx} className="text-xs bg-secondary-light/10 text-secondary px-3 py-1.5 rounded-xl font-semibold border border-secondary/15">{lang}</span>
+                    ))
+                  ) : (
+                    <div className="text-muted text-sm italic">No languages added.</div>
+                  )}
                 </div>
               </section>
             </div>

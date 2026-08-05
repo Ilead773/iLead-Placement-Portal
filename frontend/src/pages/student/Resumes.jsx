@@ -14,7 +14,8 @@ import {
   AlertCircle,
   Layout,
   History,
-  Star
+  Star,
+  ChevronRight
 } from 'lucide-react';
 import OnScreenResumeEditor from '../../components/OnScreenResumeEditor';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -50,6 +51,7 @@ export default function StudentResumes() {
   // Title Edit State
   const [editingTitleId, setEditingTitleId] = useState(null);
   const [editTitleVal, setEditTitleVal] = useState("");
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
   // Confirmation Modal State
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -342,284 +344,237 @@ export default function StudentResumes() {
           </div>
         </header>
 
-        {/* Mobile Resume tab bar */}
-        {isMobile && (
-          <div className="mobile-tabs-container">
-            <button 
-              onClick={() => setActiveResumeTab('templates')}
-              className={`mobile-tab-btn ${activeResumeTab === 'templates' ? 'active' : ''}`}
-            >
-              Available Templates
-            </button>
-            <button 
-              onClick={() => setActiveResumeTab('history')}
-              className={`mobile-tab-btn ${activeResumeTab === 'history' ? 'active' : ''}`}
-            >
-              Saved Resumes ({resumes?.length || 0})
-            </button>
-          </div>
-        )}
-
-        {/* Templates Gallery */}
-        {(!isMobile || activeResumeTab === 'templates') && (
-          <section className="mb-12">
-          <div className="section-label label-caps">
-            <Layout size={14} className="text-orange-500" /> Available Templates
-          </div>
-          <div className="template-grid">
-            {templates.map((tpl) => (
-              <div key={tpl.id} className="template-card">
-                <div className="template-preview" style={{ padding: '16px', background: 'white', position: 'relative', overflow: 'hidden' }}>
-
-                  {/* ── Classic Professional Preview ── */}
-                  {(tpl.name === 'Classic Professional') && (
-                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'serif', color: '#1e293b', lineHeight: 1.4 }}>
-                      <div style={{ textAlign: 'center', borderBottom: '1.5px solid #1e293b', paddingBottom: '8px', marginBottom: '10px' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>JOHN SMITH</div>
-                        <div style={{ fontSize: '8px', color: '#64748b', display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '4px' }}>
-                          <span>john@email.com</span><span>|</span><span>+91 9876543210</span><span>|</span><span>Kolkata, India</span>
-                        </div>
-                        <div style={{ fontSize: '7px', color: '#94a3b8', marginTop: '2px' }}>LinkedIn • GitHub • Portfolio</div>
-                      </div>
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Professional Summary</div>
-                        <div style={{ fontSize: '7px', color: '#334155' }}>Detail-oriented BCA student with strong fundamentals in Python, Django, and React. Passionate about building real-world applications.</div>
-                      </div>
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Education</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '8px', fontWeight: 700 }}>iLEAD Institute</span>
-                          <span style={{ fontSize: '7px', color: '#64748b' }}>Grad: 2026</span>
-                        </div>
-                        <div style={{ fontSize: '7px', color: '#475569' }}>Bachelor of Computer Applications</div>
-                      </div>
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid #1e293b', paddingBottom: '2px', marginBottom: '5px' }}>Technical Skills</div>
-                        <div style={{ fontSize: '7px' }}><strong>Technical:</strong> Python, Django, React, PostgreSQL</div>
-                        <div style={{ fontSize: '7px', marginTop: '2px' }}><strong>Tools:</strong> Git, Docker, VS Code</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Modern Clean Preview ── */}
-                  {(tpl.name === 'Modern Clean') && (
-                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'Inter, sans-serif', color: '#1e293b', lineHeight: 1.4 }}>
-                      <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '10px' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.5px' }}>John Smith</div>
-                        <div style={{ fontSize: '8px', color: '#64748b', display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '5px' }}>
-                          <span>📧 john@email.com</span><span>📱 +91 9876543210</span><span>📍 Kolkata</span>
-                        </div>
-                        <div style={{ fontSize: '7px', color: '#64748b', marginTop: '3px' }}>🔗 LinkedIn &nbsp;&nbsp; 💻 GitHub</div>
-                      </div>
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Professional Summary</div>
-                        <div style={{ fontSize: '7px', color: '#334155' }}>Detail-oriented BCA student with strong fundamentals in Python, Django, and React. Passionate about building real-world applications.</div>
-                      </div>
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Skills & Capabilities</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {['Python','Django','React','PostgreSQL','Git'].map(s => (
-                            <span key={s} style={{ background: '#f8fafc', border: '1px solid #f1f5f9', padding: '2px 6px', borderRadius: '3px', fontSize: '7px', fontWeight: 600 }}>{s}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '9px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Education</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '8px', fontWeight: 700 }}>iLEAD Institute</span>
-                          <span style={{ fontSize: '7px', color: '#64748b' }}>Grad: 2026</span>
-                        </div>
-                        <div style={{ fontSize: '7px', color: '#475569' }}>Bachelor of Computer Applications</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Modern Professional Preview (Sidebar layout) ── */}
-                  {(tpl.name === 'Modern Professional') && (
-                    <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '182%', height: '182%', fontFamily: 'Inter, sans-serif', color: '#1e293b', lineHeight: 1.4 }}>
-                      <div style={{ background: '#1e3a8a', color: 'white', padding: '10px 14px' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.5px' }}>John Smith</div>
-                        <div style={{ fontSize: '7.5px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: '2px' }}>Software Engineer</div>
-                      </div>
-                      <div style={{ display: 'flex', minHeight: '130px' }}>
-                        <div style={{ width: '72px', background: '#f8fafc', padding: '8px', borderRight: '1px solid #cbd5e1', flexShrink: 0 }}>
-                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '5px' }}>Contact</div>
-                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '3px' }}>john@email.com</div>
-                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '3px' }}>+91 9876543210</div>
-                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '8px' }}>Kolkata, India</div>
-                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '5px' }}>Skills</div>
-                          {['Python','Django','React','PostgreSQL'].map(s => (
-                            <div key={s} style={{ fontSize: '6.5px', color: '#334155' }}>{s}</div>
-                          ))}
-                        </div>
-                        <div style={{ flex: 1, padding: '8px 10px' }}>
-                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Profile Summary</div>
-                          <div style={{ fontSize: '6.5px', color: '#334155', marginBottom: '8px' }}>Detail-oriented BCA student passionate about building real-world applications and delivering impact.</div>
-                          <div style={{ fontSize: '7.5px', fontWeight: 700, textTransform: 'uppercase', color: '#1e3a8a', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '2px', marginBottom: '5px' }}>Experience</div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '7px', fontWeight: 700 }}>Software Intern</span>
-                            <span style={{ fontSize: '6.5px', color: '#64748b' }}>Jan — May 2026</span>
-                          </div>
-                          <div style={{ fontSize: '6.5px', color: '#475569' }}>Tech Corp Ltd.</div>
-                          <div style={{ fontSize: '6.5px', color: '#334155', marginTop: '2px' }}>Built REST APIs with Django REST Framework and PostgreSQL integration.</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fallback for any other template */}
-                  {(tpl.name !== 'Classic Professional' && tpl.name !== 'Modern Clean' && tpl.name !== 'Modern Professional') && (
-                    <div style={{ padding: '8px' }}>
-                      <div className="template-mock-line accent" style={{ height: '8px' }}></div>
-                      <div className="template-mock-line short" style={{ height: '6px', marginTop: '6px' }}></div>
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <div className="template-mock-circle"></div>
-                        <div className="template-mock-line accent"></div>
-                      </div>
-                      <div className="template-mock-line" style={{ marginTop: '6px' }}></div>
-                      <div className="template-mock-line" style={{ marginTop: '4px' }}></div>
-                    </div>
-                  )}
-
-                  <div className="template-overlay">
-                     <button
-                       onClick={() => handleGenerate(tpl.id)}
-                       disabled={isGenerating || hasProcessing || profileScore < 0.50}
-                       className="btn btn-primary"
-                       style={{ 
-                         background: (profileScore < 0.50) ? '#e2e8f0' : (isGenerating || hasProcessing) ? '#f1f5f9' : 'white', 
-                         color: (profileScore < 0.50) ? '#94a3b8' : (isGenerating || hasProcessing) ? '#94a3b8' : '#ea580c', 
-                         border: 'none', 
-                         padding: '12px 24px',
-                         cursor: (profileScore < 0.50 || isGenerating || hasProcessing) ? 'not-allowed' : 'pointer'
-                       }}
-                     >
-                       {isGenerating || hasProcessing ? 'Generating...' : (profileScore < 0.50) ? 'Profile Incomplete' : 'Use This Template'}
-                     </button>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex justify-between items-center mb-1">
-                    <h4 className="text-sm">{tpl.name}</h4>
-                    <span className="label-caps" style={{ fontSize: '9px' }}>v{tpl.version}</span>
-                  </div>
-                  <p className="text-xs text-secondary font-light line-clamp-2">{tpl.description}</p>
-                </div>
+        {isMobile ? (
+          <div className="space-y-6">
+            {/* Create New Resume Card */}
+            <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+              <div className="flex justify-between items-center mb-5 pb-3 border-b border-border-color">
+                <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
+                  <FileText size={18} className="text-blue-500" /> Create New Resume
+                </h3>
+                <ChevronRight size={16} className="text-muted" />
               </div>
-            ))}
-          </div>
-        </section>
-        )}
 
-        {/* My Resumes List */}
-        {(!isMobile || activeResumeTab === 'history') && (
-          <section className="mb-12">
-            <div className="section-label label-caps mb-4">
-              <History size={14} className="text-orange-500" /> Document History
+              {/* Template Card Details */}
+              {templates?.length > 0 ? (
+                <div className="flex items-start gap-4">
+                  {/* Left side: Template image preview */}
+                  <div className="w-20 h-28 border border-border-color rounded-xl overflow-hidden shadow-sm shrink-0 bg-slate-50 dark:bg-zinc-800 p-1 flex items-center justify-center">
+                    {/* Simplified preview mockup */}
+                    <div className="w-full h-full p-2 space-y-1.5 bg-white dark:bg-zinc-950 rounded-lg">
+                      <div className="w-2/3 h-1.5 bg-blue-500/20 rounded"></div>
+                      <div className="w-1/2 h-1 bg-slate-200 dark:bg-zinc-850 rounded"></div>
+                      <div className="pt-2.5 w-full h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                      <div className="w-3/4 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                      <div className="w-5/6 h-1 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                    </div>
+                  </div>
+
+                  {/* Right side: details */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-sm font-black text-primary leading-none">{templates[0].name}</h4>
+                      <span className="text-[8px] bg-blue-500/10 text-blue-500 font-bold px-1.5 py-0.5 rounded">V{templates[0].version}</span>
+                    </div>
+                    
+                    <p className="text-[10px] text-muted mt-2 leading-relaxed line-clamp-3">
+                      {templates[0].description}
+                    </p>
+
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      <span className="text-[8px] font-bold text-emerald-600 bg-emerald-500/5 border border-emerald-500/15 px-2 py-0.5 rounded-full">
+                        ✓ ATS Friendly
+                      </span>
+                      <span className="text-[8px] font-bold text-purple-600 bg-purple-500/5 border border-purple-500/15 px-2 py-0.5 rounded-full">
+                        ⌨ Professional
+                      </span>
+                      <span className="text-[8px] font-bold text-amber-600 bg-emerald-500/5 border border-emerald-500/15 px-2 py-0.5 rounded-full">
+                        💡 iLEAD Approved
+                      </span>
+                    </div>
+
+                    {/* Choose & Generate Button */}
+                    <button 
+                      onClick={() => handleGenerate(templates[0].id)}
+                      disabled={isGenerating}
+                      className="btn btn-primary w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-bold rounded-xl cursor-pointer"
+                    >
+                      {isGenerating ? 'Generating...' : 'Choose Template & Generate →'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-6 text-center text-muted italic text-xs">
+                  No templates available.
+                </div>
+              )}
             </div>
 
-            {isMobile ? (
-              <div className="space-y-4">
+            {/* My Resumes Card */}
+            <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-border-color/10">
+                <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-blue-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                  My Resumes ({resumes?.length || 0})
+                </h3>
+                <span className="text-[10px] font-bold text-blue-500 hover:underline">View All &gt;</span>
+              </div>
+
+              <div className="divide-y divide-border-color">
                 {resumes?.length > 0 ? (
                   resumes.map(resume => (
-                    <div key={resume.id} className="card p-4 flex flex-col gap-3">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="p-2 bg-orange-500/10 rounded-lg shrink-0">
-                            <FileText size={18} className="text-orange-500" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            {editingTitleId === resume.id ? (
-                              <div className="flex items-center gap-2 mt-1">
-                                <input 
-                                  type="text" 
-                                  value={editTitleVal} 
-                                  onChange={(e) => setEditTitleVal(e.target.value)} 
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleSaveTitle(resume.id);
-                                    else if (e.key === 'Escape') setEditingTitleId(null);
-                                  }}
-                                  className="input-field py-1 px-2 text-xs"
-                                  autoFocus
-                                />
-                                <button onClick={() => handleSaveTitle(resume.id)} className="btn btn-sm btn-primary py-1 px-2.5 text-xs">Save</button>
-                                <button onClick={() => setEditingTitleId(null)} className="btn btn-sm btn-secondary py-1 px-2.5 text-xs">Cancel</button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-bold text-sm truncate max-w-[140px]">{resume.title}</span>
-                                <button 
-                                  onClick={() => {
-                                    setEditingTitleId(resume.id);
-                                    setEditTitleVal(resume.title);
-                                  }}
-                                  className="text-gray-400 hover:text-orange-500 transition-colors p-1"
-                                >
-                                  <Edit size={11} />
-                                </button>
-                                {resume.is_primary && (
-                                  <span className="status-badge status-generated text-[8px] px-1.5 py-0.5 inline-flex items-center gap-0.5">
-                                    <Star size={8} fill="currentColor" /> Active
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            <div className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">{resume.template_name}</div>
-                          </div>
+                    <div key={resume.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/5 border border-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
+                          <FileText size={14} />
                         </div>
-                        <div className="shrink-0">
-                          {getStatusBadge(resume.state)}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-xs truncate max-w-[130px] text-primary">{resume.title}</span>
+                            {resume.is_primary && (
+                              <span className="text-[8px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-emerald-500/15">
+                                ● Active
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[9px] text-muted font-semibold mt-0.5">
+                            Updated {new Date(resume.created_at).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      
-                      <div className="flex justify-between items-center pt-2 border-t border-dashed border-border-color">
-                        <span className="text-[10px] text-muted font-semibold">
-                          {new Date(resume.created_at).toLocaleDateString()}
-                        </span>
-                        <div className="flex gap-2">
-                          {(resume.state === 'generated' || resume.state === 'parsed') && (
+
+                      {/* Action icons right aligned */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleDownload(resume.id, resume.title)} 
+                          style={{ background: 'transparent', border: 'none', padding: '6px' }}
+                          className="text-muted hover:text-blue-500 transition-colors cursor-pointer"
+                          title="Download PDF"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleEditClick(resume.id)}
+                          style={{ background: 'transparent', border: 'none', padding: '6px' }}
+                          className="text-muted hover:text-blue-500 transition-colors cursor-pointer"
+                          title="Edit Resume"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        
+                        {/* Interactive Dropdown for actions */}
+                        <div className="relative">
+                          <button 
+                            onClick={() => setActiveMenuId(activeMenuId === resume.id ? null : resume.id)}
+                            style={{ background: 'transparent', border: 'none', padding: '6px' }}
+                            className="text-muted hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5" />
+                            </svg>
+                          </button>
+                          
+                          {activeMenuId === resume.id && (
                             <>
-                              {!resume.is_primary && (
+                              <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
+                              <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-zinc-800 rounded-lg border border-border-color shadow-lg py-1 z-20">
+                                {!resume.is_primary && (
+                                  <button 
+                                    onClick={() => {
+                                      handleSetPrimary(resume.id);
+                                      setActiveMenuId(null);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent"
+                                  >
+                                    Set Active
+                                  </button>
+                                )}
                                 <button 
-                                  onClick={() => handleSetPrimary(resume.id)} 
-                                  className="btn btn-xs btn-secondary py-1 px-2 text-[9px] font-bold"
+                                  onClick={() => {
+                                    handleDelete(resume.id);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold cursor-pointer border-none bg-transparent"
                                 >
-                                  Set Active
+                                  Delete
                                 </button>
-                              )}
-                              <button 
-                                onClick={() => handleDownload(resume.id, resume.title)} 
-                                className="btn btn-xs btn-secondary p-1"
-                                title="Download PDF"
-                              >
-                                <Download size={12} />
-                              </button>
-                              <button 
-                                onClick={() => handleEditClick(resume.id)}
-                                className="btn btn-xs btn-primary py-1 px-2 text-[9px] font-bold"
-                              >
-                                Edit
-                              </button>
+                              </div>
                             </>
                           )}
-                          <button 
-                            onClick={() => handleDelete(resume.id)}
-                            className="btn btn-xs btn-danger p-1"
-                            title="Delete Resume"
-                          >
-                             <Trash2 size={12} />
-                          </button>
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="card p-8 text-center text-muted italic text-xs">
-                    No resumes found. Generate one above.
+                  <div className="py-6 text-center text-muted italic text-xs">
+                    No resumes generated.
                   </div>
                 )}
               </div>
-            ) : (
+            </div>
+
+            {/* Pro Tip Card */}
+            <div className="card p-4 bg-blue-500/5 dark:bg-blue-500/10 rounded-2xl border border-blue-500/15 flex items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                  <span className="text-base">💡</span>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-primary">Pro Tip</p>
+                  <p className="text-[10px] text-muted leading-tight mt-0.5">Keep your resume updated and relevant for better opportunities.</p>
+                </div>
+              </div>
+              <ChevronRight size={14} className="text-muted" />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Desktop templates gallery */}
+            <section className="mb-12">
+              <div className="section-label label-caps">
+                <Layout size={14} className="text-orange-500" /> Available Templates
+              </div>
+              <div className="template-grid">
+                {templates.map((tpl) => (
+                  <div key={tpl.id} className="template-card">
+                    <div className="template-preview" style={{ padding: '16px', background: 'white', position: 'relative', overflow: 'hidden' }}>
+                      <div className="w-full h-full p-4 space-y-2 bg-white dark:bg-zinc-950 rounded-lg shadow-sm border border-border-color">
+                        <div className="w-2/3 h-2.5 bg-blue-400 rounded"></div>
+                        <div className="w-1/2 h-2 bg-slate-200 dark:bg-zinc-800 rounded"></div>
+                        <div className="pt-4 w-full h-2 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                        <div className="w-3/4 h-2 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                        <div className="w-5/6 h-2 bg-slate-100 dark:bg-zinc-900 rounded"></div>
+                      </div>
+                      <div className="template-hover-overlay">
+                        <button 
+                          onClick={() => handleGenerate(tpl.id)}
+                          disabled={isGenerating}
+                          className="btn btn-primary btn-sm"
+                        >
+                          {isGenerating ? 'Generating...' : 'Choose Template & Generate'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-5">
+                      <div className="flex justify-between items-center mb-1">
+                        <h4 className="text-sm font-bold">{tpl.name}</h4>
+                        <span className="label-caps font-bold" style={{ fontSize: '9px' }}>v{tpl.version}</span>
+                      </div>
+                      <p className="text-xs text-secondary font-light line-clamp-2">{tpl.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Desktop Document History */}
+            <section className="mb-12">
+              <div className="section-label label-caps mb-4">
+                <History size={14} className="text-orange-500" /> Document History
+              </div>
               <div className="table-container">
                 <table className="w-full">
                   <thead>
@@ -756,8 +711,8 @@ export default function StudentResumes() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
+            </section>
+          </>
         )}
 
 
