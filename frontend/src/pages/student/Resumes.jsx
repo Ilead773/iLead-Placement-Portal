@@ -445,14 +445,6 @@ export default function StudentResumes() {
                         >
                           <Download size={14} />
                         </button>
-                        <button 
-                          onClick={() => handleEditClick(resume.id)}
-                          style={{ background: 'transparent', border: 'none', padding: '6px' }}
-                          className="text-muted hover:text-blue-500 transition-colors cursor-pointer"
-                          title="Edit Resume"
-                        >
-                          <Edit size={14} />
-                        </button>
                         
                         {/* Interactive Dropdown for actions */}
                         <div className="relative">
