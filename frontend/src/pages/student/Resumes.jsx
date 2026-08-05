@@ -734,67 +734,67 @@ export default function StudentResumes() {
                 &times;
               </button>
             </div>
-            
             {/* Editor Body */}
             <div className="editor-modal-body">
-              <div className="editor-paper-container">
-                <iframe 
-                  ref={iframeRef}
-                  srcDoc={editHtml}
-                  style={{ 
-                    width: '100%', 
-                    height: '1122px', 
-                    border: 'none', 
-                    backgroundColor: 'white'
-                  }}
-                  onLoad={(e) => {
-                    try {
-                      const doc = e.target.contentDocument;
-                      doc.designMode = 'on';
-                      
-                      // Add Editor Styles
-                      const style = doc.createElement('style');
-                      style.innerHTML = `
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-                        body { 
-                          cursor: text; 
-                          padding: 60px 80px !important; 
-                          margin: 0 !important; 
-                          background: white !important; 
-                          font-family: 'Inter', sans-serif !important;
-                          line-height: 1.5;
-                        }
-                        *:hover { outline: 1px dashed rgba(249, 115, 22, 0.3); outline-offset: 4px; }
-                        * { transition: outline 0.1s; }
-                        [contenteditable]:empty::before { content: 'Empty element...'; color: #ccc; }
-                      `;
-                      doc.head.appendChild(style);
+              <div className="editor-scale-wrapper">
+                <div className="editor-paper-container">
+                  <iframe 
+                    ref={iframeRef}
+                    srcDoc={editHtml}
+                    style={{ 
+                      width: '100%', 
+                      height: '1122px', 
+                      border: 'none', 
+                      backgroundColor: 'white'
+                    }}
+                    onLoad={(e) => {
+                      try {
+                        const doc = e.target.contentDocument;
+                        doc.designMode = 'on';
+                        
+                        // Add Editor Styles
+                        const style = doc.createElement('style');
+                        style.innerHTML = `
+                          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+                          body { 
+                            cursor: text; 
+                            padding: 60px 80px !important; 
+                            margin: 0 !important; 
+                            background: white !important; 
+                            font-family: 'Inter', sans-serif !important;
+                            line-height: 1.5;
+                          }
+                          *:hover { outline: 1px dashed rgba(249, 115, 22, 0.3); outline-offset: 4px; }
+                          * { transition: outline 0.1s; }
+                          [contenteditable]:empty::before { content: 'Empty element...'; color: #ccc; }
+                        `;
+                        doc.head.appendChild(style);
 
-                      // Attach Ctrl+S and input listeners
-                      doc.addEventListener('keydown', (ev) => {
-                        if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
-                          ev.preventDefault();
-                          handleSaveEdit();
-                        }
-                      });
+                        // Attach Ctrl+S and input listeners
+                        doc.addEventListener('keydown', (ev) => {
+                          if ((ev.ctrlKey || ev.metaKey) && ev.key === 's') {
+                            ev.preventDefault();
+                            handleSaveEdit();
+                          }
+                        });
 
-                      const markDirty = () => {
-                        setUnsavedChanges(true);
-                      };
-                      doc.addEventListener('input', markDirty);
-                      doc.addEventListener('keyup', markDirty);
-                      doc.addEventListener('paste', markDirty);
-                      doc.addEventListener('blur', markDirty);
+                        const markDirty = () => {
+                          setUnsavedChanges(true);
+                        };
+                        doc.addEventListener('input', markDirty);
+                        doc.addEventListener('keyup', markDirty);
+                        doc.addEventListener('paste', markDirty);
+                        doc.addEventListener('blur', markDirty);
 
-                    } catch (err) {
-                      console.error("Iframe access error", err);
-                    }
-                  }}
-                  title="Resume Editor"
-                />
+                      } catch (err) {
+                        console.error("Iframe access error", err);
+                      }
+                    }}
+                    title="Resume Editor"
+                  />
+                </div>
               </div>
             </div>
-            
             {/* Footer */}
             <div className="editor-modal-footer">
               <button 
