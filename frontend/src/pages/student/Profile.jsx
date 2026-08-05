@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote, FileText, Download } from 'lucide-react';
+import { MapPin, Phone, GraduationCap, ShieldCheck, ShieldAlert, Linkedin, Github, Quote, FileText, Download, User, Briefcase, FileCode, Award, ChevronRight } from 'lucide-react';
 
 const getFullImageUrl = (path) => {
   if (!path) return '';
@@ -714,7 +714,7 @@ export default function StudentProfile() {
   if (loading) return <div className="loading-state">Loading Profile...</div>;
 
   return (
-    <div className="profile-container p-6 animate-in">
+    <div className="profile-container p-4 md:p-6 animate-in">
       <div className="responsive-header-flex mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">My Professional Profile</h1>
@@ -736,44 +736,134 @@ export default function StudentProfile() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Top Profile Cards */}
+      {isMobile && (
+        <div className="space-y-4 mb-6">
+          {/* Avatar Details Card */}
+          <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+            <div className="flex items-center gap-4">
+              {/* Circular Avatar with blue border and green check */}
+              <div className="relative shrink-0 cursor-pointer" onClick={handlePhotoClick}>
+                <div className="w-20 h-20 rounded-full border-2 border-blue-500 p-0.5 overflow-hidden bg-white">
+                  {photoLoading && (
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                      <div className="spinner w-6 h-6 border-white border-t-transparent"></div>
+                    </div>
+                  )}
+                  {profile?.profile_picture ? (
+                    <img 
+                      src={getFullImageUrl(profile.profile_picture)} 
+                      alt={profile?.student_name}
+                      className="w-full h-full rounded-full object-cover" 
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-2xl">
+                      {(profile?.student_name || 'S').charAt(0)}
+                    </div>
+                  )}
+                </div>
+                {/* Green checkmark at bottom right */}
+                <div className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white shadow-sm text-[9px] font-bold">
+                  ✓
+                </div>
+              </div>
+
+              {/* User Details */}
+              <div className="min-w-0 flex-1">
+                <div className="flex justify-between items-start gap-1">
+                  <div>
+                    <h2 className="text-md font-bold text-primary truncate leading-tight">{profile?.student_name || 'N/A'}</h2>
+                    <p className="text-[11px] text-blue-500 font-bold mt-1">
+                      {profile?.course} {profile?.stream ? `(${profile.stream})` : ''}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setShowBasicModal(true)}
+                    className="btn btn-primary btn-sm flex items-center gap-1 py-1 px-2.5 text-[10px] shrink-0 rounded-xl font-bold"
+                  >
+                    <Edit size={10} /> Edit Profile
+                  </button>
+                </div>
+                
+                {/* Student ID Tag */}
+                <div className="inline-block mt-2 px-2 py-0.5 bg-slate-100 dark:bg-zinc-800 rounded-md border border-border-color">
+                  <span className="text-[9px] font-bold text-secondary">
+                    Student ID: {profile?.student_id || 'N/A'}
+                  </span>
+                </div>
+
+                {/* Location */}
+                <div className="flex items-center gap-1 mt-1.5 text-muted text-[10px] font-semibold">
+                  <MapPin size={10} className="text-muted" />
+                  <span>{profile?.location || 'Not Set'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handlePhotoChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+          </div>
+
+          {/* Profile Completion Card */}
+          <div className="card p-4 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-bold text-primary">Profile Completion</span>
+              <span className="text-xs font-bold text-primary">{Math.round((completion?.completion_score || 0) * 100)}%</span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-blue-500 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${Math.round((completion?.completion_score || 0) * 100)}%` }}
+              />
+            </div>
+            
+            <p className="text-[9px] text-muted mt-1.5 font-medium">
+              {completion?.suggestions?.length === 0 ? 'Your profile is complete!' : 'Complete pending details to raise readiness.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Profile Tab Bar */}
       {isMobile && (
         <div className="mobile-tabs-container">
           <button 
             onClick={() => setActiveProfileTab('info')}
-            className={`mobile-tab-btn ${activeProfileTab === 'info' ? 'active' : ''}`}
+            className={`mobile-tab-btn flex items-center justify-center gap-1.5 ${activeProfileTab === 'info' ? 'active' : ''}`}
           >
-            Basic Info
-          </button>
-          <button 
-            onClick={() => setActiveProfileTab('resume')}
-            className={`mobile-tab-btn ${activeProfileTab === 'resume' ? 'active' : ''}`}
-          >
-            Resume
+            <User size={14} /> Basic Info
           </button>
           <button 
             onClick={() => setActiveProfileTab('academics')}
-            className={`mobile-tab-btn ${activeProfileTab === 'academics' ? 'active' : ''}`}
+            className={`mobile-tab-btn flex items-center justify-center gap-1.5 ${activeProfileTab === 'academics' ? 'active' : ''}`}
           >
-            Academics
+            <GraduationCap size={14} /> Academics
           </button>
           <button 
             onClick={() => setActiveProfileTab('experience')}
-            className={`mobile-tab-btn ${activeProfileTab === 'experience' ? 'active' : ''}`}
+            className={`mobile-tab-btn flex items-center justify-center gap-1.5 ${activeProfileTab === 'experience' ? 'active' : ''}`}
           >
-            Experience ({profile?.experiences?.length || 0})
+            <Briefcase size={14} /> Experience ({profile?.experiences?.length || 0})
           </button>
           <button 
             onClick={() => setActiveProfileTab('projects')}
-            className={`mobile-tab-btn ${activeProfileTab === 'projects' ? 'active' : ''}`}
+            className={`mobile-tab-btn flex items-center justify-center gap-1.5 ${activeProfileTab === 'projects' ? 'active' : ''}`}
           >
-            Projects & Skills
+            <FileCode size={14} /> Projects
           </button>
           <button 
             onClick={() => setActiveProfileTab('activities')}
-            className={`mobile-tab-btn ${activeProfileTab === 'activities' ? 'active' : ''}`}
+            className={`mobile-tab-btn flex items-center justify-center gap-1.5 ${activeProfileTab === 'activities' ? 'active' : ''}`}
           >
-            Certifications & More
+            <Award size={14} /> More
           </button>
         </div>
       )}
@@ -782,213 +872,226 @@ export default function StudentProfile() {
         <div className="space-y-6">
           {activeProfileTab === 'info' && (
             <div className="space-y-6">
-              <section className="glass-panel p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <span>👤</span> Basic Info
+              {/* Basic Information Card */}
+              <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-md font-bold flex items-center gap-2 text-primary">
+                    <User size={18} className="text-blue-500" /> Basic Information
                   </h3>
-                  <button onClick={() => setShowBasicModal(true)} className="btn btn-secondary btn-sm">Edit</button>
+                  <button 
+                    onClick={() => setShowBasicModal(true)}
+                    className="btn btn-outline btn-xs flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-primary border border-primary/20 bg-transparent text-[11px] font-bold cursor-pointer hover:bg-primary/5"
+                  >
+                    <Edit size={11} /> Edit
+                  </button>
                 </div>
 
-                <div className="avatar-upload-container">
-                  <div className="avatar-wrapper" onClick={handlePhotoClick}>
-                    {photoLoading && (
-                      <div className="avatar-spinner">
-                        <div className="spinner w-8 h-8"></div>
+                <div className="divide-y divide-border-color">
+                  {/* Name Row */}
+                  <div className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <User size={14} />
                       </div>
-                    )}
-                    <div className="avatar-inner">
-                      {profile?.profile_picture ? (
-                        <img 
-                          src={getFullImageUrl(profile.profile_picture)} 
-                          alt="Student Profile" 
-                          className="avatar-image" 
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                            e.target.parentNode.innerHTML = `<div class="avatar-fallback">${(profile?.student_name || 'S').charAt(0)}</div>`;
-                          }}
-                        />
-                      ) : (
-                        <div className="avatar-fallback">
-                          {profile?.student_name ? profile.student_name.charAt(0) : 'S'}
-                        </div>
-                      )}
-                      <div className="avatar-overlay">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 mb-1">
-                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                          <circle cx="12" cy="13" r="4"></circle>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Name</p>
+                        <p className="text-sm font-bold text-primary mt-0.5">{profile?.student_name || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-muted/60" />
+                  </div>
+
+                  {/* Student ID Row */}
+                  <div className="flex items-center justify-between py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <GraduationCap size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Student ID</p>
+                        <p className="text-sm font-bold text-primary mt-0.5">{profile?.student_id || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-muted/60" />
+                  </div>
+
+                  {/* Email Row */}
+                  <div className="flex items-center justify-between py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H4.5A2.25 2.25 0 0 1 2.25 17.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5H4.5a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.626a2.25 2.25 0 0 1-2.06 0L3 8.908a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                         </svg>
-                        <span className="avatar-overlay-text">Upload</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Email</p>
+                        <p className="text-sm font-bold text-primary mt-0.5 break-all">{profile?.student_email || 'N/A'}</p>
                       </div>
                     </div>
+                    <ChevronRight size={14} className="text-muted/60" />
                   </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handlePhotoChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                  <div className="avatar-info-text text-center mt-2">
-                    <span className="text-[10px] text-muted">Click to change picture</span>
+
+                  {/* Location Row */}
+                  <div className="flex items-center justify-between py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <MapPin size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Location</p>
+                        <p className="text-sm font-bold text-primary mt-0.5">{profile?.location || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-muted/60" />
+                  </div>
+
+                  {/* Course Row */}
+                  <div className="flex items-center justify-between py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <GraduationCap size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Course</p>
+                        <p className="text-sm font-bold text-primary mt-0.5">{profile?.course || 'N/A'} {profile?.stream ? `(${profile.stream})` : ''}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-muted/60" />
+                  </div>
+
+                  {/* University Row */}
+                  <div className="flex items-center justify-between py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-border-color flex items-center justify-center text-muted">
+                        <GraduationCap size={14} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-wider">University / College</p>
+                        <p className="text-sm font-bold text-primary mt-0.5">iLEAD Institution</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-muted/60" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats Section */}
+              <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+                <h3 className="text-md font-bold flex items-center gap-2 text-primary mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4.5 h-4.5 text-blue-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v16.5M12 5.25M12 18.75m0-13.5a1.5 1.5 0 0 0-3 0v13.5a1.5 1.5 0 0 0 3 0M20.25 10.5M20.25 18.75m0-8.25a1.5 1.5 0 0 0-3 0v8.25a1.5 1.5 0 0 0 3 0m-16.5 0h16.5" />
+                  </svg>
+                  Quick Stats
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {/* Projects Stats */}
+                  <div className="p-2.5 bg-purple-500/5 border border-purple-500/10 rounded-xl flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-purple-600 leading-none">{profile?.projects?.length || 0}</span>
+                    <span className="text-[8px] font-black text-purple-500/80 mt-1.5 uppercase tracking-wider">Projects</span>
+                  </div>
+
+                  {/* Experience Stats */}
+                  <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-emerald-600 leading-none">{profile?.experiences?.length || 0}</span>
+                    <span className="text-[8px] font-black text-emerald-500/80 mt-1.5 uppercase tracking-wider">Experience</span>
+                  </div>
+
+                  {/* Certificates Stats */}
+                  <div className="p-2.5 bg-amber-500/5 border border-amber-500/10 rounded-xl flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-amber-600 leading-none">{profile?.certifications?.length || 0}</span>
+                    <span className="text-[8px] font-black text-amber-500/80 mt-1.5 uppercase tracking-wider">Certificates</span>
+                  </div>
+
+                  {/* CGPA Stats */}
+                  <div className="p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-xl flex flex-col items-center justify-center text-center">
+                    <span className="text-base font-black text-blue-600 leading-none">{profile?.cgpa?.toFixed(2) || 'N/A'}</span>
+                    <span className="text-[8px] font-black text-blue-500/80 mt-1.5 uppercase tracking-wider">CGPA</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Strengths & Languages */}
+              <div className="grid grid-cols-1 gap-4">
+                <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Strengths</h4>
+                    <button onClick={() => setShowBasicModal(true)} className="text-[10px] text-primary font-black uppercase bg-transparent border-none cursor-pointer">Edit</button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile?.strengths?.length > 0 ? (
+                      profile.strengths.map((str, idx) => (
+                        <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-lg font-semibold">{str}</span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted italic">Not set</span>
+                    )}
                   </div>
                 </div>
 
-                <div className="profile-info-fields mt-6 space-y-4">
-                  <div className="profile-info-item">
-                    <div className="profile-info-content">
-                      <span className="profile-info-label">Student ID</span>
-                      <span className="profile-info-value">{profile?.student_id || 'N/A'}</span>
-                    </div>
+                <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Languages Known</h4>
+                    <button onClick={() => setShowBasicModal(true)} className="text-[10px] text-primary font-black uppercase bg-transparent border-none cursor-pointer">Edit</button>
                   </div>
-                  
-                  <div className="profile-info-item">
-                    <div className="profile-info-content">
-                      <span className="profile-info-label">Name</span>
-                      <span className="profile-info-value">{profile?.student_name || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-info-item">
-                    <div className="profile-info-content">
-                      <span className="profile-info-label">Email</span>
-                      <span className="profile-info-value">{profile?.student_email || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-info-item">
-                    <div className="profile-info-content">
-                      <span className="profile-info-label">Location</span>
-                      <span className="profile-info-value">{profile?.location || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="profile-info-item professional-summary mt-4">
-                    <div className="profile-info-content">
-                      <span className="profile-info-label font-bold text-xs uppercase text-muted block mb-1">Professional Summary</span>
-                      {profile?.professional_summary ? (
-                        <p className="text-xs leading-relaxed text-secondary font-medium">{profile.professional_summary}</p>
-                      ) : (
-                        <span className="text-xs text-muted italic">Not set</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Strengths */}
-                  <div className="profile-info-item strengths mt-4">
-                    <div className="profile-info-content w-full">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="profile-info-label font-bold text-xs uppercase text-muted block">Strengths</span>
-                        <button 
-                          onClick={() => {
-                            setShowBasicModal(true);
-                            setTimeout(() => {
-                              const el = document.getElementById('strengths-input');
-                              if (el) el.focus();
-                            }, 200);
-                          }} 
-                          className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
-                        >
-                          {profile?.strengths?.length > 0 ? 'Edit' : '+ Add'}
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {profile?.strengths?.length > 0 ? (
-                          profile.strengths.map((str, idx) => (
-                            <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-semibold">{str}</span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-muted italic">Not set</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Languages Known */}
-                  <div className="profile-info-item languages mt-4">
-                    <div className="profile-info-content w-full">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="profile-info-label font-bold text-xs uppercase text-muted block">Languages Known</span>
-                        <button 
-                          onClick={() => {
-                            setShowBasicModal(true);
-                            setTimeout(() => {
-                              const el = document.getElementById('languages-input');
-                              if (el) el.focus();
-                            }, 200);
-                          }} 
-                          className="text-primary hover:underline text-[10px] font-bold uppercase transition-colors"
-                        >
-                          {profile?.languages_known?.length > 0 ? 'Edit' : '+ Add'}
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {profile?.languages_known?.length > 0 ? (
-                          profile.languages_known.map((lang, idx) => (
-                            <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2 py-0.5 rounded font-semibold border border-secondary/15">{lang}</span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-muted italic">Not set</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Social Buttons */}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {profile?.linkedin && (
-                      <a 
-                        href={profile.linkedin} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0a66c2] to-[#0077b5] hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
-                      >
-                        <Linkedin size={14} />
-                        LinkedIn
-                      </a>
-                    )}
-                    {profile?.github && profile?.student_department === 'Technology' && (
-                      <a 
-                        href={profile.github} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#24292e] to-[#171a1d] border border-white/10 hover:border-white/20 hover:shadow-lg hover:shadow-black/30 transition-all duration-300 transform hover:-translate-y-0.5"
-                      >
-                        <Github size={14} />
-                        GitHub
-                      </a>
-                    )}
-                    {profile?.portfolio && (
-                      <a 
-                        href={profile.portfolio} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="flex items-center justify-center gap-2 flex-1 min-w-[80px] px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#10b981] to-[#059669] hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 transform hover:-translate-y-0.5"
-                      >
-                        <span className="text-sm">🌐</span>
-                        Portfolio
-                      </a>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile?.languages_known?.length > 0 ? (
+                      profile.languages_known.map((lang, idx) => (
+                        <span key={idx} className="text-[10px] bg-secondary-light/10 text-secondary px-2.5 py-1 rounded-lg font-semibold border border-secondary/15">{lang}</span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted italic">Not set</span>
                     )}
                   </div>
                 </div>
-              </section>
+              </div>
 
-              <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
-                <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-primary">
+              {/* Social Profiles Grid */}
+              <div className="card p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-border-color shadow-sm">
+                <h4 className="text-xs font-bold text-primary mb-4 uppercase tracking-wider">Social Profiles</h4>
+                <div className="flex flex-col gap-3">
+                  {profile?.linkedin && (
+                    <a href={profile.linkedin} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl hover:bg-blue-500/10 transition-colors">
+                      <div className="flex items-center gap-2.5 text-blue-600 font-bold text-xs">
+                        <Linkedin size={16} /> LinkedIn
+                      </div>
+                      <ChevronRight size={14} className="text-blue-500/60" />
+                    </a>
+                  )}
+                  {profile?.github && profile?.student_department === 'Technology' && (
+                    <a href={profile.github} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-zinc-800/5 border border-zinc-800/10 rounded-xl hover:bg-zinc-800/10 transition-colors">
+                      <div className="flex items-center gap-2.5 text-primary font-bold text-xs">
+                        <Github size={16} /> GitHub
+                      </div>
+                      <ChevronRight size={14} className="text-muted/60" />
+                    </a>
+                  )}
+                  {profile?.portfolio && (
+                    <a href={profile.portfolio} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl hover:bg-emerald-500/10 transition-colors">
+                      <div className="flex items-center gap-2.5 text-emerald-600 font-bold text-xs">
+                        <span className="text-sm">🌐</span> Portfolio
+                      </div>
+                      <ChevronRight size={14} className="text-emerald-500/60" />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Completion Suggestions */}
+              <section className={`glass-panel p-5 border-l-4 rounded-2xl ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>
+                <h3 className="text-xs font-bold mb-3 flex items-center gap-2 text-primary">
                   <span>📋</span> Profile Status: {completion?.suggestions?.length > 0 ? 'Fill All Data' : 'All Data Filled'}
                 </h3>
                 {completion?.suggestions?.length > 0 ? (
                   <>
-                    <p className="text-xs text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
-                    <ul className="space-y-2.5">
+                    <p className="text-[11px] text-secondary mb-3 font-semibold">Please fill in the following details to complete your profile:</p>
+                    <ul className="space-y-2">
                       {completion.suggestions.map((s, idx) => (
                         <li 
                           key={idx} 
                           onClick={() => handleSuggestionClick(s)}
-                          className="text-xs text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
+                          className="text-[11px] text-warning-muted flex items-start gap-2 cursor-pointer hover:text-warning hover:translate-x-0.5 transition-all duration-200 group"
                         >
-                          <span className="text-warning flex-shrink-0 mt-0.5">☐</span>
+                          <span className="text-warning flex-shrink-0">☐</span>
                           <span className="leading-relaxed underline decoration-dotted decoration-warning/20 group-hover:decoration-warning">{s}</span>
                         </li>
                       ))}
@@ -1002,71 +1105,6 @@ export default function StudentProfile() {
                 )}
               </section>
             </div>
-          )}
-
-          {activeProfileTab === 'resume' && (
-            <section className="glass-panel p-6">
-              <h3 className="text-xl font-bold flex items-center gap-2 mb-4"><span>📄</span> Professional Resume</h3>
-              
-              {primaryResume ? (
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
-                      <FileText size={20} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate text-primary">{primaryResume.title || primaryResume.original_filename}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider font-semibold mt-0.5">
-                        {primaryResume.type === 'uploaded' ? 'Uploaded PDF' : `Template: ${primaryResume.template_name || 'Classic'}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-dashed border-primary/10">
-                    <button 
-                      onClick={() => handleDownloadResume(primaryResume)}
-                      className="btn btn-xs btn-secondary flex items-center gap-1"
-                    >
-                      <Download size={12} /> Download
-                    </button>
-                    {primaryResume.type === 'built' && (
-                      <Link 
-                        to="/student/resumes"
-                        className="btn btn-xs btn-primary"
-                      >
-                        Edit Builder
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 border border-dashed border-border-color rounded-xl mb-4 bg-muted/5">
-                  <span className="text-2xl">📭</span>
-                  <p className="text-xs text-muted mt-2 italic">No active resume set.</p>
-                </div>
-              )}
-
-              {/* Upload PDF Section */}
-              <div className="space-y-3 mt-6 pt-4 border-t border-dashed border-border-color">
-                <label className="text-xs font-bold uppercase text-muted tracking-wider block">Upload Custom PDF Resume</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="file" 
-                    id="profile-resume-file-mobile" 
-                    accept=".pdf"
-                    onChange={handleResumeUpload}
-                    className="hidden" 
-                  />
-                  <button 
-                    onClick={() => document.getElementById('profile-resume-file-mobile').click()}
-                    className="btn btn-sm btn-secondary w-full flex items-center justify-center gap-2"
-                    disabled={uploadingResume}
-                  >
-                    {uploadingResume ? 'Uploading...' : 'Upload PDF'}
-                  </button>
-                </div>
-                <span className="text-[10px] text-muted block text-center mt-1">PDF only. Max size 2MB. Setting this active will display it to HR/recruiters.</span>
-              </div>
-            </section>
           )}
 
           {activeProfileTab === 'academics' && (
