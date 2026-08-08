@@ -718,7 +718,7 @@ def render_html_error(status_code, title, message):
                 body {{
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                     background-color: #f8fafc;
-                    color: #0f172a;
+                    color: #1e293b;
                     display: flex;
                     align-items: center;
                     justify-content: center;
@@ -729,18 +729,18 @@ def render_html_error(status_code, title, message):
                 }}
                 .error-card {{
                     background: #ffffff;
-                    border: 1px solid #fee2e2;
-                    border-radius: 24px;
-                    padding: 40px 32px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 16px;
+                    padding: 32px 24px;
                     text-align: center;
-                    max-width: 440px;
+                    max-width: 400px;
                     width: 100%;
-                    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
                     box-sizing: border-box;
                 }}
                 .icon {{
-                    width: 64px;
-                    height: 64px;
+                    width: 48px;
+                    height: 48px;
                     background: #fef2f2;
                     color: #ef4444;
                     border: 1px solid #fee2e2;
@@ -748,38 +748,35 @@ def render_html_error(status_code, title, message):
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 24px;
+                    font-size: 20px;
                     font-weight: bold;
-                    margin: 0 auto 24px;
+                    margin: 0 auto 16px;
                 }}
                 h1 {{
-                    font-size: 20px;
-                    font-weight: 800;
-                    margin: 0 0 12px 0;
-                    color: #1e293b;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin: 0 0 8px 0;
+                    color: #0f172a;
                 }}
                 p {{
                     color: #475569;
                     font-size: 14px;
-                    line-height: 1.6;
-                    margin: 0 0 28px 0;
+                    line-height: 1.5;
+                    margin: 0 0 24px 0;
                 }}
                 .btn {{
                     display: inline-block;
                     background: #2563eb;
                     color: #ffffff;
                     text-decoration: none;
-                    padding: 12px 24px;
-                    border-radius: 12px;
-                    font-weight: 700;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    font-weight: 600;
                     font-size: 14px;
-                    transition: background 0.2s, transform 0.1s;
+                    transition: background 0.15s;
                 }}
                 .btn:hover {{
                     background: #1d4ed8;
-                }}
-                .btn:active {{
-                    transform: scale(0.98);
                 }}
             </style>
         </head>
@@ -788,7 +785,7 @@ def render_html_error(status_code, title, message):
                 <div class="icon">✕</div>
                 <h1>{title}</h1>
                 <p>{message}</p>
-                <a href="javascript:window.close();" class="btn">Close Tab</a>
+                <a href="javascript:window.close();" class="btn">Close Window</a>
             </div>
         </body>
     </html>
@@ -800,7 +797,6 @@ class SharedResumeDownloadView(APIView):
     """
     GET /api/v1/applications/shared-resumes/{log_id}/download/{app_id}/
     Public proxy endpoint to view/download shared resumes.
-    Verifies expiration and security PIN codes. Serves clean error pages if Cloudflare R2 / S3 fails.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -814,11 +810,11 @@ class SharedResumeDownloadView(APIView):
         try:
             log = ResumeEmailLog.objects.get(id=log_id)
         except (ResumeEmailLog.DoesNotExist, ValidationError, ValueError):
-            return render_html_error(404, "Invalid Access Link", "The shared resume link is invalid, malformed, or has been deleted.")
+            return render_html_error(404, "Link Invalid", "The link is invalid or has been deleted.")
 
         # 2. Check expiration
         if log.expires_at and timezone.now() > log.expires_at:
-            return render_html_error(410, "Link Expired", "This shared link has expired and is no longer accessible due to security settings.")
+            return render_html_error(410, "Link Expired", "This shared link has expired.")
 
         # 3. Verify security PIN
         is_staff_preview = bool(
@@ -828,17 +824,17 @@ class SharedResumeDownloadView(APIView):
         if not is_staff_preview:
             pin_code = request.query_params.get('pin') or request.headers.get('X-Shared-Resume-PIN') or ''
             if log.pin_code and log.pin_code != pin_code:
-                return render_html_error(403, "Access Denied", "A valid verification PIN is required to access this candidate profile.")
+                return render_html_error(403, "Access Denied", "Enter a valid PIN to access this resume.")
 
         # 4. Verify candidate belongs to this share log
         if str(app_id) not in log.application_ids:
-            return render_html_error(404, "Resume Not Found", "The requested candidate resume is not part of this shared workspace.")
+            return render_html_error(404, "Not Found", "This resume is not part of this shared workspace.")
 
         # 5. Fetch the application
         try:
             app = Application.objects.get(id=app_id)
         except Application.DoesNotExist:
-            return render_html_error(404, "Candidate Not Found", "The candidate application details could not be found.")
+            return render_html_error(404, "Not Found", "Candidate details could not be found.")
 
         # 6. Retrieve the primary resume file object
         student = app.student
@@ -855,17 +851,16 @@ class SharedResumeDownloadView(APIView):
                 filename = primary_upload.original_filename or filename
 
         if not file_obj:
-            return render_html_error(404, "No Primary Resume", f"The candidate '{student.name}' has not uploaded or generated a primary resume.")
+            return render_html_error(404, "Not Found", "The candidate hasn't uploaded a resume.")
 
         # 7. Open and stream the file from cloud storage
         try:
             opened_file = file_obj.open('rb')
         except Exception as e:
-            # Handle R2/S3 access/network issues gracefully
             return render_html_error(
                 500, 
-                "Storage Retrieval Error", 
-                "We encountered an authorization or connection issue while retrieving this resume from secure cloud storage. The configuration might be invalid, or the link signature has expired."
+                "Error Loading Resume", 
+                "The resume file couldn't be loaded from the storage server. Please try again later."
             )
 
         # 8. Return file stream

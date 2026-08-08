@@ -107,9 +107,8 @@ export default function SharedResumes() {
       <div className="workspace-loading-screen">
         <div className="workspace-spinner-wrapper">
           <div className="workspace-spinner"></div>
-          <Sparkles className="workspace-spinner-sparkle" size={20} />
         </div>
-        <p className="workspace-loading-text">Initializing Secure Candidate Workspace...</p>
+        <p className="workspace-loading-text">Loading resumes...</p>
         
         <style>{`
           .workspace-loading-screen {
@@ -171,9 +170,9 @@ export default function SharedResumes() {
           <div className="pin-icon-wrap">
             <Lock size={28} />
           </div>
-          <h2 className="pin-title">Verification Required</h2>
+          <h2 className="pin-title">Enter PIN</h2>
           <p className="pin-subtitle">
-            This link is PIN-protected. Enter the 6-digit code from the email to access the candidate resumes.
+            Enter the 6-digit PIN sent to your email to view the resumes.
           </p>
           <form onSubmit={handlePinSubmit} className="pin-form">
             <div className="pin-inputs" onPaste={handlePinPaste}>
@@ -203,13 +202,13 @@ export default function SharedResumes() {
               ) : (
                 <span className="pin-btn-content">
                   <ShieldCheck size={18} />
-                  Unlock Access
+                  Verify PIN
                 </span>
               )}
             </button>
           </form>
           <p className="pin-hint">
-            The PIN was included in the email subject or body. Check your inbox.
+            Check your email for the verification PIN code.
           </p>
         </div>
 
@@ -364,9 +363,9 @@ export default function SharedResumes() {
       <div className="workspace-error-screen">
         <div className="workspace-error-card">
           <div className="workspace-error-icon">✕</div>
-          <h2 className="workspace-error-title">Link Expired or Invalid</h2>
+          <h2 className="workspace-error-title">Invalid Link</h2>
           <p className="workspace-error-desc">{error}</p>
-          <a href="/login" className="workspace-error-btn">Return to Portal Login</a>
+          <a href="/login" className="workspace-error-btn">Go to Login</a>
         </div>
         
         <style>{`
@@ -496,7 +495,7 @@ export default function SharedResumes() {
             </div>
             <div>
               <h1 className="portal-title">iLEAD Placement Portal</h1>
-              <p className="portal-subtitle">Shared Resumes & Recruitment Workspace</p>
+              <p className="portal-subtitle">Shared Resumes</p>
             </div>
           </div>
           
@@ -508,7 +507,7 @@ export default function SharedResumes() {
               </button>
             )}
             <span className="badge-status">
-              <CheckCircle size={14} /> Live Workspace
+              <CheckCircle size={14} /> Active
             </span>
             <span className="badge-date">
               <Calendar size={14} /> Shared: {new Date(sent_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
@@ -522,16 +521,16 @@ export default function SharedResumes() {
             <div className="info-left-panel">
               <h3 className="panel-title">
                 <Mail className="panel-title-icon" size={20} />
-                <span>Email Context</span>
+                <span>Email Details</span>
               </h3>
               
               <div className="grid-two-cols">
                 <div>
-                  <p className="field-label">Recipient Partner</p>
+                  <p className="field-label">Recipient</p>
                   <p className="field-value">{company_email}</p>
                 </div>
                 <div>
-                  <p className="field-label">Log UUID</p>
+                  <p className="field-label">Share Log ID</p>
                   <p className="field-value-mono">{logId}</p>
                 </div>
               </div>
@@ -542,7 +541,7 @@ export default function SharedResumes() {
               </div>
               
               <div>
-                <p className="field-label">Message Description</p>
+                <p className="field-label">Email Body</p>
                 <div className="body-block">
                   "{body}"
                 </div>
@@ -552,7 +551,7 @@ export default function SharedResumes() {
             <div className="info-right-panel">
               <div className="right-panel-glow"></div>
               <div>
-                <span className="badge-opportunity">Opportunity Detail</span>
+                <span className="badge-opportunity">Position Details</span>
                 <h2 className="opp-header">
                   <Briefcase className="opp-icon" size={24} />
                   <div>
@@ -564,7 +563,7 @@ export default function SharedResumes() {
               
               <div className="opp-footer">
                 <span className="opp-footer-label">Total Candidates:</span>
-                <span className="opp-footer-value">{applications.length} Profiles</span>
+                <span className="opp-footer-value">{applications.length} Resumes</span>
               </div>
             </div>
           </div>
@@ -576,13 +575,13 @@ export default function SharedResumes() {
           {/* Table Header Controls */}
           <div className="table-panel-header">
             <h3 className="table-title">
-              <FileText className="table-title-icon" size={22} /> Candidate Profiles & Resumes
+              <FileText className="table-title-icon" size={22} /> Candidate Resumes
             </h3>
             
             <div className="search-wrapper">
               <input 
                 type="text"
-                placeholder="Search candidates, stream, cgpa..."
+                placeholder="Search resumes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -597,9 +596,9 @@ export default function SharedResumes() {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Department / Stream</th>
-                  <th>Batch Year</th>
-                  <th className="text-center">CGPA Score</th>
+                  <th>Department</th>
+                  <th>Batch</th>
+                  <th className="text-center">CGPA</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
@@ -648,9 +647,9 @@ export default function SharedResumes() {
           </div>
           
           {filteredApplications.length === 0 && (
-            <div className="empty-state">
-              <Search size={40} className="empty-state-icon" />
-              <span>No matching candidate profiles found.</span>
+            <div className="no-results-state">
+              <Search size={36} className="no-results-icon" />
+              <p className="no-results-text">No candidates found.</p>
             </div>
           )}
         </div>
