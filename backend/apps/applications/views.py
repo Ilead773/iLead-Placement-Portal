@@ -671,9 +671,10 @@ class SharedResumeView(APIView):
             getattr(request.user, 'role', None) in ('admin', 'coordinator')
         )
 
+        pin_code = request.query_params.get('pin') or request.headers.get('X-Shared-Resume-PIN') or ''
+
         # Check link PIN code verification (skipped for internal staff)
         if not is_staff_preview:
-            pin_code = request.query_params.get('pin') or request.headers.get('X-Shared-Resume-PIN')
             if log.pin_code and log.pin_code != pin_code:
                 return Response(
                     {
@@ -686,7 +687,11 @@ class SharedResumeView(APIView):
         app_ids = log.application_ids
         applications = Application.objects.filter(id__in=app_ids).select_related('student', 'student__user', 'job')
         
-        serializer = ApplicationSerializer(applications, many=True, context={'request': request})
+        serializer = ApplicationSerializer(
+            applications, 
+            many=True, 
+            context={'request': request, 'log_id': log_id, 'pin_code': pin_code}
+        )
         
         return Response({
             'company_email': log.company_email,
@@ -700,4 +705,174 @@ class SharedResumeView(APIView):
             },
             'applications': serializer.data
         })
+
+
+def render_html_error(status_code, title, message):
+    from django.http import HttpResponse
+    html_content = f"""
+    <html>
+        <head>
+            <title>{title}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    background-color: #f8fafc;
+                    color: #0f172a;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    padding: 24px;
+                    box-sizing: border-box;
+                }}
+                .error-card {{
+                    background: #ffffff;
+                    border: 1px solid #fee2e2;
+                    border-radius: 24px;
+                    padding: 40px 32px;
+                    text-align: center;
+                    max-width: 440px;
+                    width: 100%;
+                    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+                    box-sizing: border-box;
+                }}
+                .icon {{
+                    width: 64px;
+                    height: 64px;
+                    background: #fef2f2;
+                    color: #ef4444;
+                    border: 1px solid #fee2e2;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin: 0 auto 24px;
+                }}
+                h1 {{
+                    font-size: 20px;
+                    font-weight: 800;
+                    margin: 0 0 12px 0;
+                    color: #1e293b;
+                }}
+                p {{
+                    color: #475569;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin: 0 0 28px 0;
+                }}
+                .btn {{
+                    display: inline-block;
+                    background: #2563eb;
+                    color: #ffffff;
+                    text-decoration: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: 700;
+                    font-size: 14px;
+                    transition: background 0.2s, transform 0.1s;
+                }}
+                .btn:hover {{
+                    background: #1d4ed8;
+                }}
+                .btn:active {{
+                    transform: scale(0.98);
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="error-card">
+                <div class="icon">✕</div>
+                <h1>{title}</h1>
+                <p>{message}</p>
+                <a href="javascript:window.close();" class="btn">Close Tab</a>
+            </div>
+        </body>
+    </html>
+    """
+    return HttpResponse(html_content, content_type='text/html', status=status_code)
+
+
+class SharedResumeDownloadView(APIView):
+    """
+    GET /api/v1/applications/shared-resumes/{log_id}/download/{app_id}/
+    Public proxy endpoint to view/download shared resumes.
+    Verifies expiration and security PIN codes. Serves clean error pages if Cloudflare R2 / S3 fails.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, log_id, app_id):
+        from .models import ResumeEmailLog, Application
+        from django.utils import timezone
+        from django.http import FileResponse
+        from django.core.exceptions import ValidationError
+        
+        # 1. Fetch the sharing log
+        try:
+            log = ResumeEmailLog.objects.get(id=log_id)
+        except (ResumeEmailLog.DoesNotExist, ValidationError, ValueError):
+            return render_html_error(404, "Invalid Access Link", "The shared resume link is invalid, malformed, or has been deleted.")
+
+        # 2. Check expiration
+        if log.expires_at and timezone.now() > log.expires_at:
+            return render_html_error(410, "Link Expired", "This shared link has expired and is no longer accessible due to security settings.")
+
+        # 3. Verify security PIN
+        is_staff_preview = bool(
+            request.user and request.user.is_authenticated and
+            getattr(request.user, 'role', None) in ('admin', 'coordinator')
+        )
+        if not is_staff_preview:
+            pin_code = request.query_params.get('pin') or request.headers.get('X-Shared-Resume-PIN') or ''
+            if log.pin_code and log.pin_code != pin_code:
+                return render_html_error(403, "Access Denied", "A valid verification PIN is required to access this candidate profile.")
+
+        # 4. Verify candidate belongs to this share log
+        if str(app_id) not in log.application_ids:
+            return render_html_error(404, "Resume Not Found", "The requested candidate resume is not part of this shared workspace.")
+
+        # 5. Fetch the application
+        try:
+            app = Application.objects.get(id=app_id)
+        except Application.DoesNotExist:
+            return render_html_error(404, "Candidate Not Found", "The candidate application details could not be found.")
+
+        # 6. Retrieve the primary resume file object
+        student = app.student
+        file_obj = None
+        filename = f"{student.name.replace(' ', '_')}_Resume.pdf"
+        
+        primary_built = student.built_resumes.filter(is_primary=True, state__in=['active', 'generated']).first()
+        if primary_built and primary_built.generated_pdf:
+            file_obj = primary_built.generated_pdf
+        else:
+            primary_upload = student.resume_uploads.filter(is_primary=True, status='parsed').first()
+            if primary_upload and primary_upload.file:
+                file_obj = primary_upload.file
+                filename = primary_upload.original_filename or filename
+
+        if not file_obj:
+            return render_html_error(404, "No Primary Resume", f"The candidate '{student.name}' has not uploaded or generated a primary resume.")
+
+        # 7. Open and stream the file from cloud storage
+        try:
+            opened_file = file_obj.open('rb')
+        except Exception as e:
+            # Handle R2/S3 access/network issues gracefully
+            return render_html_error(
+                500, 
+                "Storage Retrieval Error", 
+                "We encountered an authorization or connection issue while retrieving this resume from secure cloud storage. The configuration might be invalid, or the link signature has expired."
+            )
+
+        # 8. Return file stream
+        response = FileResponse(opened_file, content_type='application/pdf')
+        if request.query_params.get('download') == '1':
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        else:
+            response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
 

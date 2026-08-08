@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ApplicationViewSet, NotificationViewSet, SendResumesToCompanyView, ResumeEmailLogView, SharedResumeView
+from .views import ApplicationViewSet, NotificationViewSet, SendResumesToCompanyView, ResumeEmailLogView, SharedResumeView, SharedResumeDownloadView
 
 router = DefaultRouter()
 router.register(r'applications', ApplicationViewSet, basename='application')
@@ -15,5 +15,6 @@ urlpatterns = [
     path('admin/jobs/<uuid:job_id>/email-log/', ResumeEmailLogView.as_view(), name='job-email-log'),
     path('admin/email-logs/', ResumeEmailLogView.as_view(), name='email-logs-list'),
     path('shared-resumes/<uuid:log_id>/', SharedResumeView.as_view(), name='shared-resumes'),
+    path('shared-resumes/<uuid:log_id>/download/<uuid:app_id>/', SharedResumeDownloadView.as_view(), name='shared-resume-download'),
 ]
 

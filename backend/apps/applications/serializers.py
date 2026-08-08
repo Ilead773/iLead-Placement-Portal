@@ -114,6 +114,19 @@ class ApplicationSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_resume_url(self, obj):
+        request = self.context.get('request')
+        log_id = self.context.get('log_id')
+        pin_code = self.context.get('pin_code')
+        
+        if log_id:
+            # Construct proxy download URL pointing to the secure backend proxy
+            url = f"/api/v1/applications/shared-resumes/{log_id}/download/{obj.id}/"
+            if pin_code:
+                url += f"?pin={pin_code}"
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+
         student = obj.student
         url = None
         
@@ -128,7 +141,6 @@ class ApplicationSerializer(serializers.ModelSerializer):
                 url = primary_upload.file.url
                 
         if url:
-            request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(url)
             return url

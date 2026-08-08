@@ -629,7 +629,7 @@ export default function SharedResumes() {
                               <ExternalLink size={14} /> View
                             </a>
                             <a 
-                              href={app.resume_url} 
+                              href={app.resume_url ? `${app.resume_url}${app.resume_url.includes('?') ? '&' : '?'}download=1` : '#'} 
                               download
                               className="btn-download"
                             >
