@@ -1011,6 +1011,11 @@ export default function SharedResumes() {
         .candidate-name {
           font-weight: 750;
           color: #0f172a;
+          background: transparent !important;
+        }
+        .workspace-container ::selection {
+          background-color: rgba(37, 99, 235, 0.12);
+          color: #0f172a;
         }
         .candidate-stream {
           color: #334155;
