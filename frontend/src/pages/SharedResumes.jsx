@@ -118,8 +118,8 @@ export default function SharedResumes() {
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #060913;
-            color: #ffffff;
+            background: #f8fafc;
+            color: #0f172a;
             font-family: 'Outfit', 'Inter', sans-serif;
           }
           .workspace-spinner-wrapper {
@@ -129,8 +129,8 @@ export default function SharedResumes() {
           .workspace-spinner {
             width: 64px;
             height: 64px;
-            border: 4px solid rgba(59, 130, 246, 0.1);
-            border-top: 4px solid #3b82f6;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #2563eb;
             border-radius: 50%;
             animation: workspace-spin 1s linear infinite;
           }
@@ -139,11 +139,11 @@ export default function SharedResumes() {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #60a5fa;
+            color: #2563eb;
             animation: workspace-pulse 1.5s ease-in-out infinite;
           }
           .workspace-loading-text {
-            color: #94a3b8;
+            color: #475569;
             font-weight: 600;
             font-size: 1.1rem;
             letter-spacing: 0.05em;
@@ -220,19 +220,19 @@ export default function SharedResumes() {
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #060913;
+            background: #f8fafc;
             padding: 24px;
             font-family: 'Outfit', 'Inter', sans-serif;
           }
           .pin-card {
             max-width: 460px;
             width: 100%;
-            background: #0f1526;
-            border: 1px solid rgba(99, 102, 241, 0.2);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             padding: 48px 40px;
             border-radius: 28px;
             text-align: center;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99,102,241,0.08);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
           }
           .pin-logo-wrap {
             margin-bottom: 20px;
@@ -240,29 +240,29 @@ export default function SharedResumes() {
           .pin-logo {
             height: 36px;
             object-fit: contain;
-            opacity: 0.85;
+            opacity: 0.95;
           }
           .pin-icon-wrap {
             width: 68px;
             height: 68px;
-            background: rgba(99, 102, 241, 0.12);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.2);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 24px;
-            color: #818cf8;
+            color: #4f46e5;
           }
           .pin-title {
             font-size: 1.65rem;
             font-weight: 800;
-            color: #ffffff;
+            color: #0f172a;
             margin-bottom: 10px;
             letter-spacing: -0.02em;
           }
           .pin-subtitle {
-            color: #94a3b8;
+            color: #475569;
             font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 32px;
@@ -282,36 +282,36 @@ export default function SharedResumes() {
           .pin-digit {
             width: 52px;
             height: 60px;
-            background: #1a2440;
-            border: 1.5px solid rgba(99, 102, 241, 0.3);
+            background: #f1f5f9;
+            border: 1.5px solid #cbd5e1;
             border-radius: 14px;
-            color: #ffffff;
+            color: #0f172a;
             font-size: 1.6rem;
             font-weight: 700;
             text-align: center;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
             font-family: 'Outfit', monospace;
-            caret-color: #818cf8;
+            caret-color: #4f46e5;
           }
           .pin-digit:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-            background: #1e2d55;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            background: #ffffff;
           }
           .pin-digit--error {
             border-color: rgba(239, 68, 68, 0.6) !important;
             box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
           }
           .pin-error-msg {
-            color: #f87171;
+            color: #dc2626;
             font-size: 0.875rem;
             font-weight: 500;
             margin: 0;
           }
           .pin-submit-btn {
             width: 100%;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
             color: #ffffff;
             font-weight: 700;
             font-size: 1rem;
@@ -320,13 +320,13 @@ export default function SharedResumes() {
             border-radius: 14px;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
             margin-top: 8px;
             font-family: 'Outfit', sans-serif;
           }
           .pin-submit-btn:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
           }
           .pin-submit-btn:disabled {
             opacity: 0.7;
@@ -347,7 +347,7 @@ export default function SharedResumes() {
             animation: pin-spin 0.8s linear infinite;
           }
           .pin-hint {
-            color: #475569;
+            color: #64748b;
             font-size: 0.82rem;
             margin-top: 20px;
           }
@@ -375,26 +375,26 @@ export default function SharedResumes() {
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: #060913;
+            background: #f8fafc;
             padding: 24px;
             font-family: 'Outfit', 'Inter', sans-serif;
           }
           .workspace-error-card {
             max-width: 440px;
             width: 100%;
-            background: #0f1526;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            background: #ffffff;
+            border: 1px solid #fee2e2;
             padding: 40px;
             border-radius: 24px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
           }
           .workspace-error-icon {
             width: 72px;
             height: 72px;
-            background: rgba(239, 68, 68, 0.1);
+            background: #fef2f2;
             color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            border: 1px solid #fee2e2;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -406,12 +406,12 @@ export default function SharedResumes() {
           .workspace-error-title {
             font-size: 1.6rem;
             font-weight: 800;
-            color: #ffffff;
+            color: #0f172a;
             margin-bottom: 12px;
             letter-spacing: -0.02em;
           }
           .workspace-error-desc {
-            color: #94a3b8;
+            color: #475569;
             font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 32px;
@@ -419,18 +419,18 @@ export default function SharedResumes() {
           .workspace-error-btn {
             display: block;
             width: 100%;
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: #ffffff;
             font-weight: 700;
             text-decoration: none;
             padding: 14px 24px;
             border-radius: 14px;
             transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
           }
           .workspace-error-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
           }
         `}</style>
       </div>
@@ -471,17 +471,17 @@ export default function SharedResumes() {
               display: flex;
               align-items: center;
               gap: 10px;
-              background: linear-gradient(90deg, rgba(217,119,6,0.18) 0%, rgba(251,191,36,0.10) 100%);
-              border-bottom: 1px solid rgba(251,191,36,0.3);
+              background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%);
+              border-bottom: 1px solid #fcd34d;
               padding: 12px 24px;
               font-family: 'Outfit', 'Inter', sans-serif;
               font-size: 0.9rem;
-              color: #fde68a;
+              color: #92400e;
               backdrop-filter: blur(8px);
             }
             .staff-preview-icon { font-size: 1.1rem; flex-shrink: 0; }
             .staff-preview-text { line-height: 1.4; }
-            .staff-preview-text strong { color: #fbbf24; }
+            .staff-preview-text strong { color: #b45309; }
           `}</style>
         </div>
       )}
@@ -657,11 +657,11 @@ export default function SharedResumes() {
       </div>
 
       <style>{`
-        /* Self-Contained Workspace CSS - Premium Carbon Matte & Solid Borders */
+        /* Self-Contained Workspace CSS - Premium Light Mode Slate & Clean Borders */
         .workspace-container {
           min-height: 100vh;
-          background-color: #060913;
-          color: #f8fafc;
+          background-color: #f8fafc;
+          color: #1e293b;
           padding: 48px 24px;
           font-family: 'Outfit', 'Inter', sans-serif;
           position: relative;
@@ -671,9 +671,6 @@ export default function SharedResumes() {
         .workspace-container *, .workspace-container *::before, .workspace-container *::after {
           box-sizing: border-box;
         }
-        .glow-1, .glow-2 {
-          display: none !important;
-        }
         .workspace-content {
           max-width: 1200px;
           margin: 0 auto;
@@ -681,17 +678,17 @@ export default function SharedResumes() {
           z-index: 10;
         }
         
-        /* Header Hero - Solid Carbon Panel */
+        /* Header Hero - Clean White Panel */
         .workspace-header {
           display: flex;
           flex-direction: row;
           justify-content: space-between;
           align-items: center;
-          background: #0b0f19;
-          border: 1px solid #1e293b;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           padding: 24px;
           border-radius: 24px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
           margin-bottom: 32px;
           gap: 24px;
         }
@@ -701,10 +698,10 @@ export default function SharedResumes() {
           gap: 20px;
         }
         .logo-badge {
-          background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
           padding: 12px;
           border-radius: 16px;
-          border: 1px solid #1e293b;
+          border: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
         }
@@ -716,12 +713,12 @@ export default function SharedResumes() {
           font-size: 1.8rem;
           font-weight: 900;
           margin: 0;
-          background: linear-gradient(90deg, #60a5fa, #c084fc, #ffffff);
+          background: linear-gradient(90deg, #1e3a8a, #2563eb, #0f172a);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
         .portal-subtitle {
-          color: #94a3b8;
+          color: #475569;
           font-weight: 600;
           font-size: 0.85rem;
           margin: 4px 0 0;
@@ -735,9 +732,9 @@ export default function SharedResumes() {
           gap: 12px;
         }
         .btn-copy {
-          background: #1e293b;
-          color: #f8fafc;
-          border: 1px solid #334155;
+          background: #f1f5f9;
+          color: #1e293b;
+          border: 1px solid #e2e8f0;
           padding: 10px 18px;
           border-radius: 12px;
           font-size: 0.75rem;
@@ -749,16 +746,16 @@ export default function SharedResumes() {
           transition: all 0.2s;
         }
         .btn-copy:hover {
-          background: #334155;
-          border-color: #475569;
+          background: #e2e8f0;
+          border-color: #cbd5e1;
         }
         .text-green {
-          color: #10b981;
+          color: #059669;
         }
         .badge-status {
-          background: rgba(16, 185, 129, 0.08);
-          color: #34d399;
-          border: 1px solid rgba(16, 185, 129, 0.2);
+          background: rgba(16, 185, 129, 0.06);
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.15);
           font-size: 0.75rem;
           padding: 10px 18px;
           border-radius: 12px;
@@ -768,9 +765,9 @@ export default function SharedResumes() {
           gap: 8px;
         }
         .badge-date {
-          background: #1e293b;
-          color: #cbd5e1;
-          border: 1px solid rgba(51, 65, 85, 0.5);
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
           font-size: 0.75rem;
           padding: 10px 18px;
           border-radius: 12px;
@@ -788,11 +785,11 @@ export default function SharedResumes() {
           margin-bottom: 32px;
         }
         .info-left-panel {
-          background: #0b0f19;
-          border: 1px solid #1e293b;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           padding: 32px;
           border-radius: 24px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
           display: flex;
           flex-direction: column;
           gap: 20px;
@@ -800,16 +797,16 @@ export default function SharedResumes() {
         .panel-title {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #ffffff;
+          color: #0f172a;
           margin: 0;
           padding-bottom: 12px;
-          border-bottom: 1px solid #1e293b;
+          border-bottom: 1px solid #e2e8f0;
           display: flex;
           align-items: center;
           gap: 10px;
         }
         .panel-title-icon {
-          color: #3b82f6;
+          color: #2563eb;
         }
         .grid-two-cols {
           display: grid;
@@ -826,41 +823,41 @@ export default function SharedResumes() {
         }
         .field-value {
           font-weight: 700;
-          color: #e2e8f0;
+          color: #1e293b;
           margin: 0;
           font-size: 0.95rem;
         }
         .field-value-mono {
           font-family: monospace;
           font-weight: 600;
-          color: #94a3b8;
+          color: #475569;
           margin: 0;
           font-size: 0.85rem;
           word-break: break-all;
         }
         .field-value-subject {
           font-weight: 800;
-          color: #f1f5f9;
+          color: #0f172a;
           margin: 0;
           font-size: 1.1rem;
         }
         .body-block {
-          background: #060913;
-          border: 1px solid #1e293b;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           padding: 16px;
           border-radius: 16px;
-          color: #cbd5e1;
+          color: #334155;
           font-size: 0.9rem;
           line-height: 1.6;
           font-style: italic;
           white-space: pre-line;
         }
         
-        /* Premium Opportunity Detail Card - Clean Borders, No Fuzz */
+        /* Premium Opportunity Detail Card */
         .info-right-panel {
-          background: #0b0f19;
-          border: 1px solid #1e293b;
-          border-left: 4px solid #3b82f6; /* Clean premium left boundary */
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-left: 4px solid #2563eb;
           padding: 32px;
           border-radius: 24px;
           position: relative;
@@ -868,15 +865,12 @@ export default function SharedResumes() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-        }
-        .right-panel-glow {
-          display: none !important;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
         }
         .badge-opportunity {
-          background: rgba(59, 130, 246, 0.08);
-          color: #93c5fd;
-          border: 1px solid rgba(59, 130, 246, 0.15);
+          background: rgba(37, 99, 235, 0.06);
+          color: #1d4ed8;
+          border: 1px solid rgba(37, 99, 235, 0.15);
           font-size: 0.7rem;
           padding: 6px 12px;
           border-radius: 8px;
@@ -892,24 +886,24 @@ export default function SharedResumes() {
           margin: 24px 0 0 0;
         }
         .opp-icon {
-          color: #60a5fa;
+          color: #2563eb;
           margin-top: 4px;
           flex-shrink: 0;
         }
         .opp-role {
           font-size: 1.5rem;
           font-weight: 900;
-          color: #ffffff;
+          color: #0f172a;
           line-height: 1.2;
         }
         .opp-company {
           font-size: 0.95rem;
           font-weight: 700;
-          color: #94a3b8;
+          color: #475569;
           margin-top: 4px;
         }
         .opp-footer {
-          border-top: 1px solid #1e293b;
+          border-top: 1px solid #e2e8f0;
           padding-top: 24px;
           margin-top: 32px;
           display: flex;
@@ -917,27 +911,27 @@ export default function SharedResumes() {
           align-items: center;
         }
         .opp-footer-label {
-          color: #94a3b8;
+          color: #475569;
           font-weight: 600;
           font-size: 0.9rem;
         }
         .opp-footer-value {
           font-size: 1.4rem;
           font-weight: 900;
-          color: #60a5fa;
+          color: #2563eb;
         }
         
-        /* Table Panel - Solid Charcoal Panel */
+        /* Table Panel - Clean White Panel */
         .workspace-table-panel {
-          background: #0b0f19;
-          border: 1px solid #1e293b;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 24px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
           overflow: hidden;
         }
         .table-panel-header {
           padding: 24px 32px;
-          border-bottom: 1px solid #1e293b;
+          border-bottom: 1px solid #e2e8f0;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -946,14 +940,14 @@ export default function SharedResumes() {
         .table-title {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #ffffff;
+          color: #0f172a;
           margin: 0;
           display: flex;
           align-items: center;
           gap: 10px;
         }
         .table-title-icon {
-          color: #3b82f6;
+          color: #2563eb;
         }
         .search-wrapper {
           position: relative;
@@ -961,17 +955,18 @@ export default function SharedResumes() {
         }
         .search-input {
           width: 100%;
-          background: #060913;
-          border: 1px solid #1e293b;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
           padding: 10px 16px 10px 40px;
           font-size: 0.85rem;
-          color: #ffffff;
+          color: #0f172a;
           outline: none;
-          transition: border-color 0.2s;
+          transition: border-color 0.2s, background-color 0.2s;
         }
         .search-input:focus {
-          border-color: #3b82f6;
+          border-color: #2563eb;
+          background: #ffffff;
         }
         .search-icon {
           position: absolute;
@@ -990,18 +985,18 @@ export default function SharedResumes() {
           text-align: left;
         }
         .workspace-table th {
-          background: #060913;
-          border-bottom: 1px solid #1e293b;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
           padding: 20px 32px;
           font-size: 0.7rem;
           font-weight: 800;
-          color: #64748b;
+          color: #475569;
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
         .workspace-table td {
           padding: 20px 32px;
-          border-bottom: 1px solid #1e293b;
+          border-bottom: 1px solid #e2e8f0;
           font-size: 0.95rem;
           vertical-align: middle;
         }
@@ -1012,24 +1007,24 @@ export default function SharedResumes() {
           transition: background-color 0.15s;
         }
         .workspace-table tbody tr:hover {
-          background: rgba(30, 41, 59, 0.3);
+          background: rgba(241, 245, 249, 0.5);
         }
         .candidate-name {
           font-weight: 750;
-          color: #ffffff;
+          color: #0f172a;
         }
         .candidate-stream {
-          color: #cbd5e1;
+          color: #334155;
           font-weight: 500;
         }
         .candidate-year {
-          color: #94a3b8;
+          color: #475569;
           font-weight: 600;
         }
         .cgpa-badge {
-          background: #060913;
-          color: #60a5fa;
-          border: 1px solid #1e293b;
+          background: #f1f5f9;
+          color: #1d4ed8;
+          border: 1px solid #e2e8f0;
           padding: 6px 12px;
           border-radius: 8px;
           font-weight: 800;
@@ -1042,9 +1037,9 @@ export default function SharedResumes() {
           gap: 10px;
         }
         .btn-view {
-          background: rgba(59, 130, 246, 0.1);
-          color: #60a5fa;
-          border: 1px solid rgba(59, 130, 246, 0.2);
+          background: rgba(37, 99, 235, 0.06);
+          color: #2563eb;
+          border: 1px solid rgba(37, 99, 235, 0.15);
           padding: 10px 16px;
           border-radius: 12px;
           font-size: 0.75rem;
@@ -1073,15 +1068,15 @@ export default function SharedResumes() {
           gap: 6px;
           text-decoration: none;
           transition: all 0.2s;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
         }
         .btn-download:hover {
           background: #1d4ed8;
-          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
         }
         .no-resume-badge {
-          background: rgba(245, 158, 11, 0.08);
-          color: #fbbf24;
+          background: rgba(245, 158, 11, 0.06);
+          color: #d97706;
           border: 1px solid rgba(245, 158, 11, 0.15);
           font-size: 0.75rem;
           padding: 6px 12px;
@@ -1101,7 +1096,7 @@ export default function SharedResumes() {
           gap: 16px;
         }
         .empty-state-icon {
-          color: #334155;
+          color: #cbd5e1;
         }
         
         .text-center { text-align: center; }

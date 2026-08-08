@@ -100,8 +100,8 @@ def build_resume_email(
         master_url = f"{settings.FRONTEND_URL}/shared-resumes/{log_id}"
         master_link_html = f"""
         <div style="margin-top: 28px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <a href="{master_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 99px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.2s;">
-                View Master Resume Workspace →
+            <a href="{master_url}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 99px; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.2s;">
+                Please click to see the resumes →
             </a>
         </div>
         """
@@ -114,13 +114,50 @@ def build_resume_email(
             </div>
             """
 
+    instructions_html = ""
+    if log_id:
+        pin_step_html = ""
+        if pin_code:
+            pin_step_html = f"""
+                <tr>
+                    <td style="padding: 6px 0; vertical-align: top; width: 24px; font-weight: bold; color: #2563eb;">2.</td>
+                    <td style="padding: 6px 0; vertical-align: top; color: #334155;">
+                        <strong>Unlock with PIN:</strong> Enter the secure verification access PIN <strong>{pin_code}</strong> when prompted to unlock the workspace.
+                    </td>
+                </tr>
+            """
+        else:
+            pin_step_html = """
+                <tr>
+                    <td style="padding: 6px 0; vertical-align: top; width: 24px; font-weight: bold; color: #2563eb;">2.</td>
+                    <td style="padding: 6px 0; vertical-align: top; color: #334155;">
+                        <strong>Browse Resumes:</strong> View, filter, and download candidate resumes directly from the secure portal.
+                    </td>
+                </tr>
+            """
+
+        instructions_html = f"""
+        <div style="margin-top: 24px; margin-bottom: 24px; padding: 20px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit;">
+            <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 15px; color: #0f172a; font-weight: 700; font-family: inherit;">Steps to Access Candidate Resumes (2-Step Process)</h3>
+            <table style="width: 100%; border-collapse: collapse; font-family: inherit; font-size: 14px;">
+                <tr>
+                    <td style="padding: 6px 0; vertical-align: top; width: 24px; font-weight: bold; color: #2563eb;">1.</td>
+                    <td style="padding: 6px 0; vertical-align: top; color: #334155;">
+                        <strong>Click Link:</strong> Click the <strong>Please click to see the resumes</strong> link below.
+                    </td>
+                </tr>
+                {pin_step_html}
+            </table>
+        </div>
+        """
+
     full_html_content = f"""
     <html>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #334155; line-height: 1.6; padding: 24px; max-width: 650px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
             <div style="font-size: 15px; color: #1e293b; font-family: inherit; whitespace: pre-line;">
                 {body_html}
             </div>
-            {table_html}
+            {instructions_html}
             {master_link_html}
             <hr style="border: 0; border-top: 1px solid #f1f5f9; margin-top: 32px; margin-bottom: 16px;" />
             <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">Sent securely via iLEAD Placement Portal</p>

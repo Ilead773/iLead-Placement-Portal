@@ -93,14 +93,9 @@ const BulkSendResumes = () => {
       
       let defaultBody = '';
       if (isInternship) {
-        const stipendLabel = formatPackage(job.package, 'internship');
-        const durationLabel = job.duration || 'Not specified';
-        
-        defaultBody = `Dear Hiring Team,\n\nPlease find attached the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} internship at ${job.company_name}.\n\nInternship Specification Details:\n- Role Profile: ${job.role || job.title}\n- Location: ${job.location || 'N/A'}\n- Internship Duration: ${durationLabel}\n- Monthly Stipend: ${stipendLabel}\n\nStudent Candidates Details:\n${appsWithResume.map((a, i) => `${i+1}. ${a.student_name} — Stream: ${a.student_stream || 'General'}, Year: ${a.student_year || 'Final Year'}, CGPA: ${a.student_cgpa || 'N/A'}`).join('\n')}\n\nPlease find their detailed candidate resumes attached to this email. We look forward to coordinating the next evaluation rounds with you.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
+        defaultBody = `Dear Hiring Team,\n\nPlease find the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} internship at ${job.company_name}.\n\nBelow is the list of candidates. You can access the secure candidate workspace or download individual resumes using the links provided.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
       } else {
-        const packageLabel = formatPackage(job.package, 'job');
-        
-        defaultBody = `Dear Hiring Team,\n\nPlease find attached the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} position at ${job.company_name}.\n\nJob Specification Details:\n- Role Profile: ${job.role || job.title}\n- Location: ${job.location || 'N/A'}\n- CTC Compensation Package: ${packageLabel}\n\nStudent Candidates Details:\n${appsWithResume.map((a, i) => `${i+1}. ${a.student_name} — Stream: ${a.student_stream || 'General'}, Year: ${a.student_year || 'Final Year'}, CGPA: ${a.student_cgpa || 'N/A'}`).join('\n')}\n\nPlease find their detailed candidate resumes attached to this email. We look forward to coordinating the next evaluation rounds with you.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
+        defaultBody = `Dear Hiring Team,\n\nPlease find the resumes of ${appsWithResume.length} student candidate(s) who have applied for the ${job.role || job.title} position at ${job.company_name}.\n\nBelow is the list of candidates. You can access the secure candidate workspace or download individual resumes using the links provided.\n\nRegards,\nPlacement Cell Office\niLEAD Institution`;
       }
       
       setBody(defaultBody);

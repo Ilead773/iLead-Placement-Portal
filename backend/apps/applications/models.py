@@ -239,8 +239,8 @@ class ResumeEmailLog(models.Model):
         if not self.expires_at:
             from datetime import timedelta
             from django.utils import timezone
-            # Set to 7 days from now (or sent_at time)
-            self.expires_at = timezone.now() + timedelta(days=7)
+            # Set to 30 days from now (or sent_at time)
+            self.expires_at = timezone.now() + timedelta(days=30)
         if not self.pin_code:
             import random
             self.pin_code = "".join([str(random.randint(0, 9)) for _ in range(6)])

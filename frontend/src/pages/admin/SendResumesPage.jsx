@@ -42,7 +42,7 @@ const SendResumesPage = () => {
     if (selectedApplications.length > 0) {
       setSubject(`Resumes — ${jobTitle} | Job Application`);
       
-      const defaultBody = `Dear Hiring Team,\n\nPlease find attached the resumes of ${appsWithResume.length} student(s) who have applied for the ${jobTitle} position at ${companyName}.\n\nStudent Details:\n${appsWithResume.map((a, i) => `${i+1}. ${a.student_name} — ${a.student_stream || 'Unknown Branch'}, Year ${a.student_year || 'Unknown'}, Category ${a.student_category || 'N/A'}, CGPA: ${a.cgpa || 'N/A'}`).join('\n')}\n\nPlease find their resumes attached to this email.\n\nRegards,\nPlacement Cell`;
+      const defaultBody = `Dear Hiring Team,\n\nPlease find the resumes of ${appsWithResume.length} student(s) who have applied for the ${jobTitle} position at ${companyName}.\n\nBelow is the list of candidates. You can access the secure candidate workspace or download individual resumes using the links provided.\n\nRegards,\nPlacement Cell`;
       
       setBody(defaultBody);
     }
