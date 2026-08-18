@@ -758,6 +758,18 @@ class StudentViewSet(viewsets.ViewSet):
                 return Response({'error': f"Email '{email}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Update User fields if provided
+        email_changed = False
+        new_password = None
+        if email and email != student.email:
+            email_changed = True
+            import secrets
+            import string
+            alphabet = string.ascii_letters + string.digits
+            new_password = ''.join(secrets.choice(alphabet) for _ in range(10))
+            user.set_password(new_password)
+            user.temp_password_flag = True
+            user.password_reset_required = True
+
         if 'name' in data:
             user.name = data['name'].strip()
         if email:
@@ -833,6 +845,132 @@ class StudentViewSet(viewsets.ViewSet):
             student.save()
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle credentials sheet update and email sending if email changed
+        if email_changed and new_password:
+            # 1. Update the Excel spreadsheet if student was created via CSV upload
+            if student.upload_log:
+                log = student.upload_log
+                credentials_file_path = f"private_credentials/credentials_{log.id}.xlsx"
+                if default_storage.exists(credentials_file_path):
+                    import openpyxl
+                    try:
+                        wb = None
+                        with default_storage.open(credentials_file_path, 'rb') as f:
+                            wb = openpyxl.load_workbook(f)
+                        
+                        if wb:
+                            ws = wb.active
+                            found = False
+                            for r in range(2, ws.max_row + 1):
+                                reg_no_cell = ws.cell(row=r, column=2).value
+                                if reg_no_cell and str(reg_no_cell).strip() == student.registration_number.strip():
+                                    # Column 4 is Email, Column 5 is Temporary Password
+                                    ws.cell(row=r, column=4, value=email)
+                                    ws.cell(row=r, column=5, value=new_password)
+                                    found = True
+                                    break
+                            
+                            if found:
+                                output = io.BytesIO()
+                                wb.save(output)
+                                output.seek(0)
+                                if default_storage.exists(credentials_file_path):
+                                    default_storage.delete(credentials_file_path)
+                                default_storage.save(credentials_file_path, ContentFile(output.getvalue()))
+                                logger.info(f"Updated credentials sheet for student {student.registration_number} in log {log.id}")
+                    except Exception as sheet_err:
+                        logger.error(f"Failed to update credentials sheet for student {student.registration_number}: {sheet_err}")
+            
+            # 2. Send welcome email with the updated credentials
+            try:
+                subject = "Welcome to iLEAD Placement Portal - Account Details Updated"
+                message = (
+                    f"Dear {student.name},\n\n"
+                    f"Your student email has been updated on the iLEAD Placement Portal.\n\n"
+                    f"Here are your new login credentials:\n"
+                    f"- Login ID: {user.login_id}\n"
+                    f"- Temporary Password: {new_password}\n\n"
+                    f"Please log in and update your password immediately at your first login: {settings.FRONTEND_URL}/login\n\n"
+                    f"Best regards,\n"
+                    f"Placement Team\n"
+                    f"iLEAD Institute of Leadership, Entrepreneurship and Development"
+                )
+                
+                html_message = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Welcome to iLEAD Placement Portal</title>
+                </head>
+                <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #fafafa; margin: 0; padding: 40px 0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fafafa;">
+                        <tr>
+                            <td align="center" style="padding: 0 16px;">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; border: 1px solid #eef2f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); margin: 0 auto; text-align: left;">
+                                    <tr>
+                                        <td height="4" style="background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); border-top-left-radius: 12px; border-top-right-radius: 12px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 32px 32px 24px 32px;">
+                                            <h2 style="color: #1e3a8a; margin: 0 0 16px 0; font-size: 20px;">Account Details Updated</h2>
+                                            <p style="color: #475569; font-size: 15px; line-height: 24px; margin: 0 0 24px 0;">
+                                                Dear {student.name},<br><br>
+                                                Your student email has been updated on the <strong>iLEAD Placement Portal</strong>. Here are your login credentials:
+                                            </p>
+                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 8px; margin-bottom: 24px;">
+                                                <tr>
+                                                    <td style="padding: 20px;">
+                                                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                            <tr>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Login ID:</strong></td>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{user.login_id}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
+                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{new_password}</td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                                                <tr>
+                                                    <td align="center">
+                                                        <a href="{settings.FRONTEND_URL}/login" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 12px 28px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);">Log In to Portal</a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <p style="color: #64748b; font-size: 13px; line-height: 20px; margin: 0;">
+                                                Please log in and update your password immediately at your first login.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="background-color: #f8fafc; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; padding: 24px 32px; border-top: 1px solid #eef2f6;">
+                                            <p style="color: #475569; font-size: 14px; font-weight: 600; margin: 0 0 4px 0;">iLEAD Placement Team</p>
+                                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">Institute of Leadership, Entrepreneurship and Development</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                """
+                from core.tasks import async_send_mail
+                async_send_mail.delay(
+                    subject,
+                    message,
+                    [email],
+                    html_message=html_message
+                )
+                logger.info(f"Welcome email with updated credentials sent to {email}")
+            except Exception as mail_err:
+                logger.error(f"Failed to send update email to {email}: {mail_err}")
 
         log_audit(request.user, 'student_updated', f"Updated details for student {student.registration_number}", request)
         

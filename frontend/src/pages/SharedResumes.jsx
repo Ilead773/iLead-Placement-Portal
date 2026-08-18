@@ -596,8 +596,6 @@ export default function SharedResumes() {
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Department</th>
-                  <th>Batch</th>
                   <th className="text-center">CGPA</th>
                   <th className="text-right">Actions</th>
                 </tr>
@@ -605,14 +603,11 @@ export default function SharedResumes() {
               <tbody>
                 {filteredApplications.map((app) => {
                   const student = app.student_name;
-                  const stream = app.student_stream || 'N/A';
                   const cgpa = app.student_cgpa || 'N/A';
                   
                   return (
                     <tr key={app.id}>
                       <td className="candidate-name">{student}</td>
-                      <td className="candidate-stream">{stream}</td>
-                      <td className="candidate-year">{app.job_snapshot?.year || 'Final Year'}</td>
                       <td className="text-center">
                         <span className="cgpa-badge">{cgpa}</span>
                       </td>
