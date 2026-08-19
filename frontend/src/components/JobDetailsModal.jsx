@@ -76,6 +76,11 @@ const JobDetailsModal = ({
               <div className="job-detail-header-left">
                 <div className="job-detail-title-row">
                   <h2 className="job-detail-title">{job.role}</h2>
+                  {job.job_id && (
+                    <span className="job-id-badge bg-slate-500/10 text-secondary text-[10px] font-black px-2.5 py-1 rounded-lg border border-border-color/50">
+                      #{job.job_id}
+                    </span>
+                  )}
                   {isAdmin && job.category && (
                     <span className="category-badge">Category {job.category}</span>
                   )}

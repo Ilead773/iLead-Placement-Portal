@@ -74,6 +74,7 @@ const Internships = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -147,11 +148,33 @@ const Internships = () => {
     }
   };
 
+  const filteredJobs = jobs.filter(job => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (job.job_id && String(job.job_id).toLowerCase().includes(q)) ||
+      (job.company_name && job.company_name.toLowerCase().includes(q)) ||
+      (job.role && job.role.toLowerCase().includes(q)) ||
+      (job.location && job.location.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div>
       <div className="page-header mb-8">
         <h1 className="text-3xl font-black text-primary tracking-tight">Internship Opportunities</h1>
         <p className="text-secondary mt-2 font-medium">Find and apply to the best matching internships for your profile.</p>
+      </div>
+
+      <div className="mb-6 max-w-md">
+        <input
+          type="text"
+          placeholder="Search by Internship ID, Company, Role or Location..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
+          style={{ background: 'var(--bg-card)' }}
+        />
       </div>
 
       {error ? (
@@ -171,7 +194,7 @@ const Internships = () => {
                 </motion.div>
               ))
             ) : (
-              jobs.map((job) => (
+              filteredJobs.map((job) => (
                 <motion.div
                   key={job.id}
                   layout
@@ -193,6 +216,11 @@ const Internships = () => {
             <div className="col-span-full py-32 text-center bg-card-hover/20 rounded-3xl border-2 border-dashed border-border-color/50">
               <div className="text-secondary text-lg font-medium">No internships available at the moment.</div>
               <p className="text-text-muted text-sm mt-1">Check back later for new opportunities!</p>
+            </div>
+          )}
+          {!loading && !error && jobs.length > 0 && filteredJobs.length === 0 && (
+            <div className="col-span-full py-32 text-center bg-card-hover/20 rounded-3xl border-2 border-dashed border-border-color/50">
+              <div className="text-secondary text-lg font-medium">No internships matching your search criteria.</div>
             </div>
           )}
         </motion.div>

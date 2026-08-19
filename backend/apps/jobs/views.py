@@ -56,6 +56,14 @@ class JobViewSet(viewsets.ModelViewSet):
         if listing_type in ('job', 'internship'):
             qs = qs.filter(listing_type=listing_type)
         
+        # Support search query parameter
+        search = self.request.query_params.get('search')
+        if search:
+            search_query = Q(company_name__icontains=search) | Q(role__icontains=search) | Q(location__icontains=search)
+            if search.isdigit():
+                search_query |= Q(job_id=int(search))
+            qs = qs.filter(search_query)
+        
         # Optimize queries by prefetching rounds and annotating applications count
         qs = qs.prefetch_related('rounds').annotate(
             applications_count_annotated=Count('applications', filter=Q(applications__is_deleted=False)),

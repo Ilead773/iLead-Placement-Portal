@@ -97,6 +97,11 @@ const JobCard = ({ job, eligibility, onApply }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {job.job_id && (
+              <span className="job-id-badge bg-slate-500/10 text-secondary text-[10px] font-black px-2.5 py-1 rounded-lg border border-border-color/50">
+                #{job.job_id}
+              </span>
+            )}
             {isAdminOrCoordinator && job.category && (
               <span className="category-badge">Cat {job.category}</span>
             )}

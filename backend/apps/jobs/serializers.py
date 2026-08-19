@@ -18,7 +18,7 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ['id', 'company_name', 'company_website', 'role', 'description', 'package', 'location', 
+        fields = ['id', 'job_id', 'company_name', 'company_website', 'role', 'description', 'package', 'location', 
                   'job_type', 'listing_type', 'duration', 'external_link', 'eligibility_rules', 
                   'application_deadline', 'status', 'rounds', 'applications_count', 'placed_count',
                   'category', 'openings_count', 'hr_email', 'created_at', 'updated_at']
@@ -42,7 +42,7 @@ class JobCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = ['id', 'company_name', 'company_website', 'role', 'description', 'package', 'location', 
+        fields = ['id', 'job_id', 'company_name', 'company_website', 'role', 'description', 'package', 'location', 
                   'job_type', 'listing_type', 'duration', 'external_link', 'eligibility_rules', 
                   'application_deadline', 'status', 'rounds', 'category', 'openings_count', 'hr_email']
 

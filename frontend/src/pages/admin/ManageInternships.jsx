@@ -11,6 +11,7 @@ const ManageInternships = () => {
   const [loading, setLoading] = useState(true);
   const [editingOffCampusJob, setEditingOffCampusJob] = useState(null);
   const [selectedJobDetails, setSelectedJobDetails] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchJobs = async () => {
     try {
@@ -102,6 +103,17 @@ const ManageInternships = () => {
     );
   }
 
+  const filteredJobs = jobs.filter(job => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (job.job_id && String(job.job_id).toLowerCase().includes(q)) ||
+      (job.company_name && job.company_name.toLowerCase().includes(q)) ||
+      (job.role && job.role.toLowerCase().includes(q)) ||
+      (job.location && job.location.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div>
       <div className="page-header mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -118,8 +130,19 @@ const ManageInternships = () => {
         </Link>
       </div>
 
+      <div className="mb-6 max-w-md">
+        <input
+          type="text"
+          placeholder="Search by Internship ID, Company, Role or Location..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
+          style={{ background: 'var(--bg-card)' }}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {jobs.map((job) => (
+        {filteredJobs.map((job) => (
           <div key={job.id} className={`job-card ${job.job_type === 'external' ? 'external-card' : ''}`}>
             <div 
               onClick={() => setSelectedJobDetails(job)} 
@@ -127,8 +150,15 @@ const ManageInternships = () => {
               title="Click to view details"
             >
               <div className="flex justify-between items-start mb-4">
-                <div className="job-card-icon-container">
-                  <Briefcase size={22} />
+                <div className="flex items-center gap-2">
+                  <div className="job-card-icon-container">
+                    <Briefcase size={22} />
+                  </div>
+                  {job.job_id && (
+                    <span className="job-id-badge bg-slate-500/10 text-secondary text-[10px] font-black px-2.5 py-1 rounded-lg border border-border-color/50">
+                      #{job.job_id}
+                    </span>
+                  )}
                 </div>
                 {job.job_type !== 'external' && (
                   <span className={`job-status-badge ${job.status}`}>
@@ -236,13 +266,20 @@ const ManageInternships = () => {
             </div>
           </div>
         ))}
-        {jobs.length === 0 && (
-          <div className="col-span-full text-center py-20 bg-card rounded-2xl border-2 border-dashed border-border-color">
-            <p className="text-secondary text-lg">No internships posted yet.</p>
-            <Link to="/internships/create" className="text-info font-bold mt-2 inline-block">Post your first internship drive</Link>
-          </div>
-        )}
       </div>
+
+      {jobs.length === 0 && (
+        <div className="col-span-full text-center py-20 bg-card rounded-2xl border-2 border-dashed border-border-color">
+          <p className="text-secondary text-lg">No internships posted yet.</p>
+          <Link to="/internships/create" className="text-info font-bold mt-2 inline-block">Post your first internship drive</Link>
+        </div>
+      )}
+
+      {jobs.length > 0 && filteredJobs.length === 0 && (
+        <div className="col-span-full text-center py-20 bg-card rounded-2xl border border-border-color">
+          <p className="text-secondary text-lg">No internships matching your search criteria.</p>
+        </div>
+      )}
 
       {/* Job Details Modal */}
       <JobDetailsModal

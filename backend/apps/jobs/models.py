@@ -32,6 +32,7 @@ class Job(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_id = models.IntegerField(unique=True, blank=True, null=True)
     company_name = models.CharField(max_length=255)
     company_website = models.URLField(max_length=500, blank=True, null=True)
     role = models.CharField(max_length=255)
@@ -68,8 +69,15 @@ class Job(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        if self.job_id is None:
+            from django.db.models import Max
+            max_id = Job.objects.aggregate(max_val=Max('job_id'))['max_val']
+            self.job_id = (max_id or 0) + 1
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.company_name} - {self.role}"
+        return f"{self.job_id} - {self.company_name} - {self.role}"
 
 class JobRound(models.Model):
     ROUND_TYPE_CHOICES = [

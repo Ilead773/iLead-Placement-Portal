@@ -49,6 +49,7 @@ const EditJob = () => {
   }, []);
 
   const [formData, setFormData] = useState({
+    job_id: '',
     company_name: '',
     company_website: '',
     role: '',
@@ -200,6 +201,7 @@ const EditJob = () => {
       }
       
       setFormData({
+        job_id: data.job_id || '',
         company_name: data.company_name || '',
         company_website: data.company_website || '',
         role: data.role || '',
@@ -414,6 +416,7 @@ Return only the JSON object.`;
       // Build the payload with a proper ISO 8601 deadline and parsed numbers
       const payload = { 
         ...formData,
+        job_id: formData.job_id ? parseInt(formData.job_id, 10) : null,
         eligibility_rules: {
           ...formData.eligibility_rules,
           min_cgpa: parseFloat(formData.eligibility_rules.min_cgpa) || 0,
@@ -453,6 +456,10 @@ Return only the JSON object.`;
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-primary">Details</h2>
             <div className="grid grid-cols-2 gap-6">
+                <div className="input-group col-span-2">
+                  <label>Job ID (Numeric Only) <span className="text-[10px] font-normal text-muted normal-case ml-1">(Optional — auto-generated if left blank)</span></label>
+                  <input type="number" name="job_id" value={formData.job_id} onChange={handleInputChange} className="input-field" placeholder="e.g. 1001" />
+                </div>
                 <div className="input-group">
                   <label>Company Name</label>
                   <input required type="text" name="company_name" value={formData.company_name} onChange={handleInputChange} className="input-field" />

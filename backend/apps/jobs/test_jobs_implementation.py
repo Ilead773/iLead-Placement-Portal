@@ -248,4 +248,50 @@ class TestJobSecurityAndRounds:
         assert our_job['hr_email'] == 'hr@confidentialcorp.com'
         assert our_job['category'] == 'A'
 
+    def test_job_id_auto_generation_and_override(self, api_client, coordinator_user):
+        coordinator_user.can_manage_placements = True
+        coordinator_user.save()
+        api_client.force_authenticate(user=coordinator_user)
+        
+        # Test 1: Auto generation when job_id is not provided
+        response1 = api_client.post('/api/v1/jobs/jobs/', {
+            'company_name': 'TestCorp1',
+            'role': 'Developer 1',
+            'description': 'Dev 1 description',
+            'package': '10.00',
+            'location': 'Kolkata',
+            'application_deadline': (timezone.now() + timezone.timedelta(days=1)).isoformat(),
+            'status': 'draft'
+        }, format='json')
+        assert response1.status_code == status.HTTP_201_CREATED
+        jid1 = response1.data['job_id']
+        assert jid1 is not None
+        
+        # Test 2: Manual override when creating
+        response2 = api_client.post('/api/v1/jobs/jobs/', {
+            'company_name': 'TestCorp2',
+            'role': 'Developer 2',
+            'description': 'Dev 2 description',
+            'package': '12.00',
+            'location': 'Kolkata',
+            'application_deadline': (timezone.now() + timezone.timedelta(days=1)).isoformat(),
+            'status': 'draft',
+            'job_id': 9999
+        }, format='json')
+        assert response2.status_code == status.HTTP_201_CREATED
+        assert response2.data['job_id'] == 9999
+        
+        # Test 3: Uniqueness validation
+        response3 = api_client.post('/api/v1/jobs/jobs/', {
+            'company_name': 'TestCorp3',
+            'role': 'Developer 3',
+            'description': 'Dev 3 description',
+            'package': '15.00',
+            'location': 'Kolkata',
+            'application_deadline': (timezone.now() + timezone.timedelta(days=1)).isoformat(),
+            'status': 'draft',
+            'job_id': 9999
+        }, format='json')
+        assert response3.status_code == status.HTTP_400_BAD_REQUEST
+
 

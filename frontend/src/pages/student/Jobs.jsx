@@ -68,6 +68,7 @@ const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -147,6 +148,17 @@ const Jobs = () => {
       }
     }
   };
+  
+  const filteredJobs = jobs.filter(job => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (job.job_id && String(job.job_id).toLowerCase().includes(q)) ||
+      (job.company_name && job.company_name.toLowerCase().includes(q)) ||
+      (job.role && job.role.toLowerCase().includes(q)) ||
+      (job.location && job.location.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div>
@@ -155,6 +167,17 @@ const Jobs = () => {
           <h1 className="text-3xl font-bold">Available Opportunities</h1>
           <p className="text-secondary mt-2">Find and apply to the best matching jobs for your profile.</p>
         </div>
+      </div>
+
+      <div className="mb-6 max-w-md">
+        <input
+          type="text"
+          placeholder="Search by Job ID, Company, Role or Location..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
+          style={{ background: 'var(--bg-card)' }}
+        />
       </div>
 
       {error ? (
@@ -174,7 +197,7 @@ const Jobs = () => {
                 </motion.div>
               ))
             ) : (
-              jobs.map(job => (
+              filteredJobs.map(job => (
                 <motion.div
                   key={job.id}
                   layout
@@ -198,6 +221,12 @@ const Jobs = () => {
       {!loading && !error && jobs.length === 0 && (
         <div className="text-center py-12 bg-card border border-border-color rounded-lg">
           <p className="text-secondary text-lg">No active jobs available at the moment.</p>
+        </div>
+      )}
+
+      {!loading && !error && jobs.length > 0 && filteredJobs.length === 0 && (
+        <div className="text-center py-12 bg-card border border-border-color rounded-lg">
+          <p className="text-secondary text-lg">No jobs matching your search criteria.</p>
         </div>
       )}
     </div>

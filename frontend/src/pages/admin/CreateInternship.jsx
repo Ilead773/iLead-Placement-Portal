@@ -97,6 +97,7 @@ const CreateInternship = () => {
 
           setFormData(prev => ({
             ...prev,
+            job_id: '',
             company_name: data.company_name || '',
             company_website: data.company_website || '',
             role: data.role ? `${data.role} (Copy)` : '',
@@ -165,6 +166,7 @@ const CreateInternship = () => {
       console.error('Failed to load form draft', err);
     }
     return {
+      job_id: '',
       company_name: '',
       company_website: '',
       role: '',
@@ -338,6 +340,7 @@ const CreateInternship = () => {
     try {
       const payload = {
         ...formData,
+        job_id: formData.job_id ? parseInt(formData.job_id, 10) : null,
         eligibility_rules: {
           ...formData.eligibility_rules,
           min_cgpa: parseFloat(formData.eligibility_rules.min_cgpa) || 0,
@@ -449,6 +452,12 @@ const CreateInternship = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="input-group">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
+                  Internship ID (Numeric Only) <span className="text-[10px] font-normal text-muted normal-case ml-1">(Optional — auto-generated if left blank)</span>
+                </label>
+                <input type="number" name="job_id" value={formData.job_id} onChange={handleInputChange} className="input-field shadow-sm" placeholder="e.g. 1001" />
+              </div>
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
                   Company Name <span className="text-danger">*</span>
