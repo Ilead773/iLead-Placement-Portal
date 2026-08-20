@@ -112,13 +112,16 @@ export default function Placements() {
         jobsCount++;
       }
 
+      const placedInJob = Number(p.placed_count || p.assignment_count || 0);
+
       // package is stored in LPA (e.g. 12.0) or absolute (e.g. 1200000)
-      if (p.package) {
+      // Only include packages from jobs where at least one student is placed
+      if (p.package && placedInJob > 0) {
         const pkg = Number(p.package);
         const sal = pkg < 100 ? pkg * 100000 : pkg;
-        totalSalary += sal;
+        totalSalary += sal * placedInJob;
         if (sal > maxSalary) maxSalary = sal;
-        salaryCount++;
+        salaryCount += placedInJob;
       }
       if (p.applications_count) {
         totalAssignments += Number(p.applications_count);
@@ -730,7 +733,7 @@ export default function Placements() {
         <div className="premium-stats-card theme-emerald">
           <div className="ambient-glow" style={{ background: '#10b981' }} />
           <div className="card-top">
-            <span className="card-label">Placed Students</span>
+            <span className="card-label">Offers Secured</span>
             <div className="card-icon-wrapper" style={{
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(4, 120, 87, 0.05) 100%)',
               color: '#10b981'
@@ -740,7 +743,7 @@ export default function Placements() {
           </div>
           <div className="card-content-wrapper">
             <div className="card-value">{stats.totalPlaced}</div>
-            <div className="card-footer-info">Total Placed Candidates</div>
+            <div className="card-footer-info">Total Offers Secured</div>
           </div>
         </div>
 

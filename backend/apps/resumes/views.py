@@ -95,7 +95,8 @@ class ResumeViewSet(viewsets.ViewSet):
                 from apps.profiles.rules import ProfileCompletionValidator
                 validator = ProfileCompletionValidator()
                 _, _, completion_score = validator.validate_profile(resume_profile)
-                min_required = validator.rules['resume_generation']['min_profile_completion']
+                rules = validator.get_rules_for_profile(resume_profile)
+                min_required = rules['resume_generation']['min_profile_completion']
                 return Response(
                     {'error': f'Your profile completion ({completion_score:.0%}) is below the required {min_required:.0%} threshold to generate a resume. Please fill in more profile details.'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -181,7 +182,8 @@ class ResumeViewSet(viewsets.ViewSet):
                 from apps.profiles.rules import ProfileCompletionValidator
                 validator = ProfileCompletionValidator()
                 _, _, completion_score = validator.validate_profile(resume_profile)
-                min_required = validator.rules['resume_generation']['min_profile_completion']
+                rules = validator.get_rules_for_profile(resume_profile)
+                min_required = rules['resume_generation']['min_profile_completion']
                 return Response(
                     {'error': f'Your profile completion ({completion_score:.0%}) is below the required {min_required:.0%} threshold to create a resume. Please fill in more profile details.'},
                     status=status.HTTP_400_BAD_REQUEST

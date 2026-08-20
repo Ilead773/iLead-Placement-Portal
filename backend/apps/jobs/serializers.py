@@ -39,6 +39,7 @@ class JobSerializer(serializers.ModelSerializer):
 
 class JobCreateSerializer(serializers.ModelSerializer):
     rounds = JobRoundSerializer(many=True, required=False, default=[])
+    package = serializers.CharField(required=False, allow_blank=True, default='Not disclosed')
 
     class Meta:
         model = Job
