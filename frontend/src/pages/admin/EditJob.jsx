@@ -456,11 +456,7 @@ Return only the JSON object.`;
           <div className="space-y-6">
             <h2 className="text-xl font-semibold text-primary">Details</h2>
             <div className="grid grid-cols-2 gap-6">
-                <div className="input-group col-span-2">
-                  <label>Job ID (Numeric Only) <span className="text-[10px] font-normal text-muted normal-case ml-1">(Optional — auto-generated if left blank)</span></label>
-                  <input type="number" name="job_id" value={formData.job_id} onChange={handleInputChange} className="input-field" placeholder="e.g. 1001" />
-                </div>
-                <div className="input-group">
+                 <div className="input-group">
                   <label>Company Name</label>
                   <input required type="text" name="company_name" value={formData.company_name} onChange={handleInputChange} className="input-field" />
                 </div>

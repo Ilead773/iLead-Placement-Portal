@@ -492,12 +492,7 @@ Return only the JSON object.`;
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div className="input-group">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
-                  Job ID (Numeric Only) <span className="text-[10px] font-normal text-muted normal-case ml-1">(Optional — auto-generated if left blank)</span>
-                </label>
-                <input type="number" name="job_id" value={formData.job_id} onChange={handleInputChange} className="input-field shadow-sm" placeholder="e.g. 1001" />
-              </div>
+
               <div className="input-group">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 flex items-center gap-2">
                   Company Name <span className="text-danger">*</span>
