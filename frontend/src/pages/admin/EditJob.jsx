@@ -1012,7 +1012,8 @@ const EditJob = () => {
                 borderRadius: '16px',
                 border: '1px solid var(--border-color)',
                 padding: '28px',
-                boxShadow: 'var(--shadow-sm)'
+                boxShadow: 'var(--shadow-sm)',
+                overflow: 'visible'
               }}
             >
               <div 

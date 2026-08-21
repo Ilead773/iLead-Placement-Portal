@@ -851,7 +851,7 @@ const CreateInternship = () => {
           </section>
 
           {/* Card 4.5: Target Semesters Eligibility */}
-          <section className="card p-8 border border-[var(--border-color)] rounded-2xl shadow-sm bg-[var(--bg-card)] relative">
+          <section className="card p-8 border border-[var(--border-color)] rounded-2xl shadow-sm bg-[var(--bg-card)] relative" style={{ overflow: 'visible' }}>
             <div className="flex flex-col gap-2 mb-6 pb-5 border-b border-[var(--border-light)]">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[rgba(16,185,129,0.1)] text-[#10b981]">
