@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from '../../api/axios';
 import { ILEAD_COURSES_OBJ } from '../../constants/courses';
-import { Plus, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Layers } from 'lucide-react';
 
 const EditJob = () => {
   const { id } = useParams();
@@ -10,10 +10,9 @@ const EditJob = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState(null);
-  const [aiJsonInput, setAiJsonInput] = useState('');
-  const [aiParseError, setAiParseError] = useState(null);
-  const [aiParseSuccess, setAiParseSuccess] = useState(false);
   const [availableCourses, setAvailableCourses] = useState([]);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
+  const [semDropdownOpen, setSemDropdownOpen] = useState(false);
   const [courseSearch, setCourseSearch] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState({});
 
@@ -45,7 +44,22 @@ const EditJob = () => {
         setAvailableCourses(ILEAD_COURSES_OBJ);
       }
     };
+    const fetchSemesters = async () => {
+      try {
+        const response = await axios.get('/students/filters/');
+        const sems = response.data.semesters || [];
+        sems.sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10));
+        setAvailableSemesters(sems);
+      } catch (err) {
+        console.error('Failed to fetch semesters', err);
+        setAvailableSemesters([
+          { name: '1', count: 0 }, { name: '2', count: 0 }, { name: '3', count: 0 }, { name: '4', count: 0 },
+          { name: '5', count: 0 }, { name: '6', count: 0 }, { name: '7', count: 0 }, { name: '8', count: 0 }
+        ]);
+      }
+    };
     fetchCourses();
+    fetchSemesters();
   }, []);
 
   const [formData, setFormData] = useState({
@@ -69,7 +83,8 @@ const EditJob = () => {
       allowed_branches: [],
       allowed_years: [],
       allowed_categories: [],
-      allowed_students: []
+      allowed_students: [],
+      allowed_semesters: []
     },
     rounds: []
   });
@@ -222,7 +237,8 @@ const EditJob = () => {
           max_backlogs: data.eligibility_rules?.max_backlogs === undefined || data.eligibility_rules?.max_backlogs === null ? '' : String(data.eligibility_rules.max_backlogs),
           allowed_branches: data.eligibility_rules?.allowed_branches || [],
           allowed_years: data.eligibility_rules?.allowed_years || [],
-          allowed_categories: data.eligibility_rules?.allowed_categories || []
+          allowed_categories: data.eligibility_rules?.allowed_categories || [],
+          allowed_semesters: data.eligibility_rules?.allowed_semesters || []
         },
         rounds: data.rounds || []
       });
@@ -255,57 +271,7 @@ const EditJob = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleOpenChatGPT = () => {
-    if (!formData.company_name) return;
-    
-    const prompt = `Act as an expert recruitment corporate intelligence agent.
-Provide accurate, comprehensive details for the company: "${formData.company_name}".
-You must return ONLY a valid, standard JSON object (no markdown formatting, no backticks, no text outside the JSON) matching this exact format:
-{
-  "description": "<Provide a professional, detailed 3-4 sentence overview of ${formData.company_name}, their core industry, products, and developer culture>",
-  "company_website": "<Official website URL of ${formData.company_name}, e.g. https://www.microsoft.com>"
-}
-Return only the JSON object.`;
 
-    const chatGPTUrl = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
-    window.open(chatGPTUrl, '_blank');
-  };
-
-  const handleAiJsonChange = (e) => {
-    const val = e.target.value;
-    setAiJsonInput(val);
-    setAiParseError(null);
-    setAiParseSuccess(false);
-
-    if (!val.trim()) return;
-
-    // Strip markdown link format [text](url) → url
-    const stripMdLink = (str) => {
-      if (!str) return str;
-      const match = str.match(/^\[.*?\]\((.*?)\)$/);
-      return match ? match[1] : str;
-    };
-
-    try {
-      let cleanVal = val.trim();
-      if (cleanVal.startsWith('```')) {
-        cleanVal = cleanVal.replace(/^```(json)?\n/, '').replace(/\n```$/, '');
-      }
-      
-      const parsed = JSON.parse(cleanVal);
-      
-      setFormData(prev => {
-        const updated = { ...prev };
-        if (parsed.description) updated.description = parsed.description;
-        if (parsed.company_website) updated.company_website = stripMdLink(parsed.company_website);
-        return updated;
-      });
-
-      setAiParseSuccess(true);
-    } catch (err) {
-      setAiParseError('Failed to parse JSON. Please make sure the JSON structure is valid.');
-    }
-  };
 
 
   const handleEligibilityChange = (field, value) => {
@@ -332,6 +298,26 @@ Return only the JSON object.`;
       handleEligibilityChange('allowed_branches', allNames);
     } else {
       handleEligibilityChange('allowed_branches', []);
+    }
+  };
+
+  const handleSemesterToggle = (semName) => {
+    const currentSelected = formData.eligibility_rules.allowed_semesters || [];
+    let newSelected;
+    if (currentSelected.includes(semName)) {
+      newSelected = currentSelected.filter(name => name !== semName);
+    } else {
+      newSelected = [...currentSelected, semName];
+    }
+    handleEligibilityChange('allowed_semesters', newSelected);
+  };
+
+  const handleSelectAllSemesters = (selectAll) => {
+    if (selectAll) {
+      const allSems = availableSemesters.map(s => s.name);
+      handleEligibilityChange('allowed_semesters', allSems);
+    } else {
+      handleEligibilityChange('allowed_semesters', []);
     }
   };
 
@@ -424,7 +410,8 @@ Return only the JSON object.`;
           max_backlogs: formData.eligibility_rules.max_backlogs === '' || formData.eligibility_rules.max_backlogs === null
             ? null
             : parseInt(formData.eligibility_rules.max_backlogs),
-          allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id)
+          allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id),
+          allowed_semesters: (formData.eligibility_rules.allowed_semesters || []).map(s => parseInt(s, 10))
         }
       };
       if (payload.application_deadline) {
@@ -473,43 +460,7 @@ Return only the JSON object.`;
                   <textarea required name="description" value={formData.description} onChange={handleInputChange} rows={4} className="input-field resize-y"></textarea>
                 </div>
 
-                {/* AI Copilot Auto-Fill Panel */}
-                <div className="col-span-2 p-4 rounded-xl flex flex-col gap-4 border" style={{ background: 'var(--bg-card-hover)', borderColor: 'var(--border-color)', marginVertical: 12 }}>
-                  <div className="flex justify-between items-center flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="p-1 px-2 rounded font-black text-accent-primary" style={{ background: 'var(--accent-soft)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>AI Copilot</span>
-                      <h3 className="text-xs uppercase tracking-wider font-bold">Auto-Fill Details</h3>
-                    </div>
-                    {formData.company_name ? (
-                      <button
-                        type="button"
-                        onClick={handleOpenChatGPT}
-                        className="btn btn-secondary py-1 px-3"
-                        style={{ fontSize: '0.75rem', borderRadius: 8 }}
-                      >
-                        🚀 Generate & Open ChatGPT
-                      </button>
-                    ) : (
-                      <span className="text-[10px] text-muted italic">Type in a Company Name above to enable AI Copilot</span>
-                    )}
-                  </div>
-                  
-                  {formData.company_name && (
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Paste ChatGPT JSON here:</label>
-                      <textarea
-                        placeholder='Paste response here... E.g. { "description": "...", "company_website": "..." }'
-                        value={aiJsonInput}
-                        onChange={handleAiJsonChange}
-                        rows={2}
-                        className="input-field text-xs font-mono"
-                        style={{ borderRadius: 8, padding: 8 }}
-                      />
-                      {aiParseError && <span className="text-[10px] font-bold text-danger">⚠️ {aiParseError}</span>}
-                      {aiParseSuccess && <span className="text-[10px] font-bold text-success">✨ Form details successfully auto-populated!</span>}
-                    </div>
-                  )}
-                </div>
+
 
                 <div className="input-group col-span-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-3 flex items-center gap-2">
@@ -1051,6 +1002,106 @@ Return only the JSON object.`;
                   </div>
                 </div>
               </div>
+          </div>
+
+          {/* ─── Target Semesters Section ─── */}
+          <div className="col-span-2 mt-6">
+            <div 
+              style={{
+                background: 'var(--bg-card)',
+                borderRadius: '16px',
+                border: '1px solid var(--border-color)',
+                padding: '28px',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            >
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  borderBottom: '1px solid var(--border-light)', 
+                  paddingBottom: '20px', 
+                  marginBottom: '20px',
+                  flexWrap: 'wrap',
+                  gap: '16px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ padding: '8px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', display: 'flex', alignItems: 'center' }}>
+                    <Layers size={18} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-primary" style={{ letterSpacing: '1px', color: 'var(--text-primary)', margin: 0 }}>Target Semesters Eligibility</h3>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>Choose targeted semesters. If none are selected, all semesters are targeted by default.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative max-w-md" style={{ marginTop: '15px' }}>
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Semesters</label>
+                <div 
+                  onClick={() => setSemDropdownOpen(!semDropdownOpen)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}
+                >
+                  <span style={{ color: formData.eligibility_rules.allowed_semesters.length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: formData.eligibility_rules.allowed_semesters.length === 0 ? '500' : '700' }}>
+                    {formData.eligibility_rules.allowed_semesters.length === 0 
+                      ? 'All Semesters (Default)' 
+                      : `Semesters: ${[...formData.eligibility_rules.allowed_semesters].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
+                    }
+                  </span>
+                  <ChevronDown size={18} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: semDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                </div>
+
+                {semDropdownOpen && (
+                  <>
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }} onClick={() => setSemDropdownOpen(false)}></div>
+                    <div style={{ position: 'absolute', left: 0, right: 0, marginTop: '8px', zIndex: 20, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', padding: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px', marginBottom: '8px' }}>
+                        <button type="button" onClick={() => handleSelectAllSemesters(true)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Select All</button>
+                        <button type="button" onClick={() => handleSelectAllSemesters(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Clear All</button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '240px', overflowY: 'auto' }}>
+                        {availableSemesters.map(sem => {
+                          const isChecked = (formData.eligibility_rules.allowed_semesters || []).includes(sem.name);
+                          return (
+                            <div 
+                              key={sem.name}
+                              onClick={() => handleSemesterToggle(sem.name)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', transition: 'colors 0.15s' }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                readOnly
+                                style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                                Semester {sem.name} {sem.count > 0 && <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>({sem.count} students)</span>}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* ─── Advanced Targeting Section ─── */}

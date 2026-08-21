@@ -1346,6 +1346,7 @@ input[type="checkbox"]:focus-visible {
 .auth-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; }
 .alert { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 14px; }
 .alert-error { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+.alert-success { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
 
 /* ─── Password Checklist ──────────────────────────────────────────────── */
 .pwd-checklist { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; padding: 12px; background: var(--bg-input); border-radius: var(--radius-sm); }

@@ -320,6 +320,27 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     else:
         passing_checks.append('graduation_year')
 
+    # 5.5 Semester Check
+    allowed_semesters = rules.get('allowed_semesters', [])
+    if allowed_semesters:
+        student_sem = student.semester
+        allowed_sems_ints = []
+        for s in allowed_semesters:
+            try:
+                allowed_sems_ints.append(int(s))
+            except (ValueError, TypeError):
+                pass
+        if student_sem not in allowed_sems_ints:
+            failing_checks.append({
+                'check_name': 'semester',
+                'reason': f'Semester {student_sem or "Not specified"} is not eligible for this role.',
+                'how_to_fix': f'Eligible semesters: {", ".join(map(str, allowed_sems_ints))}'
+            })
+        else:
+            passing_checks.append('semester')
+    else:
+        passing_checks.append('semester')
+
     # 6. Deadline Check
     if datetime.now(timezone.utc) > job.application_deadline:
         failing_checks.append({

@@ -4,7 +4,7 @@ import axios from '../../api/axios';
 import toast from 'react-hot-toast';
 import { ILEAD_COURSES_OBJ } from '../../constants/courses';
 import { 
-  Building2, Briefcase, MapPin, GraduationCap, Users, 
+  Building2, Briefcase, MapPin, GraduationCap, Users, Layers,
   Mail, Settings, DollarSign, Calendar, ListOrdered, FileText,
   ChevronDown, Check, CheckCircle2, Clock, Plus, Trash2
 } from 'lucide-react';
@@ -28,6 +28,8 @@ const CreateInternship = () => {
   const [targetingLoading, setTargetingLoading] = useState(false);
 
   const [availableCourses, setAvailableCourses] = useState([]);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
+  const [semDropdownOpen, setSemDropdownOpen] = useState(false);
   const [courseSearch, setCourseSearch] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState({});
 
@@ -42,10 +44,26 @@ const CreateInternship = () => {
         const coursesList = Array.isArray(response.data) ? response.data : (response.data.courses || []);
         setAvailableCourses(coursesList);
       } catch (err) {
+        console.error('Failed to fetch courses', err);
         setAvailableCourses(ILEAD_COURSES_OBJ);
       }
     };
+    const fetchSemesters = async () => {
+      try {
+        const response = await axios.get('/students/filters/');
+        const sems = response.data.semesters || [];
+        sems.sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10));
+        setAvailableSemesters(sems);
+      } catch (err) {
+        console.error('Failed to fetch semesters', err);
+        setAvailableSemesters([
+          { name: '1', count: 0 }, { name: '2', count: 0 }, { name: '3', count: 0 }, { name: '4', count: 0 },
+          { name: '5', count: 0 }, { name: '6', count: 0 }, { name: '7', count: 0 }, { name: '8', count: 0 }
+        ]);
+      }
+    };
     fetchCourses();
+    fetchSemesters();
   }, []);
 
   const parsePackageValue = (pkg, listingType) => {
@@ -119,6 +137,7 @@ const CreateInternship = () => {
               allowed_branches: data.eligibility_rules?.allowed_branches || [],
               allowed_years: data.eligibility_rules?.allowed_years || [],
               allowed_categories: data.eligibility_rules?.allowed_categories || [],
+              allowed_semesters: data.eligibility_rules?.allowed_semesters || [],
               allowed_students: []
             },
             rounds: (data.rounds || []).map(r => ({
@@ -188,7 +207,8 @@ const CreateInternship = () => {
         allowed_branches: [],
         allowed_years: [],
         allowed_categories: [],
-        allowed_students: []
+        allowed_students: [],
+        allowed_semesters: []
       },
       rounds: []
     };
@@ -282,6 +302,26 @@ const CreateInternship = () => {
     handleEligibilityChange('allowed_branches', selectAll ? availableCourses.map(c => c.name) : []);
   };
 
+  const handleSemesterToggle = (semName) => {
+    const currentSelected = formData.eligibility_rules.allowed_semesters || [];
+    let newSelected;
+    if (currentSelected.includes(semName)) {
+      newSelected = currentSelected.filter(name => name !== semName);
+    } else {
+      newSelected = [...currentSelected, semName];
+    }
+    handleEligibilityChange('allowed_semesters', newSelected);
+  };
+
+  const handleSelectAllSemesters = (selectAll) => {
+    if (selectAll) {
+      const allSems = availableSemesters.map(s => s.name);
+      handleEligibilityChange('allowed_semesters', allSems);
+    } else {
+      handleEligibilityChange('allowed_semesters', []);
+    }
+  };
+
   const handleSelectCategory = (catName, selectAll) => {
     const catCourses = availableCourses.filter(c => (c.category || 'Other') === catName).map(c => c.name);
     const currentSelected = formData.eligibility_rules.allowed_branches || [];
@@ -348,7 +388,8 @@ const CreateInternship = () => {
           max_backlogs: formData.eligibility_rules.max_backlogs === '' || formData.eligibility_rules.max_backlogs === null
             ? null
             : parseInt(formData.eligibility_rules.max_backlogs),
-          allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id)
+          allowed_students: (formData.eligibility_rules.allowed_students || []).map(s => s.id),
+          allowed_semesters: (formData.eligibility_rules.allowed_semesters || []).map(s => parseInt(s, 10))
         },
         rounds: (formData.rounds || []).map(r => {
           const { id, ...rest } = r;
@@ -806,6 +847,73 @@ const CreateInternship = () => {
                   );
                 });
               })()}
+            </div>
+          </section>
+
+          {/* Card 4.5: Target Semesters Eligibility */}
+          <section className="card p-8 border border-[var(--border-color)] rounded-2xl shadow-sm bg-[var(--bg-card)] relative">
+            <div className="flex flex-col gap-2 mb-6 pb-5 border-b border-[var(--border-light)]">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[rgba(16,185,129,0.1)] text-[#10b981]">
+                  <Layers size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold text-primary m-0 tracking-wide uppercase text-[0.9rem]">Target Semesters Eligibility</h2>
+                </div>
+              </div>
+              <p className="text-xs text-muted ml-11">
+                Choose targeted semesters. <strong>If none are selected, all semesters are targeted by default.</strong>
+              </p>
+            </div>
+
+            <div className="relative max-w-md ml-11">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Semesters</label>
+              <div 
+                onClick={() => setSemDropdownOpen(!semDropdownOpen)}
+                className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none"
+              >
+                <span className={formData.eligibility_rules.allowed_semesters.length === 0 ? 'text-muted font-normal' : 'text-primary'}>
+                  {formData.eligibility_rules.allowed_semesters.length === 0 
+                    ? 'All Semesters (Default)' 
+                    : `Semesters: ${[...formData.eligibility_rules.allowed_semesters].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
+                  }
+                </span>
+                <ChevronDown size={18} className={`text-muted transition-transform duration-200 ${semDropdownOpen ? '-rotate-180' : 'rotate-0'}`} />
+              </div>
+
+              {semDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setSemDropdownOpen(false)}></div>
+                  <div className="absolute left-0 right-0 mt-2 z-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden p-3 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2 mb-2">
+                      <button type="button" onClick={() => handleSelectAllSemesters(true)} className="text-[10px] font-black uppercase text-[var(--accent-primary)] hover:underline bg-none border-none cursor-pointer">Select All</button>
+                      <button type="button" onClick={() => handleSelectAllSemesters(false)} className="text-[10px] font-black uppercase text-muted hover:underline bg-none border-none cursor-pointer">Clear All</button>
+                    </div>
+                    <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                      {availableSemesters.map(sem => {
+                        const isChecked = (formData.eligibility_rules.allowed_semesters || []).includes(sem.name);
+                        return (
+                          <div 
+                            key={sem.name}
+                            onClick={() => handleSemesterToggle(sem.name)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-card-hover)] cursor-pointer select-none transition-colors"
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer"
+                            />
+                            <span className="text-xs font-bold text-secondary">
+                              Semester {sem.name} {sem.count > 0 && <span className="text-[10px] text-muted">({sem.count} students)</span>}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </section>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
-import './Auth.css';
+import logo from '../../logo.png';
 import { Eye, EyeOff } from 'lucide-react';
 
 const ResetPassword = () => {
@@ -40,17 +40,22 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="auth-container">
-            <div className="auth-card">
-                <h2>Set New Password</h2>
-                <p className="auth-subtitle">Choose a strong password for your account.</p>
+        <div className="auth-page">
+            <div className="auth-card card">
+                <div className="auth-header">
+                    <img src={logo} alt="iLEAD Logo" className="auth-logo-img" />
+                    <h1 className="branded-title">
+                        <span className="portal-text">Set New Password</span>
+                    </h1>
+                    <p>Choose a strong password for your account</p>
+                </div>
 
-                {message && <div className="auth-alert success">{message}</div>}
-                {error && <div className="auth-alert error">{error}</div>}
+                {message && <div className="alert alert-success">{message}</div>}
+                {error && <div className="alert alert-error">{error}</div>}
 
                 {!message && (
                     <form onSubmit={handleSubmit}>
-                        <div className="form-group">
+                        <div className="input-group">
                             <label>New Password</label>
                             <div className="password-input-container">
                                 <input
@@ -58,7 +63,9 @@ const ResetPassword = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Min. 8 characters"
+                                    className="input-field"
                                     required
+                                    autoFocus
                                 />
                                 <button
                                     type="button"
@@ -71,7 +78,7 @@ const ResetPassword = () => {
                             </div>
                         </div>
 
-                        <div className="form-group">
+                        <div className="input-group">
                             <label>Confirm Password</label>
                             <div className="password-input-container">
                                 <input
@@ -79,6 +86,7 @@ const ResetPassword = () => {
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     placeholder="Repeat password"
+                                    className="input-field"
                                     required
                                 />
                                 <button
@@ -92,14 +100,16 @@ const ResetPassword = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="auth-button" disabled={loading}>
+                        <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                             {loading ? 'Resetting...' : 'Reset Password'}
                         </button>
                     </form>
                 )}
 
-                <div className="auth-footer">
-                    <a href="/login">Back to Login</a>
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <a href="/login" style={{ fontSize: '0.9rem', color: '#8b5cf6', textDecoration: 'none' }}>
+                        Back to Login
+                    </a>
                 </div>
             </div>
         </div>
