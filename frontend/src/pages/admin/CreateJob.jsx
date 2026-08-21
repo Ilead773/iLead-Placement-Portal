@@ -856,10 +856,10 @@ const CreateJob = () => {
                 onClick={() => setSemDropdownOpen(!semDropdownOpen)}
                 className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none"
               >
-                <span className={formData.eligibility_rules.allowed_semesters.length === 0 ? 'text-muted font-normal' : 'text-primary'}>
-                  {formData.eligibility_rules.allowed_semesters.length === 0 
+                <span className={(formData.eligibility_rules.allowed_semesters || []).length === 0 ? 'text-muted font-normal' : 'text-primary'}>
+                  {(formData.eligibility_rules.allowed_semesters || []).length === 0 
                     ? 'All Semesters (Default)' 
-                    : `Semesters: ${[...formData.eligibility_rules.allowed_semesters].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
+                    : `Semesters: ${[...(formData.eligibility_rules.allowed_semesters || [])].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
                   }
                 </span>
                 <ChevronDown size={18} className={`text-muted transition-transform duration-200 ${semDropdownOpen ? '-rotate-180' : 'rotate-0'}`} />

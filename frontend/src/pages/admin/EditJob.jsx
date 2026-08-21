@@ -1056,10 +1056,10 @@ const EditJob = () => {
                     userSelect: 'none'
                   }}
                 >
-                  <span style={{ color: formData.eligibility_rules.allowed_semesters.length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: formData.eligibility_rules.allowed_semesters.length === 0 ? '500' : '700' }}>
-                    {formData.eligibility_rules.allowed_semesters.length === 0 
+                  <span style={{ color: (formData.eligibility_rules.allowed_semesters || []).length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: (formData.eligibility_rules.allowed_semesters || []).length === 0 ? '500' : '700' }}>
+                    {(formData.eligibility_rules.allowed_semesters || []).length === 0 
                       ? 'All Semesters (Default)' 
-                      : `Semesters: ${[...formData.eligibility_rules.allowed_semesters].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
+                      : `Semesters: ${[...(formData.eligibility_rules.allowed_semesters || [])].sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`
                     }
                   </span>
                   <ChevronDown size={18} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: semDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
