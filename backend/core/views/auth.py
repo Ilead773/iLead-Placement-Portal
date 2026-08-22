@@ -233,18 +233,56 @@ class AuthViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='forgot-password')
     def forgot_password(self, request):
-        """Send a password reset link to the user's email or login ID."""
-        identity = request.data.get('identity')
+        """Send a password reset link to the user's email or login ID.
+
+        Rate limits (enforced via Redis cache):
+          - Per email/login_id : 1 request per 5 minutes
+          - Per IP address     : 5 requests per 10 minutes
+        """
+        from django.core.cache import cache
+
+        identity = request.data.get('identity', '').strip()
         if not identity:
             return Response({'error': 'Login ID or Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+        # ── Rate limit 1: per identity (email / login_id) ─────────────────
+        COOLDOWN_SECONDS = 5 * 60  # 5 minutes between emails for the same address
+        identity_key = f'pwd_reset_identity:{identity.lower()}'
+        if cache.get(identity_key):
+            # Calculate remaining seconds so the frontend can show a countdown
+            ttl = cache.ttl(identity_key) if hasattr(cache, 'ttl') else COOLDOWN_SECONDS
+            wait_mins = max(1, round(ttl / 60))
+            return Response(
+                {
+                    'error': f'A reset email was already sent. Please wait {wait_mins} minute(s) before requesting another one.',
+                    'retry_after_seconds': ttl,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # ── Rate limit 2: per IP address ──────────────────────────────────
+        IP_WINDOW_SECONDS = 10 * 60  # 10-minute window
+        IP_MAX_REQUESTS   = 5        # max 5 reset attempts from same IP
+        ip = (
+            request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+            or request.META.get('REMOTE_ADDR', 'unknown')
+        )
+        ip_key   = f'pwd_reset_ip:{ip}'
+        ip_count = cache.get(ip_key, 0)
+        if ip_count >= IP_MAX_REQUESTS:
+            return Response(
+                {'error': 'Too many password reset attempts from your network. Please try again in 10 minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         try:
-            # Case-insensitive search by email OR login_id
             from django.db.models import Q
             user = User.objects.filter(Q(email__iexact=identity) | Q(login_id__iexact=identity)).first()
-            
+
             if not user:
                 logger.info("Forgot Password requested, but no matching user was found.")
+                # Still set the rate-limit key even for unknown users (prevents enumeration)
+                cache.set(identity_key, True, COOLDOWN_SECONDS)
                 return Response({'message': 'If an account exists with this identity, a reset link has been sent.'})
 
             if not user.email:
@@ -254,30 +292,44 @@ class AuthViewSet(viewsets.ViewSet):
             from django.contrib.auth.tokens import default_token_generator
             from django.utils.http import urlsafe_base64_encode
             from django.utils.encoding import force_bytes
-            
+
             token = default_token_generator.make_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            uid   = urlsafe_base64_encode(force_bytes(user.pk))
             reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
-            
+
             subject = 'Password Reset Request'
             message = f"""
             You requested a password reset for your iLEAD Placement Portal account.
             Please click the link below to set a new password:
-            
+
             {reset_url}
-            
-            If you did not request this, please ignore this email.
+
+            This link is valid for 24 hours. If you did not request this, please ignore this email.
             """
-            
+
             logger.info(f"Attempting to send password reset email to user ID: {user.id}")
             from core.tasks import async_send_mail
             async_send_mail.delay(subject, message, [user.email], fail_silently=False)
             logger.info(f"Email queued successfully for user ID: {user.id}")
-            return Response({'message': 'If an account exists with this identity, a reset link has been sent.'})
-            
+
+            # ── Set rate-limit keys AFTER successful send ─────────────────
+            cache.set(identity_key, True, COOLDOWN_SECONDS)
+            # Increment IP counter (set TTL only on first hit)
+            if ip_count == 0:
+                cache.set(ip_key, 1, IP_WINDOW_SECONDS)
+            else:
+                cache.incr(ip_key)
+
+            return Response({
+                'message': 'If an account exists with this identity, a reset link has been sent.',
+                'retry_after_seconds': COOLDOWN_SECONDS,
+            })
+
         except Exception as e:
             logger.exception("Unexpected error in forgot_password")
             return Response({'error': 'Something went wrong. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], url_path='reset-password-confirm')
     def reset_password_confirm(self, request):

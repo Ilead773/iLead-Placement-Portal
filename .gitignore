@@ -131,9 +131,17 @@ student_import_template.xlsx
 # AI assistant configuration files
 .agents/
 
-# Zoom SDK large vendor binary assets (installed via npm, not committed to git)
+# Local Zoom assets
 frontend/public/zoom-sdk/
 frontend/public/meetingsdk-assets/
+
+# Local diagnostic scripts & spreadsheets
+backend/check_*.py
+backend/diagnose_*.py
+backend/find_*.py
+backend/generate_*.py
+backend/send_*.py
+*.xlsx
 
 
 

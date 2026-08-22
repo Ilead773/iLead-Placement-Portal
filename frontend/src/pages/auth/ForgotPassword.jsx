@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from '../../api/axios';
 import logo from '../../logo.png';
 
 const ForgotPassword = () => {
-    const [identity, setIdentity] = useState('');
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [identity, setIdentity]     = useState('');
+    const [message, setMessage]       = useState('');
+    const [error, setError]           = useState('');
+    const [loading, setLoading]       = useState(false);
+    const [cooldown, setCooldown]     = useState(0); // seconds remaining
+    const timerRef                    = useRef(null);
+
+    // Start countdown timer
+    const startCooldown = (seconds) => {
+        setCooldown(seconds);
+        clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setCooldown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timerRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    // Clean up timer on unmount
+    useEffect(() => () => clearInterval(timerRef.current), []);
+
+    const formatCountdown = (secs) => {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return `${m}:${String(s).padStart(2, '0')}`;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (cooldown > 0) return; // extra guard
         setLoading(true);
         setMessage('');
         setError('');
@@ -17,12 +44,22 @@ const ForgotPassword = () => {
         try {
             const response = await axios.post('/auth/forgot-password/', { identity });
             setMessage(response.data.message);
+            // Start cooldown using retry_after_seconds from backend (default 5 min)
+            const wait = response.data.retry_after_seconds || 300;
+            startCooldown(wait);
         } catch (err) {
-            setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+            const data = err.response?.data || {};
+            setError(data.error || 'Something went wrong. Please try again.');
+            // If rate-limited (429), start the countdown
+            if (err.response?.status === 429 && data.retry_after_seconds) {
+                startCooldown(data.retry_after_seconds);
+            }
         } finally {
             setLoading(false);
         }
     };
+
+    const isDisabled = loading || cooldown > 0;
 
     return (
         <div className="auth-page">
@@ -36,9 +73,13 @@ const ForgotPassword = () => {
                 </div>
 
                 {message && <div className="alert alert-success">{message}</div>}
-                {error && <div className="alert alert-error">{error}</div>}
+                {error   && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
+                <div className="alert alert-error" style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                    ⚠️ Password reset is temporarily unavailable. Please try again after 2 days.
+                </div>
+
+                <form onSubmit={(e) => e.preventDefault()}>
                     <div className="input-group">
                         <label>Login ID or Registered Email</label>
                         <input
@@ -49,11 +90,17 @@ const ForgotPassword = () => {
                             className="input-field"
                             required
                             autoFocus
+                            disabled={true}
                         />
                     </div>
 
-                    <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-                        {loading ? 'Sending...' : 'Send Reset Link'}
+                    <button
+                        type="submit"
+                        className="btn btn-primary btn-full"
+                        disabled={true}
+                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                    >
+                        Temporarily Disabled (Try after 2 days)
                     </button>
                 </form>
 
@@ -68,3 +115,4 @@ const ForgotPassword = () => {
 };
 
 export default ForgotPassword;
+
