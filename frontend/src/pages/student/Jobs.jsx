@@ -154,6 +154,9 @@ const Jobs = () => {
 
   const filteredJobs = jobs.filter(job => {
     if (statusFilter === 'applied') return job.has_applied;
+    
+    // If the student has already applied, do not show it in Open or Closed tabs
+    if (job.has_applied) return false;
 
     const isExpired = new Date(job.application_deadline) < new Date();
     if (statusFilter === 'open' && isExpired) return false;
