@@ -189,12 +189,17 @@ const Jobs = () => {
             <button
               key={tab.key}
               onClick={() => setStatusFilter(tab.key)}
-              className={`pb-3 px-1 font-bold text-sm transition-all whitespace-nowrap relative flex-shrink-0 ${
+              className={`pb-3 px-2 font-bold text-sm transition-all whitespace-nowrap relative flex-shrink-0 bg-transparent border-t-0 border-x-0 border-b-2 outline-none focus:outline-none focus:ring-0 ${
                 statusFilter === tab.key
-                  ? 'text-primary border-b-2 -mb-[2px]'
+                  ? 'text-primary'
                   : 'text-secondary hover:text-primary'
               }`}
-              style={statusFilter === tab.key ? { borderColor: 'var(--accent-primary)', color: 'var(--text-primary)' } : {}}
+              style={{
+                borderColor: statusFilter === tab.key ? 'var(--accent-primary)' : 'transparent',
+                color: statusFilter === tab.key ? 'var(--text-primary)' : 'inherit',
+                background: 'transparent',
+                boxShadow: 'none',
+              }}
             >
               {tab.label}
             </button>
