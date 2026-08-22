@@ -133,6 +133,14 @@ class AuthViewSet(viewsets.ViewSet):
                     
                     user.save(update_fields=['failed_login_attempts', 'locked_until'])
                     log_audit(user, 'login_failed', f'Attempt {user.failed_login_attempts}', request)
+                    
+                    # Custom error warning specifically for first-time login users
+                    if user.temp_password_flag or user.password_reset_required:
+                        return Response(
+                            {'error': 'Invalid temporary password. Please check your Welcome Email for the correct credentials.'},
+                            status=status.HTTP_401_UNAUTHORIZED
+                        )
+                    
                     return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
                 # Success path inside transaction — reset counters

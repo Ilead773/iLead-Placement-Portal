@@ -1091,7 +1091,7 @@ export default function StudentProfile() {
                     </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted mt-3 italic text-center">Synced from college academic database (Read-only)</p>
+                <p className="text-[10px] text-muted mt-3 italic text-center">Synced from college academic database (Read-only). CGPA and Attendance are excluded from profile completion calculations.</p>
               </section>
 
               <section className="glass-panel p-6">

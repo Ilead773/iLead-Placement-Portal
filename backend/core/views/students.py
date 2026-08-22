@@ -372,11 +372,16 @@ class StudentViewSet(viewsets.ViewSet):
                                                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                                                 <tr>
                                                                     <td width="35%" style="padding-bottom: 10px; font-size: 14px; color: #64748b; font-weight: 500;">Login ID:</td>
-                                                                    <td width="65%" style="padding-bottom: 10px; font-size: 14px; font-weight: 700; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">{login_id}</td>
+                                                                    <td width="65%" style="padding-bottom: 10px; font-size: 15px; font-weight: 700; color: #0f172a; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 0.5px;">{login_id}</td>
                                                                 </tr>
                                                                 <tr>
-                                                                    <td style="font-size: 14px; color: #64748b; font-weight: 500;">Temp Password:</td>
-                                                                    <td style="font-size: 14px; font-weight: 700; color: #0f172a; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">{temp_password}</td>
+                                                                    <td style="font-size: 14px; color: #64748b; font-weight: 500; padding-top: 10px;">Temp Password:</td>
+                                                                    <td style="font-size: 18px; font-weight: 700; color: #1e3a8a; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 2px; padding: 10px 12px; background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 4px; display: inline-block;">{temp_password}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
+                                                                        <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                    </td>
                                                                 </tr>
                                                             </table>
                                                         </td>
@@ -926,11 +931,16 @@ class StudentViewSet(viewsets.ViewSet):
                                                         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                                             <tr>
                                                                 <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Login ID:</strong></td>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{user.login_id}</td>
+                                                                <td style="padding: 4px 0; font-size: 15px; color: #1e293b; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 0.5px;">{user.login_id}</td>
                                                             </tr>
                                                             <tr>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{new_password}</td>
+                                                                <td style="padding: 10px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
+                                                                <td style="padding: 10px 12px; font-size: 18px; font-weight: 700; color: #1e3a8a; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 2px; background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 4px; display: inline-block;">{new_password}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
+                                                                    <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                </td>
                                                             </tr>
                                                         </table>
                                                     </td>
@@ -1155,13 +1165,18 @@ class StudentViewSet(viewsets.ViewSet):
                                                     <td style="padding: 20px;">
                                                         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                                                             <tr>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Login ID:</strong></td>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{login_id}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
-                                                                <td style="padding: 4px 0; font-size: 14px; color: #1e293b; font-family: monospace;">{password}</td>
-                                                            </tr>
+                                                                 <td style="padding: 4px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Login ID:</strong></td>
+                                                                 <td style="padding: 4px 0; font-size: 15px; color: #1e293b; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 0.5px;">{login_id}</td>
+                                                             </tr>
+                                                             <tr>
+                                                                 <td style="padding: 10px 0; font-size: 14px; color: #64748b; width: 140px;"><strong>Temp Password:</strong></td>
+                                                                 <td style="padding: 10px 12px; font-size: 18px; font-weight: 700; color: #1e3a8a; font-family: Consolas, Menlo, Monaco, 'Courier New', monospace; letter-spacing: 2px; background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 4px; display: inline-block;">{password}</td>
+                                                             </tr>
+                                                             <tr>
+                                                                 <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
+                                                                     <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                 </td>
+                                                             </tr>
                                                         </table>
                                                     </td>
                                                 </tr>

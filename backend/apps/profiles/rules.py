@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 # ─── Default Completion Rules ────────────────────────────────────────────
 # These can be overridden per institution via settings or DB config.
+# NOTE: Academic metrics like CGPA and Attendance are intentionally excluded
+# from the profile completion (fill %) rules since they are read-only college-synced data.
 
 PROFILE_COMPLETION_RULES = {
     "personal": {

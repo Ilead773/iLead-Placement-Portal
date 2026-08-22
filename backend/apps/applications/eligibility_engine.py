@@ -38,7 +38,7 @@ def check_eligibility(student, job, ignore_profile_resume=False):
 
     try:
         state_key = get_student_eligibility_state_key(student)
-        cache_key = f"eligibility_{state_key}_{job.id}_{job.updated_at.timestamp()}_{ignore_profile_resume}"
+        cache_key = f"eligibility_v2_{state_key}_{job.id}_{job.updated_at.timestamp()}_{ignore_profile_resume}"
         cached_result = cache.get(cache_key)
         if cached_result is not None:
             return cached_result
@@ -172,12 +172,15 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     except (ValueError, TypeError):
         min_cgpa = 0.0
 
-    if student.cgpa is None or float(student.cgpa) < min_cgpa:
-        failing_checks.append({
-            'check_name': 'cgpa',
-            'reason': f'Your CGPA ({student.cgpa or 0}) is below the required minimum ({min_cgpa}).',
-            'how_to_fix': 'Maintain higher academic standards.'
-        })
+    if min_cgpa > 0.0:
+        if student.cgpa is None or float(student.cgpa) < min_cgpa:
+            failing_checks.append({
+                'check_name': 'cgpa',
+                'reason': f'Your CGPA ({student.cgpa or 0}) is below the required minimum ({min_cgpa}).',
+                'how_to_fix': 'Maintain higher academic standards.'
+            })
+        else:
+            passing_checks.append('cgpa')
     else:
         passing_checks.append('cgpa')
 
