@@ -24,7 +24,6 @@ export default function StudentProfile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeProfileTab, setActiveProfileTab] = useState('info');
   const [primaryResume, setPrimaryResume] = useState(null);
-  const [uploadingResume, setUploadingResume] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -329,39 +328,6 @@ export default function StudentProfile() {
       setPrimaryResume(primary || null);
     } catch (err) {
       console.error('Failed to load resumes on profile', err);
-    }
-  };
-
-  const handleResumeUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      toast.error('Only PDF files are allowed');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('File size exceeds 2MB limit');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setUploadingResume(true);
-      const uploadRes = await api.post('resumes/uploads/', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      toast.success('Resume PDF uploaded successfully!');
-      
-      await api.post(`resumes/uploads/${uploadRes.data.id}/set-primary/`);
-      toast.success('Uploaded resume set as active!');
-      
-      fetchResumesData();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to upload resume');
-    } finally {
-      setUploadingResume(false);
     }
   };
 
@@ -1586,28 +1552,6 @@ export default function StudentProfile() {
                   <p className="text-xs text-muted mt-2 italic">No active resume set.</p>
                 </div>
               )}
-
-              {/* Upload PDF Section */}
-              <div className="space-y-3 mt-6 pt-4 border-t border-dashed border-border-color">
-                <label className="text-[10px] font-black uppercase text-muted tracking-wider block">Upload Custom PDF Resume</label>
-                <div className="flex items-center gap-3">
-                  <input 
-                    type="file" 
-                    id="profile-resume-file-desktop" 
-                    accept=".pdf"
-                    onChange={handleResumeUpload}
-                    className="hidden" 
-                  />
-                  <button 
-                    onClick={() => document.getElementById('profile-resume-file-desktop').click()}
-                    className="btn btn-sm btn-secondary w-full flex items-center justify-center gap-2"
-                    disabled={uploadingResume}
-                  >
-                    {uploadingResume ? 'Uploading...' : 'Upload PDF'}
-                  </button>
-                </div>
-                <span className="text-[9px] text-muted block text-center mt-1">PDF only. Max size 2MB. Setting this active will display it to HR/recruiters.</span>
-              </div>
             </section>
 
             <section className={`glass-panel p-6 border-l-4 ${completion?.suggestions?.length > 0 ? 'border-warning bg-warning/5' : 'border-success bg-success/5'}`}>

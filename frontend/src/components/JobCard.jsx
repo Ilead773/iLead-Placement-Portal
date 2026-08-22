@@ -164,8 +164,15 @@ const JobCard = ({ job, eligibility, onApply }) => {
         )}
 
         {hasApplied ? (
-          <div className="w-full text-center py-2.5 rounded-xl font-bold text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider mt-auto cursor-default" onClick={e => e.stopPropagation()}>
-            Applied ✓
+          <div className="flex flex-col gap-2 mt-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-full text-center py-2.5 rounded-xl font-bold text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-wider cursor-default">
+              Applied ✓
+            </div>
+            {job.status === 'closed' && (
+              <div className="w-full text-center py-1.5 rounded-lg font-bold text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 uppercase tracking-wider cursor-default">
+                🔒 This Listing Has Been Closed
+              </div>
+            )}
           </div>
         ) : isEligible ? (
           <button 

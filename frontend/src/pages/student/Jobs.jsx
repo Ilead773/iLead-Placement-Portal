@@ -69,6 +69,7 @@ const Jobs = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('open'); // 'open' or 'closed'
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -149,7 +150,15 @@ const Jobs = () => {
     }
   };
   
+  const appliedCount = jobs.filter(job => job.has_applied).length;
+
   const filteredJobs = jobs.filter(job => {
+    if (statusFilter === 'applied') return job.has_applied;
+
+    const isExpired = new Date(job.application_deadline) < new Date();
+    if (statusFilter === 'open' && isExpired) return false;
+    if (statusFilter === 'closed' && !isExpired) return false;
+
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return (
@@ -169,15 +178,41 @@ const Jobs = () => {
         </div>
       </div>
 
-      <div className="mb-6 max-w-md">
-        <input
-          type="text"
-          placeholder="Search by Job ID, Company, Role or Location..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
-          style={{ background: 'var(--bg-card)' }}
-        />
+      {/* Tabs and Search Bar Container */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-border-color/30">
+        <div className="flex gap-1 sm:gap-4 overflow-x-auto pb-0 scrollbar-hide">
+          {[
+            { key: 'open', label: 'Open Listings' },
+            { key: 'closed', label: 'Closed / Expired' },
+            { key: 'applied', label: `Applied${appliedCount > 0 ? ` (${appliedCount})` : ''}` },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`pb-3 px-1 font-bold text-sm transition-all whitespace-nowrap relative flex-shrink-0 ${
+                statusFilter === tab.key
+                  ? 'text-primary border-b-2 -mb-[2px]'
+                  : 'text-secondary hover:text-primary'
+              }`}
+              style={statusFilter === tab.key ? { borderColor: 'var(--accent-primary)', color: 'var(--text-primary)' } : {}}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {statusFilter !== 'applied' && (
+          <div className="w-full md:max-w-md mb-4 md:mb-0">
+            <input
+              type="text"
+              placeholder="Search by Job ID, Company, Role or Location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
+              style={{ background: 'var(--bg-card)' }}
+            />
+          </div>
+        )}
       </div>
 
       {error ? (
@@ -218,15 +253,17 @@ const Jobs = () => {
         </motion.div>
       )}
       
-      {!loading && !error && jobs.length === 0 && (
+      {!loading && !error && filteredJobs.length === 0 && (
         <div className="text-center py-12 bg-card border border-border-color rounded-lg">
-          <p className="text-secondary text-lg">No active jobs available at the moment.</p>
-        </div>
-      )}
-
-      {!loading && !error && jobs.length > 0 && filteredJobs.length === 0 && (
-        <div className="text-center py-12 bg-card border border-border-color rounded-lg">
-          <p className="text-secondary text-lg">No jobs matching your search criteria.</p>
+          <p className="text-secondary text-lg">
+            {statusFilter === 'applied'
+              ? "You haven't applied to any jobs yet."
+              : searchQuery 
+                ? "No jobs matching your search criteria." 
+                : statusFilter === 'open' 
+                  ? "No open jobs available at the moment." 
+                  : "No closed or expired jobs found."}
+          </p>
         </div>
       )}
     </div>
