@@ -178,12 +178,12 @@ const Internships = () => {
         <p className="text-secondary mt-2 font-medium">Find and apply to the best matching internships for your profile.</p>
       </div>
 
-      {/* Tabs and Search Bar Container */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-border-color/30">
-        <div className="flex gap-1 sm:gap-4 overflow-x-auto pb-0 scrollbar-hide">
+      {/* Tabs Container */}
+      <div className="border-b border-border-color/30 mb-6">
+        <div className="flex gap-1 sm:gap-4 overflow-x-auto pb-0 scrollbar-hide -mb-[2px]">
           {[
             { key: 'open', label: 'Open Listings' },
-            { key: 'closed', label: 'Closed / Expired' },
+            { key: 'closed', label: 'Expired' },
             { key: 'applied', label: `Applied${appliedCount > 0 ? ` (${appliedCount})` : ''}` },
           ].map(tab => (
             <button
@@ -205,20 +205,21 @@ const Internships = () => {
             </button>
           ))}
         </div>
-
-        {statusFilter !== 'applied' && (
-          <div className="w-full md:max-w-md mb-4 md:mb-0">
-            <input
-              type="text"
-              placeholder="Search by Internship ID, Company, Role or Location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
-              style={{ background: 'var(--bg-card)' }}
-            />
-          </div>
-        )}
       </div>
+
+      {/* Search Bar Container */}
+      {statusFilter !== 'applied' && (
+        <div className="mb-6 max-w-md">
+          <input
+            type="text"
+            placeholder="Search by Internship ID, Company, Role or Location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field w-full py-2.5 px-4 rounded-xl border border-border-color shadow-sm text-sm"
+            style={{ background: 'var(--bg-card)' }}
+          />
+        </div>
+      )}
 
       {error ? (
         <ErrorState message={error} onRetry={fetchJobs} />
@@ -264,7 +265,7 @@ const Internships = () => {
                     ? "No internships matching your search criteria." 
                     : statusFilter === 'open' 
                       ? "No open internships available at the moment." 
-                      : "No closed or expired internships found."}
+                      : "No expired internships found."}
               </div>
               {!searchQuery && statusFilter === 'open' && (
                 <p className="text-text-muted text-sm mt-1">Check back later for new opportunities!</p>
