@@ -149,7 +149,7 @@ export default function PromoteStudents() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {[
-                { val: 'reg_numbers', label: '📋 Paste Registration Numbers', desc: 'Copy and paste roll numbers directly from Excel' },
+                { val: 'reg_numbers', label: '📋 Paste Roll Numbers', desc: 'Copy and paste roll numbers directly from Excel' },
                 { val: 'course_batch', label: '📚 By Course & Year', desc: 'Promote an entire batch of students in one click' },
                 { val: 'selected', label: `☑️ Selected Students (${selectedStudents.length} checked)`, desc: 'Apply to students selected from the main grid', disabled: selectedStudents.length === 0 }
               ].map(opt => (
@@ -185,11 +185,11 @@ export default function PromoteStudents() {
               ))}
             </div>
 
-            {/* Scope: Registration Numbers Field */}
+            {/* Scope: Roll Numbers Field */}
             {promoteScope === 'reg_numbers' && (
               <div style={{ marginTop: '16px' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                  Enter Registration / Roll Numbers
+                  Enter Roll Numbers
                 </label>
                 <textarea
                   rows={4}
@@ -446,7 +446,7 @@ export default function PromoteStudents() {
                 <div style={{ marginBottom: '20px' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', color: '#dc2626', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <XCircle size={14} />
-                    Failed Registrations
+                    Failed Roll Numbers
                   </div>
                   <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #fee2e2', background: '#fef2f2', padding: '12px', borderRadius: '10px' }}>
                     <ul style={{ paddingLeft: '16px', margin: 0, fontSize: '0.82rem', color: '#991b1b' }}>
@@ -532,7 +532,7 @@ export default function PromoteStudents() {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.86rem' }}>{student.name}</div>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        Reg No: {student.registration_number}
+                        Roll No: {student.registration_number}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>

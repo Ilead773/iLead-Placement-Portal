@@ -164,7 +164,7 @@ export default function ExternalClicks() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Reg No</th>
+                  <th>Roll No</th>
                   <th style={{ textAlign: 'right' }}>Clicks</th>
                 </tr>
               </thead>
@@ -260,7 +260,7 @@ export default function ExternalClicks() {
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Reg No</th>
+                  <th>Roll No</th>
                   <th>Job Title</th>
                   <th>Company</th>
                   <th>Link</th>

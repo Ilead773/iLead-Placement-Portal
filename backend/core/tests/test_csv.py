@@ -47,7 +47,7 @@ class TestCSVImport:
         assert response.status_code == status.HTTP_202_ACCEPTED
         log = CSVUploadLog.objects.first()
         assert log.failed_records == 1
-        assert "Duplicate registration number" in log.error_details
+        assert "Duplicate roll number" in log.error_details
 
     def test_invalid_cgpa_rejection(self, auth_client):
         url = '/api/v1/students/import-csv/'

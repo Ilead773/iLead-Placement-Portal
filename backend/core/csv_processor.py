@@ -358,13 +358,13 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
                 if not name:
                     raise ValueError(f"Student name is missing.")
                 if not reg_no:
-                    raise ValueError(f"Registration number is missing.")
+                    raise ValueError(f"Roll number is missing.")
 
                 # Check for duplicate reg_no within the same CSV
                 reg_no_key = reg_no.lower()
                 if reg_no_key in seen_reg_nos:
                     raise ValueError(
-                        f"Duplicate registration number '{reg_no}' found in this CSV. "
+                        f"Duplicate roll number '{reg_no}' found in this CSV. "
                         "Each student should appear only once."
                     )
                 seen_reg_nos.add(reg_no_key)
@@ -403,7 +403,7 @@ def process_csv(content_bytes, uploaded_by, file_name="import.csv", upload_log_i
 
                 # Check for duplicate registration number conflicts (different student/email)
                 if existing_user and existing_user.email != email:
-                    raise ValueError(f"Duplicate registration number: '{reg_no}' is already registered to another user.")
+                    raise ValueError(f"Duplicate roll number: '{reg_no}' is already registered to another user.")
 
                 if existing_user:
                     # Update existing user and their student profile

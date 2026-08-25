@@ -108,7 +108,12 @@ class StudentProfile(SoftDeleteModel):
         validator = ProfileCompletionValidator()
         _, _, score = validator.validate_profile(self)
         self.completion_score = score
-        self.save(update_fields=['completion_score'])
+        now = timezone.now()
+        self.updated_at = now
+        self.save(update_fields=['completion_score', 'updated_at'])
+        if hasattr(self, 'student') and self.student:
+            self.student.updated_at = now
+            self.student.save(update_fields=['updated_at'])
         return score
 
     def can_generate_resume(self):
@@ -324,4 +329,26 @@ class ExtracurricularActivity(SoftDeleteModel):
 
     def __str__(self):
         return self.title
+
+
+# ─── Signals ─────────────────────────────────────────────────────────────
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+
+@receiver([post_save, post_delete], sender=Skill)
+@receiver([post_save, post_delete], sender=Experience)
+@receiver([post_save, post_delete], sender=Project)
+@receiver([post_save, post_delete], sender=Education)
+@receiver([post_save, post_delete], sender=Certification)
+@receiver([post_save, post_delete], sender=Achievement)
+@receiver([post_save, post_delete], sender=ExtracurricularActivity)
+def on_profile_item_change(sender, instance, **kwargs):
+    if getattr(instance, 'profile_id', None):
+        try:
+            profile = instance.profile
+            profile.recalculate_completion()
+        except Exception:
+            pass
+
 

@@ -79,11 +79,11 @@ class AuthViewSet(viewsets.ViewSet):
             log_audit(None, 'login_failed', f'Unknown login_id: {login_id}', request)
             if '@' in login_id:
                 return Response(
-                    {'error': f'No account found with email "{login_id}". Please check your email or log in using your Registration Number (Login ID).'},
+                    {'error': f'No account found with email "{login_id}". Please check your email or log in using your Roll Number (Login ID).'},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
             return Response(
-                {'error': f'No account found for Login ID "{login_id}". Please make sure you are using your correct Registration Number or check your Welcome Email.'},
+                {'error': f'No account found for Login ID "{login_id}". Please make sure you are using your correct Roll Number or check your Welcome Email.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
@@ -162,7 +162,7 @@ class AuthViewSet(viewsets.ViewSet):
                             masked_email = "your registered email"
 
                         return Response(
-                            {'error': f'Incorrect temporary password. If this is your first time logging in, please check the Welcome Email (including Spam/Junk) sent to {masked_email} and copy-paste your temporary password exactly as shown for Registration Number {user.login_id} (make sure there are no extra spaces).'},
+                            {'error': f'Incorrect temporary password. If this is your first time logging in, please check the Welcome Email (including Spam/Junk) sent to {masked_email} and copy-paste your temporary password exactly as shown for Roll Number {user.login_id} (make sure there are no extra spaces).'},
                             status=status.HTTP_401_UNAUTHORIZED
                         )
                     

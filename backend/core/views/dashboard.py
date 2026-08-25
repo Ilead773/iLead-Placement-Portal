@@ -1205,7 +1205,7 @@ class DashboardViewSet(viewsets.ViewSet):
         ws = wb.active
         ws.title = "Placement Report"
         ws.append([
-            'Student Name', 'Reg No', 'Course', 'CGPA',
+            'Student Name', 'Roll No', 'Course', 'CGPA',
             'Company', 'Position', 'Salary', 'Status', 'Drive Type'
         ])
         

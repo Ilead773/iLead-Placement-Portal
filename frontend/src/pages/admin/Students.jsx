@@ -776,7 +776,7 @@ export default function Students() {
         <div style={{ position: 'relative', flex: 1, minWidth: 250, maxWidth: 500 }}>
           <input 
             className="input-field" 
-            placeholder="Search by name, reg no, or email..." 
+            placeholder="Search by name, roll no, or email..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
             onKeyDown={(e) => {
@@ -964,7 +964,7 @@ export default function Students() {
                     />
                   </th>
                   <th>Name & Contact</th>
-                  <th>Reg No</th>
+                  <th>Roll No</th>
                   <th>Course & Stream</th>
                   <th>Year / Sem</th>
                   <th>Cat</th>
@@ -1489,7 +1489,7 @@ export default function Students() {
                   )}
                 </div>
                 <p style={{ margin: '2px 0 0 0', opacity: 0.9, fontSize: '0.85rem', fontWeight: 500 }}>
-                  Reg No: <strong style={{ letterSpacing: '0.5px' }}>{selectedStudent.registration_number}</strong>
+                  Roll No: <strong style={{ letterSpacing: '0.5px' }}>{selectedStudent.registration_number}</strong>
                 </p>
               </div>
             </div>
@@ -2943,9 +2943,9 @@ export default function Students() {
                           />
                         </div>
 
-                        {/* Registration Number (READ-ONLY) */}
+                        {/* Roll Number (READ-ONLY) */}
                         <div>
-                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registration Number (Read-Only)</label>
+                          <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Roll Number (Read-Only)</label>
                           <input 
                             type="text" 
                             className="input-field" 
@@ -3211,9 +3211,9 @@ export default function Students() {
                   />
                 </div>
 
-                {/* Registration Number */}
+                {/* Roll Number */}
                 <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registration Number *</label>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Roll Number *</label>
                   <input 
                     type="text" 
                     className="input-field" 
@@ -3491,7 +3491,7 @@ export default function Students() {
                 <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Name:</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{createdCredentials.name}</span>
                 
-                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Roll / Reg No:</span>
+                <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Roll No:</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{createdCredentials.registration_number}</span>
                 
                 <span style={{ fontWeight: 800, color: 'var(--text-muted)' }}>Login ID:</span>

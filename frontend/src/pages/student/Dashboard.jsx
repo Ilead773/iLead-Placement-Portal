@@ -307,7 +307,7 @@ export default function StudentDashboard() {
             <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-white/10 text-xs font-semibold">
               <div className="student-hero-badge flex items-center gap-1.5">
                 <GraduationCap size={14} className="text-blue-400" />
-                <span className="text-slate-400 font-medium">Reg No:</span>
+                <span className="text-slate-400 font-medium">Roll No:</span>
                 <span className="text-white font-bold">{profile?.registration_number || 'N/A'}</span>
               </div>
               <div className="student-hero-badge flex items-center gap-1.5">

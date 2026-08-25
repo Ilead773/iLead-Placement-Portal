@@ -1056,7 +1056,7 @@ class StudentViewSet(viewsets.ViewSet):
             if not name:
                 return Response({'error': 'Name is required.'}, status=status.HTTP_400_BAD_REQUEST)
             if not reg_no:
-                return Response({'error': 'Registration number is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Roll number is required.'}, status=status.HTTP_400_BAD_REQUEST)
             if not email_raw:
                 return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
                 
@@ -1110,13 +1110,13 @@ class StudentViewSet(viewsets.ViewSet):
         # Check unique constraints
         login_id = reg_no.lower()
         if User.objects.filter(login_id=login_id).exists():
-            return Response({'error': f"Registration number '{reg_no}' (Login ID '{login_id}') is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f"Roll number '{reg_no}' (Login ID '{login_id}') is already in use."}, status=status.HTTP_400_BAD_REQUEST)
             
         if User.objects.filter(email=email).exists():
             return Response({'error': f"Email '{email}' is already in use by another user."}, status=status.HTTP_400_BAD_REQUEST)
 
         if Student.objects.filter(registration_number=reg_no).exists():
-            return Response({'error': f"Registration number '{reg_no}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': f"Roll number '{reg_no}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
 
         if Student.objects.filter(email=email).exists():
             return Response({'error': f"Email '{email}' is already in use by another student."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1318,11 +1318,11 @@ class StudentViewSet(viewsets.ViewSet):
             ]
             if not reg_numbers:
                 return Response(
-                    {'error': 'No valid registration numbers found in the provided list.'},
+                    {'error': 'No valid roll numbers found in the provided list.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             qs = Student.objects.filter(registration_number__in=reg_numbers)
-            scope_label = f"{len(reg_numbers)} registration number(s)"
+            scope_label = f"{len(reg_numbers)} roll number(s)"
 
         elif filter_course and filter_year:
             qs = Student.objects.filter(course=filter_course, year=filter_year)

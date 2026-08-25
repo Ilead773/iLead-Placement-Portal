@@ -239,14 +239,14 @@ export default function CSVUploadPage() {
 
   const downloadTemplate = () => {
     const headers = [
-      "Name", "Registration Number", "Email ID", "Phone Number", 
+      "Name", "Roll Number", "Email ID", "Phone Number", 
       "Course", "Stream", "Semester", "Passing Year", "CGPA", 
       "Attendance", "Training Attendance", "Backlogs"
     ].join(',');
     
     const sampleData = [
-      "John Doe,REG001,john@example.com,9876543210,BCA,Computer Science,5,2025,8.5,85.5,90,No",
-      "Jane Smith,REG002,jane@example.com,9876543211,BBA,Finance,3,2026,9.2,95,100,No"
+      "John Doe,ROLL001,john@example.com,9876543210,BCA,Computer Science,5,2025,8.5,85.5,90,No",
+      "Jane Smith,ROLL002,jane@example.com,9876543211,BBA,Finance,3,2026,9.2,95,100,No"
     ].join('\n');
 
     const csvContent = headers + '\n' + sampleData;
@@ -509,7 +509,7 @@ export default function CSVUploadPage() {
                 <strong style={{ display: 'block', marginBottom: 4 }}>Required Columns</strong>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   <code style={{ background: 'var(--bg-body)', padding: '2px 6px', borderRadius: 4 }}>Name</code>, 
-                  <code style={{ background: 'var(--bg-body)', padding: '2px 6px', borderRadius: 4, margin: '0 6px' }}>Registration Number</code>, 
+                  <code style={{ background: 'var(--bg-body)', padding: '2px 6px', borderRadius: 4, margin: '0 6px' }}>Roll Number</code>, 
                   <code style={{ background: 'var(--bg-body)', padding: '2px 6px', borderRadius: 4 }}>Email ID</code>
                 </p>
               </div>
@@ -532,7 +532,7 @@ export default function CSVUploadPage() {
               <div>
                 <strong style={{ display: 'block', marginBottom: 4 }}>Updating Existing Students</strong>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  If a student's Registration Number already exists, the system will update their details instead of creating a duplicate. Blank fields will not overwrite their existing data.
+                  If a student's Roll Number already exists, the system will update their details instead of creating a duplicate. Blank fields will not overwrite their existing data.
                 </p>
               </div>
             </div>

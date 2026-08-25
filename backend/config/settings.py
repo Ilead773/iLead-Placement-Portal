@@ -226,6 +226,9 @@ CORS_ALLOWED_ORIGINS = [
     for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     if origin.strip()
 ]
+if 'https://placement.ilead.net.in' not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append('https://placement.ilead.net.in')
+
 if DEBUG:
     CORS_ALLOWED_ORIGINS += [
         'http://localhost:5173',
@@ -328,8 +331,8 @@ if not BREVO_ROTATION_CONFIG and os.environ.get('BREVO_API_KEY'):
         'from_email': os.environ.get('DEFAULT_FROM_EMAIL', '')
     })
 
-# Frontend URL for password reset links
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+# Frontend URL for password reset links and welcome emails
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://placement.ilead.net.in')
 
 # Respect HTTPS forwarding headers from reverse proxies (Railway/Render).
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

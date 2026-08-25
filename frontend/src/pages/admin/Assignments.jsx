@@ -962,7 +962,7 @@ Answer: D`}</pre>
                         />
                       </th>
                       <th>Student Details</th>
-                      <th>Registration No</th>
+                      <th>Roll No</th>
                       <th>Course Category</th>
                       <th>Semester / Year</th>
                       <th>Eligibility Category</th>
@@ -1240,7 +1240,7 @@ Answer: D`}</pre>
               <thead>
                 <tr>
                   <th>Student</th>
-                  <th>Reg No</th>
+                  <th>Roll No</th>
                   <th>Course</th>
                   <th>Assessment</th>
                   <th>Status</th>
@@ -1332,7 +1332,7 @@ Answer: D`}</pre>
                 <span className="badge badge-success" style={{ marginBottom: 8 }}>COMPLETED SHEET</span>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0' }}>{selectedSubmission.student_name}</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', margin: 0 }}>
-                  Reg: {selectedSubmission.student_reg} | Course: {selectedSubmission.student_course || selectedSubmission.course}
+                  Roll No: {selectedSubmission.student_reg} | Course: {selectedSubmission.student_course || selectedSubmission.course}
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>

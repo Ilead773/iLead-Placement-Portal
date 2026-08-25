@@ -1145,7 +1145,7 @@ const EditJob = () => {
 
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🔍 Name / Reg No</label>
+                    <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>🔍 Name / Roll No</label>
                     <input type="text" placeholder="Search student..." value={targetingSearch}
                       onChange={e => setTargetingSearch(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchTargetStudents(); } }}

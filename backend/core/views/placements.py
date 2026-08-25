@@ -143,7 +143,7 @@ class PlacementViewSet(viewsets.ViewSet):
             'Company',
             'Position',
             'Student Name',
-            'Registration Number',
+            'Roll Number',
             'Email',
             'Phone',
             'Course',

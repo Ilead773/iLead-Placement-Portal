@@ -134,6 +134,17 @@ class SkillViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
+        # If a soft-deleted skill exists with same name & category, restore and update it
+        existing_deleted = Skill.objects.with_deleted().filter(
+            profile=profile, category=category, name__iexact=name.strip(), is_deleted=True
+        ).first()
+        if existing_deleted:
+            existing_deleted.restore()
+            existing_deleted.proficiency = serializer.validated_data.get('proficiency', 'Intermediate')
+            existing_deleted.save()
+            profile.recalculate_completion()
+            return Response(SkillSerializer(existing_deleted).data, status=status.HTTP_201_CREATED)
+
         serializer.save(profile=profile)
         profile.recalculate_completion()
         return Response(serializer.data, status=status.HTTP_201_CREATED)

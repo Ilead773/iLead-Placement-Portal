@@ -60,7 +60,7 @@ export default function Login() {
           <h1 className="branded-title">
             <span className="portal-text">iLEAD Placement Portal</span>
           </h1>
-          <p>Sign in with your Login ID (Registration Number)</p>
+          <p>Sign in with your Login ID (Roll Number)</p>
         </div>
 
         {error && (
@@ -75,7 +75,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="login-id">Login ID / Registration No.</label>
+            <label htmlFor="login-id">Login ID / Roll No.</label>
             <input 
               id="login-id" 
               className="input-field" 
@@ -85,9 +85,6 @@ export default function Login() {
               required 
               autoFocus 
             />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)', marginTop: '4px', display: 'block' }}>
-              💡 Students: Use your college <strong>Registration Number</strong> as your Login ID.
-            </span>
           </div>
 
           <div className="input-group">

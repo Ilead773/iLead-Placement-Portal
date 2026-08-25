@@ -11,6 +11,8 @@ IS_TESTING = 'pytest' in sys.modules or 'test' in sys.argv
 def get_student_eligibility_state_key(student):
     profile = getattr(student, 'resume_profile', None)
     profile_updated = profile.updated_at.timestamp() if profile else 0
+    completion_score = profile.completion_score if profile else 0
+    skills_count = profile.skills.count() if profile else 0
     
     # Avoid repeated DB queries by caching timestamps on the student model instance
     max_built_ts = getattr(student, '_max_built_updated_ts', None)
@@ -27,7 +29,7 @@ def get_student_eligibility_state_key(student):
         max_uploaded_ts = max_uploaded.timestamp() if max_uploaded else 0
         student._max_uploaded_updated_ts = max_uploaded_ts
         
-    return f"student_state_{student.id}_{student.updated_at.timestamp()}_{profile_updated}_{max_built_ts}_{max_uploaded_ts}"
+    return f"student_state_{student.id}_{student.updated_at.timestamp()}_{profile_updated}_{completion_score}_{skills_count}_{max_built_ts}_{max_uploaded_ts}"
 
 def check_eligibility(student, job, ignore_profile_resume=False):
     """
@@ -110,7 +112,6 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
         else:
             validator = ProfileCompletionValidator()
             is_valid, errors, completion_score = validator.validate_profile(profile)
-            student._validated_profile = (is_valid, errors, completion_score)
 
         if profile.completion_score != completion_score:
             profile.completion_score = completion_score
@@ -292,7 +293,6 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
             student_skills = student._skills_list
         else:
             student_skills = [s.name.lower() for s in profile.skills.all()]
-            student._skills_list = student_skills
         
         missing_skills = [s for s in required_skills if s not in student_skills]
         

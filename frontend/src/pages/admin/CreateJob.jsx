@@ -929,7 +929,7 @@ const CreateJob = () => {
 
                 <div className="p-8 grid grid-cols-1 md:grid-cols-4 gap-6 bg-[var(--bg-card)] border-b border-[var(--border-color)]">
                   <div className="input-group">
-                    <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted mb-2">🔍 Name / Reg No</label>
+                    <label className="text-[10px] font-extrabold uppercase tracking-wider text-muted mb-2">🔍 Name / Roll No</label>
                     <input type="text" placeholder="Search student..." value={targetingSearch} onChange={e => setTargetingSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); searchTargetStudents(); } }} className="input-field text-sm shadow-sm" />
                   </div>
                   <div className="input-group">

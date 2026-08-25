@@ -75,7 +75,7 @@ def process_student_csv_task(self, log_id, temp_file_path, user_id, default_seme
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Credentials"
-        ws.append(['Name', 'Registration Number', 'Login ID', 'Email', 'Temporary Password'])
+        ws.append(['Name', 'Roll Number', 'Login ID', 'Email', 'Temporary Password'])
         for cred in credentials:
             ws.append([cred['name'], cred['registration_number'], cred['login_id'], cred['email'], cred['temporary_password']])
             
