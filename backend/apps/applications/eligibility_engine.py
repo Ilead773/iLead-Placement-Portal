@@ -96,8 +96,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
                 'match_score': 1.0
             }
 
-    # 1. Profile Complete Check
-    # Check if a StudentProfile exists and its completion_score
+    # 1. Profile Completion (Updated for profile scoring/metrics, but non-blocking for applications)
     try:
         profile = getattr(student, 'resume_profile', None)
         if profile is None:
@@ -107,7 +106,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
         profile = None
 
     if profile:
-        if hasattr(student, '_validated_profile'):
+        if getattr(student, '_validated_profile', None) is not None:
             is_valid, errors, completion_score = student._validated_profile
         else:
             validator = ProfileCompletionValidator()
@@ -117,28 +116,10 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
             profile.completion_score = completion_score
             profile.save(update_fields=['completion_score'])
 
-        if not is_valid:
-            if not ignore_profile_resume:
-                # Add all missing sections/errors to failing checks
-                for err in errors:
-                    failing_checks.append({
-                        'check_name': 'profile_complete',
-                        'reason': f'Profile incomplete: {err}',
-                        'how_to_fix': 'Go to My Profile and complete all sections.'
-                    })
-        else:
-            passing_checks.append('profile_complete')
-    else:
-        if not ignore_profile_resume:
-            failing_checks.append({
-                'check_name': 'profile_complete',
-                'reason': 'You have not created a professional resume profile.',
-                'how_to_fix': 'Go to My Profile to set up your resume data.'
-            })
 
     # 1.5 Active/Primary Resume Check
     from apps.resumes.models import BuiltResume, ResumeUpload
-    if hasattr(student, '_has_primary_built'):
+    if getattr(student, '_has_primary_built', None) is not None:
         has_primary_built = student._has_primary_built
     else:
         if hasattr(student, '_prefetched_objects_cache') and 'built_resumes' in student._prefetched_objects_cache:
@@ -147,7 +128,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
             has_primary_built = BuiltResume.objects.filter(student=student, is_primary=True, is_deleted=False).exists()
         student._has_primary_built = has_primary_built
 
-    if hasattr(student, '_has_primary_uploaded'):
+    if getattr(student, '_has_primary_uploaded', None) is not None:
         has_primary_uploaded = student._has_primary_uploaded
     else:
         if hasattr(student, '_prefetched_objects_cache') and 'resume_uploads' in student._prefetched_objects_cache:
@@ -289,7 +270,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     # Check against the Skill model related to StudentProfile
     required_skills = [s.lower() for s in rules.get('required_skills', [])]
     if profile:
-        if hasattr(student, '_skills_list'):
+        if getattr(student, '_skills_list', None) is not None:
             student_skills = student._skills_list
         else:
             student_skills = [s.name.lower() for s in profile.skills.all()]
