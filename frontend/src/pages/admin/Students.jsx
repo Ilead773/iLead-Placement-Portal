@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuthStore from '../../store/authStore';
@@ -46,7 +46,17 @@ export default function Students() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchReqId = useRef(0);
   const [loading, setLoading] = useState(true);
+
+  // Debounce search input by 220ms for instant feel without request flooding
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [toast, setToast] = useState(null);
@@ -372,10 +382,11 @@ export default function Students() {
   }, [activeModalTab, selectedStudent]);
 
   const fetchStudents = useCallback(async (p = 1) => {
+    const currentReqId = ++searchReqId.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: p, limit: 20 });
-      if (search) params.set('search', search);
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
       if (filters.year) params.set('year', filters.year);
       if (filters.category) params.set('category', filters.category);
       if (filters.backlogs) params.set('backlogs', filters.backlogs);
@@ -406,13 +417,23 @@ export default function Students() {
       }
       
       const { data } = await api.get(`/students/?${params}`);
-      setStudents(data.results || []);
-      setTotal(data.count);
-      setPage(data.page);
-      setTotalPages(data.total_pages);
-    } catch { showToast('Failed to load students.', 'error'); }
-    finally { setLoading(false); }
-  }, [search, filters]);
+      if (currentReqId === searchReqId.current) {
+        setStudents(data.results || []);
+        setTotal(data.count);
+        setPage(data.page);
+        setTotalPages(data.total_pages);
+      }
+    } catch { 
+      if (currentReqId === searchReqId.current) {
+        showToast('Failed to load students.', 'error');
+      }
+    }
+    finally { 
+      if (currentReqId === searchReqId.current) {
+        setLoading(false); 
+      }
+    }
+  }, [debouncedSearch, filters]);
 
   useEffect(() => {
     fetchFilterMetadata();
@@ -758,9 +779,39 @@ export default function Students() {
             placeholder="Search by name, reg no, or email..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            style={{ width: '100%', paddingLeft: 40 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setDebouncedSearch(search);
+              }
+            }}
+            style={{ width: '100%', paddingLeft: 40, paddingRight: search ? 36 : 14 }}
           />
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5, pointerEvents: 'none' }}>🔍</span>
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setDebouncedSearch('');
+              }}
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary, #94a3b8)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                padding: '4px',
+                lineHeight: 1
+              }}
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
         </div>
         
         <button 
@@ -785,6 +836,7 @@ export default function Students() {
             className="btn btn-secondary btn-sm"
             onClick={() => {
               setSearch('');
+              setDebouncedSearch('');
               setFilters({ year: '', category: '', backlogs: '', course: '', stream: '', semester: '', cgpaRange: '', trainingRange: '' });
             }}
             style={{ 

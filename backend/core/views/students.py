@@ -506,7 +506,13 @@ class StudentViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='list')
     def list_students(self, request):
         """List all students with search, filters, and pagination."""
-        qs = Student.objects.select_related('user').all()
+        qs = Student.objects.select_related('user', 'resume_profile').prefetch_related(
+            'resume_profile__skills',
+            'resume_profile__experiences',
+            'resume_profile__projects',
+            'resume_profile__education_entries',
+            'resume_profile__certifications'
+        ).all()
 
         # Filters
         course = request.query_params.get('course')
@@ -517,10 +523,55 @@ class StudentViewSet(viewsets.ViewSet):
             qs = qs.filter(stream__icontains=stream)
         search = request.query_params.get('search')
         if search:
-            qs = qs.filter(
-                Q(name__icontains=search) |
-                Q(registration_number__icontains=search) |
-                Q(email__icontains=search)
+            import re
+            from django.db.models import Value, IntegerField, Case, When
+            search_str = search.strip()
+            search_lower = search_str.lower()
+            search_terms = [t for t in search_str.split() if t]
+            clean_digits = re.sub(r'[^a-zA-Z0-9]', '', search_str)
+
+            # Base filter: match any term across name, registration_number, email, phone_number, course, stream
+            q_any = Q()
+            q_all = Q()
+            for term in search_terms:
+                term_q = (
+                    Q(name__icontains=term) |
+                    Q(registration_number__icontains=term) |
+                    Q(email__icontains=term) |
+                    Q(phone_number__icontains=term) |
+                    Q(course__icontains=term) |
+                    Q(stream__icontains=term)
+                )
+                q_any |= term_q
+                q_all &= term_q
+
+            if clean_digits and len(clean_digits) >= 3:
+                q_any |= Q(registration_number__icontains=clean_digits) | Q(phone_number__icontains=clean_digits)
+
+            qs = qs.filter(q_any)
+
+            # Multi-tier relevance scoring
+            exact_reg_or_email = Q(registration_number__iexact=search_lower) | Q(email__iexact=search_lower)
+            exact_name = Q(name__iexact=search_lower)
+            starts_with = Q(name__istartswith=search_lower) | Q(registration_number__istartswith=search_lower) | Q(email__istartswith=search_lower)
+            contains_full = Q(name__icontains=search_lower) | Q(registration_number__icontains=search_lower) | Q(email__icontains=search_lower)
+            course_match = Q(course__icontains=search_lower) | Q(stream__icontains=search_lower)
+
+            qs = qs.annotate(
+                score_exact_id=Case(When(exact_reg_or_email, then=Value(1000)), default=Value(0), output_field=IntegerField()),
+                score_exact_name=Case(When(exact_name, then=Value(800)), default=Value(0), output_field=IntegerField()),
+                score_start=Case(When(starts_with, then=Value(500)), default=Value(0), output_field=IntegerField()),
+                score_all_terms=Case(When(q_all, then=Value(300)), default=Value(0), output_field=IntegerField()),
+                score_contain=Case(When(contains_full, then=Value(150)), default=Value(0), output_field=IntegerField()),
+                score_course=Case(When(course_match, then=Value(50)), default=Value(0), output_field=IntegerField()),
+            ).order_by(
+                '-score_exact_id',
+                '-score_exact_name',
+                '-score_start',
+                '-score_all_terms',
+                '-score_contain',
+                '-score_course',
+                'name'
             )
         cgpa_min = request.query_params.get('cgpa_min')
         if cgpa_min:

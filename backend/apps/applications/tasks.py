@@ -425,20 +425,11 @@ def send_job_alert_task(self, job_id):
                     continue
                 ids_to_email.append(str(notification.id))
 
-        # ✅ Send emails in chunks of at most 200 to prevent SMTP limits/timeouts,
-        # and cap the total emails sent to JOB_ALERT_EMAIL_LIMIT to protect daily quota.
-        if ids_to_email:
-            limit = getattr(settings, 'JOB_ALERT_EMAIL_LIMIT', 200)
-            emails_to_send = ids_to_email[:limit]
-            
-            chunk_size = 200
-            for i in range(0, len(emails_to_send), chunk_size):
-                chunk = emails_to_send[i:i + chunk_size]
-                send_bulk_notification_emails.delay(chunk)
+        # (Emails for job alerts have been removed as requested)
 
         logger.info(
             f"send_job_alert_task: Dispatched bulk job alert for job {job_id} "
-            f"to eligible students. Email/push queued for {min(len(ids_to_email), limit) if ids_to_email else 0} recipients."
+            f"to eligible students. Push queued for {len(ids_to_email)} recipients."
         )
 
     except Exception as exc:
