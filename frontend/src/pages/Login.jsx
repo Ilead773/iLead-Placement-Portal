@@ -5,7 +5,7 @@ import useAuthStore from '../store/authStore';
 import { getCookie } from '../utils/cookies';
 import logo from '../logo.png';
 import { toast } from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [loginId, setLoginId] = useState('');
@@ -37,7 +37,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const user = await login(loginId, password);
+      const user = await login(loginId.trim(), password);
       if (user.temp_password_flag || user.password_reset_required) {
         navigate('/change-password');
       } else if (user.role === 'student') {
@@ -46,7 +46,7 @@ export default function Login() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      setError(err.response?.data?.error || 'Login failed. Please verify your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -60,14 +60,36 @@ export default function Login() {
           <h1 className="branded-title">
             <span className="portal-text">iLEAD Placement Portal</span>
           </h1>
-          <p>Sign in with your Login ID</p>
+          <p>Sign in with your Login ID (Registration Number)</p>
         </div>
-        {error && <div className="alert alert-error">{error}</div>}
+
+        {error && (
+          <div className="alert alert-error" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', lineHeight: '1.45', padding: '12px 14px' }}>
+            <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px', color: '#ef4444' }} />
+            <div style={{ fontSize: '0.875rem' }}>
+              <strong>Login Issue:</strong>
+              <div style={{ marginTop: '2px' }}>{error}</div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="login-id">Login ID</label>
-            <input id="login-id" className="input-field" placeholder="e.g. stu001" value={loginId} onChange={(e) => setLoginId(e.target.value)} required autoFocus />
+            <label htmlFor="login-id">Login ID / Registration No.</label>
+            <input 
+              id="login-id" 
+              className="input-field" 
+              placeholder="e.g. 21BCE1001 or stu001" 
+              value={loginId} 
+              onChange={(e) => setLoginId(e.target.value)} 
+              required 
+              autoFocus 
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)', marginTop: '4px', display: 'block' }}>
+              💡 Students: Use your college <strong>Registration Number</strong> as your Login ID.
+            </span>
           </div>
+
           <div className="input-group">
             <label htmlFor="login-pwd">Password</label>
             <div className="password-input-container">
@@ -89,13 +111,17 @@ export default function Login() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            <div style={{ textAlign: 'right', marginTop: '4px' }}>
-                <a href="/forgot-password" style={{ fontSize: '0.85rem', color: '#8b5cf6', textDecoration: 'none' }}>
-                    Forgot password?
-                </a>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary, #64748b)' }}>
+                First time? Check your email for password.
+              </span>
+              <a href="/forgot-password" style={{ fontSize: '0.85rem', color: '#8b5cf6', textDecoration: 'none', fontWeight: 500 }}>
+                Forgot password?
+              </a>
             </div>
           </div>
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: '8px' }}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>

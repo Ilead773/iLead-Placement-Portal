@@ -34,7 +34,7 @@ describe('Login Page', () => {
     );
 
     expect(screen.getByText('iLEAD Placement Portal')).toBeInTheDocument();
-    expect(screen.getByLabelText('Login ID')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Login ID/i)).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
   });
@@ -48,14 +48,14 @@ describe('Login Page', () => {
       </BrowserRouter>
     );
 
-    const loginInput = screen.getByLabelText('Login ID');
+    const loginInput = screen.getByLabelText(/Login ID/i);
     fireEvent.change(loginInput, { target: { value: 'stu001' } });
     expect(loginInput.value).toBe('stu001');
   });
 
   it('shows error message on login failure', async () => {
     const mockLogin = vi.fn().mockRejectedValue({
-      response: { data: { error: 'Invalid credentials.' } }
+      response: { data: { error: 'Incorrect password. Check your Welcome Email.' } }
     });
     useAuthStore.mockReturnValue({ login: mockLogin });
 
@@ -65,11 +65,12 @@ describe('Login Page', () => {
       </BrowserRouter>
     );
 
-    fireEvent.change(screen.getByLabelText('Login ID'), { target: { value: 'wrong' } });
+    fireEvent.change(screen.getByLabelText(/Login ID/i), { target: { value: 'wrong' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
 
-    const errorMsg = await screen.findByText('Invalid credentials.');
+    const errorMsg = await screen.findByText('Incorrect password. Check your Welcome Email.');
     expect(errorMsg).toBeInTheDocument();
+    expect(screen.getByText('Login Issue:')).toBeInTheDocument();
   });
 });

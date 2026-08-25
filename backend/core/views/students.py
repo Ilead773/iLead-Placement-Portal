@@ -380,7 +380,7 @@ class StudentViewSet(viewsets.ViewSet):
                                                                 </tr>
                                                                 <tr>
                                                                     <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
-                                                                        <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                        <em>💡 Tip: Please copy-paste the temporary password exactly as shown. Make sure there are no extra spaces before or after the password when entering it.</em>
                                                                     </td>
                                                                 </tr>
                                                             </table>
@@ -990,7 +990,7 @@ class StudentViewSet(viewsets.ViewSet):
                                                             </tr>
                                                             <tr>
                                                                 <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
-                                                                    <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                    <em>💡 Tip: Please copy-paste the temporary password exactly as shown. Make sure there are no extra spaces before or after the password when entering it.</em>
                                                                 </td>
                                                             </tr>
                                                         </table>
@@ -1225,7 +1225,7 @@ class StudentViewSet(viewsets.ViewSet):
                                                              </tr>
                                                              <tr>
                                                                  <td colspan="2" style="font-size: 11px; color: #64748b; padding-top: 12px; line-height: 1.4;">
-                                                                     <em>💡 Tip: Monospace characters are highly precise. Be careful to check the difference between a capital <strong>O</strong> (letter) vs <strong>0</strong> (number) and lowercase <strong>l</strong> (letter) vs <strong>1</strong> (number).</em>
+                                                                     <em>💡 Tip: Please copy-paste the temporary password exactly as shown. Make sure there are no extra spaces before or after the password when entering it.</em>
                                                                  </td>
                                                              </tr>
                                                         </table>

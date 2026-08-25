@@ -72,12 +72,27 @@ class AuthViewSet(viewsets.ViewSet):
         login_id = serializer.validated_data['login_id'].lower()
         password = serializer.validated_data['password']
 
-        # Look up user first without row lock
-        try:
-            user = User.objects.get(login_id=login_id)
-        except User.DoesNotExist:
+        # Look up user first without row lock (supports login by login_id OR email)
+        from django.db.models import Q
+        user = User.objects.filter(Q(login_id=login_id) | Q(email__iexact=login_id)).first()
+        if not user:
             log_audit(None, 'login_failed', f'Unknown login_id: {login_id}', request)
-            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+            if '@' in login_id:
+                return Response(
+                    {'error': f'No account found with email "{login_id}". Please check your email or log in using your Registration Number (Login ID).'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            return Response(
+                {'error': f'No account found for Login ID "{login_id}". Please make sure you are using your correct Registration Number or check your Welcome Email.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if not user.is_active:
+            log_audit(user, 'login_failed', 'Account inactive', request)
+            return Response(
+                {'error': 'Your account is currently inactive or disabled. Please contact the placement cell or portal administrator.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         # Quick lockout check before running slow hash check
         if user.locked_until and user.locked_until > datetime.now(timezone.utc):
@@ -85,7 +100,7 @@ class AuthViewSet(viewsets.ViewSet):
             if remaining <= 0:
                 remaining = 1
             return Response(
-                {'error': f'Account locked. Try again in {remaining} minutes.'},
+                {'error': f'Account locked due to multiple failed attempts. Please try again in {remaining} minute(s) or use "Forgot password?".'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
@@ -106,7 +121,7 @@ class AuthViewSet(viewsets.ViewSet):
                         if remaining <= 0:
                             remaining = 1
                         return Response(
-                            {'error': f'Account locked. Try again in {remaining} minutes.'},
+                            {'error': f'Account locked due to multiple failed attempts. Please try again in {remaining} minute(s) or use "Forgot password?".'},
                             status=status.HTTP_429_TOO_MANY_REQUESTS,
                         )
                     else:
@@ -127,7 +142,7 @@ class AuthViewSet(viewsets.ViewSet):
                         user.save(update_fields=['failed_login_attempts', 'locked_until'])
                         log_audit(user, 'account_locked', f'Locked for {lockout_mins} min after {user.failed_login_attempts} failures', request)
                         return Response(
-                            {'error': f'Too many failed attempts. Account locked for {lockout_mins} minutes.'},
+                            {'error': f'Too many failed attempts. Account locked for {lockout_mins} minute(s).'},
                             status=status.HTTP_429_TOO_MANY_REQUESTS,
                         )
                     
@@ -136,12 +151,25 @@ class AuthViewSet(viewsets.ViewSet):
                     
                     # Custom error warning specifically for first-time login users
                     if user.temp_password_flag or user.password_reset_required:
+                        email_str = user.email or ''
+                        if '@' in email_str:
+                            parts = email_str.split('@')
+                            uname = parts[0]
+                            domain = parts[1]
+                            masked_uname = uname[0] + '***' + (uname[-1] if len(uname) > 1 else '')
+                            masked_email = f"{masked_uname}@{domain}"
+                        else:
+                            masked_email = "your registered email"
+
                         return Response(
-                            {'error': 'Invalid temporary password. Please check your Welcome Email for the correct credentials.'},
+                            {'error': f'Incorrect temporary password. If this is your first time logging in, please check the Welcome Email (including Spam/Junk) sent to {masked_email} and copy-paste your temporary password exactly as shown for Registration Number {user.login_id} (make sure there are no extra spaces).'},
                             status=status.HTTP_401_UNAUTHORIZED
                         )
                     
-                    return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+                    return Response(
+                        {'error': 'Incorrect password. Please check your password or use "Forgot password?" to reset it.'},
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
 
                 # Success path inside transaction — reset counters
                 user.failed_login_attempts = 0
@@ -149,7 +177,7 @@ class AuthViewSet(viewsets.ViewSet):
                 user.save(update_fields=['failed_login_attempts', 'locked_until'])
         except User.DoesNotExist:
             log_audit(None, 'login_failed', f'Unknown login_id: {login_id}', request)
-            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': f'No account found for Login ID "{login_id}".'}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
         log_audit(user, 'login_success', '', request)

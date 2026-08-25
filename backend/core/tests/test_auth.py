@@ -115,3 +115,33 @@ class TestAuthentication:
         response2 = api_client.post('/api/v1/auth/logout/', {})
         assert response2.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_unknown_login_id_message(self, api_client):
+        url = '/api/v1/auth/login/'
+        response = api_client.post(url, {'login_id': 'nonexistent_user', 'password': 'Password123!'})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert 'No account found for Login ID' in response.data['error']
+
+    def test_unknown_email_login_message(self, api_client):
+        url = '/api/v1/auth/login/'
+        response = api_client.post(url, {'login_id': 'nonexistent@example.com', 'password': 'Password123!'})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert 'No account found with email' in response.data['error']
+
+    def test_student_first_time_login_wrong_password_message(self, api_client, student_user):
+        url = '/api/v1/auth/login/'
+        student_user.temp_password_flag = True
+        student_user.save()
+        response = api_client.post(url, {'login_id': student_user.login_id, 'password': 'WrongPassword123!'})
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert 'Welcome Email' in response.data['error']
+        assert student_user.login_id in response.data['error']
+
+    def test_inactive_account_login(self, api_client, student_user):
+        url = '/api/v1/auth/login/'
+        student_user.is_active = False
+        student_user.save()
+        response = api_client.post(url, {'login_id': student_user.login_id, 'password': 'StudentPassword123!'})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert 'inactive or disabled' in response.data['error']
+
+
