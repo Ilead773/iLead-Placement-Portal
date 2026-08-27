@@ -266,7 +266,12 @@ class BrevoEmailBackend(BaseEmailBackend):
                 # Resolve active configuration dynamically
                 active_cfg = get_active_brevo_config()
                 api_key = active_cfg.get('api_key') or self.api_key
-                from_email = message.from_email or active_cfg.get('from_email') or getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+                
+                # Prioritize rotated config email if message uses default fallback
+                from_email = message.from_email
+                default_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+                if not from_email or from_email == default_email:
+                    from_email = active_cfg.get('from_email') or default_email
 
                 if not api_key:
                     logger.error("Brevo API key is not configured.")
