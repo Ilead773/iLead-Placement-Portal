@@ -71,8 +71,8 @@ const ForgotPassword = () => {
             setMessage(response.data.message);
             setIsSent(true);
             setSentEmail(identity);
-            // Start cooldown using retry_after_seconds from backend (default 5 min)
-            const wait = response.data.retry_after_seconds || 300;
+            // Start cooldown using retry_after_seconds from backend (default 10 sec)
+            const wait = response.data.retry_after_seconds || 10;
             startCooldown(wait);
         } catch (err) {
             const data = err.response?.data || {};
