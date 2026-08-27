@@ -75,11 +75,7 @@ const ForgotPassword = () => {
                 {message && <div className="alert alert-success">{message}</div>}
                 {error   && <div className="alert alert-error">{error}</div>}
 
-                <div className="alert alert-error" style={{ textAlign: 'center', fontWeight: 'bold' }}>
-                    ⚠️ Password reset is temporarily unavailable. Please try again after 2 days.
-                </div>
-
-                <form onSubmit={(e) => e.preventDefault()}>
+                <form onSubmit={handleSubmit}>
                     <div className="input-group">
                         <label>Login ID or Registered Email</label>
                         <input
@@ -90,17 +86,16 @@ const ForgotPassword = () => {
                             className="input-field"
                             required
                             autoFocus
-                            disabled={true}
+                            disabled={isDisabled}
                         />
                     </div>
 
                     <button
                         type="submit"
                         className="btn btn-primary btn-full"
-                        disabled={true}
-                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                        disabled={isDisabled}
                     >
-                        Temporarily Disabled (Try after 2 days)
+                        {loading ? 'Sending…' : cooldown > 0 ? `Resend in ${formatCountdown(cooldown)}` : 'Send Reset Link'}
                     </button>
                 </form>
 

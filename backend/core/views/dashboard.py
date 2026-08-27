@@ -213,17 +213,13 @@ class DashboardViewSet(viewsets.ViewSet):
         # ============== SALARY / STIPEND ANALYSIS ==============
         is_internship_view = (listing_type == 'internship')
 
-        # Scope raw data to the listing type filter
-        if is_internship_view:
-            job_data = list(jobs_qs.filter(listing_type='internship').values(
-                'company_name', 'package', 'role', 'location', 'job_type', 'listing_type'
-            ))
-        else:
-            job_data = list(
-                jobs_qs.filter(listing_type='job').values(
-                    'company_name', 'package', 'role', 'location', 'job_type', 'listing_type'
-                )
-            )
+        # jobs_qs is already scoped to the correct listing_type (line ~119 above).
+        # Do NOT re-filter here — that caused internship companies to be excluded
+        # when listing_type='job' and vice-versa (showing wrong company counts).
+        job_data = list(jobs_qs.values(
+            'company_name', 'package', 'role', 'location', 'job_type', 'listing_type'
+        ))
+
 
         all_salaries = []
         company_details = {}
@@ -372,20 +368,47 @@ class DashboardViewSet(viewsets.ViewSet):
             if salaries:
                 all_salaries.append(max(salaries))
 
-        # Count application placements
+        # Count placements per company — track unique students (consistent with overview.placed_students)
+        # Use sets so a student placed at the same company twice is only counted once.
+        company_placed_students = defaultdict(set)
+
+        # From Applications (selected / accepted)
         for sel in applications_qs.filter(status__in=['selected', 'accepted']).select_related('job'):
             cname = sel.job.company_name
-            if cname in company_details:
-                company_details[cname]['placed_count'] += 1
+            if not cname:
+                continue
+            # Bug 1 fix: auto-create entry so placements are never silently dropped
+            if cname not in company_details:
+                company_details[cname] = {
+                    'roles': set(), 'max_package': 0.0, 'min_package': float('inf'),
+                    'placed_count': 0, 'salaries': [], 'locations': set()
+                }
+                company_details[cname]['roles'].add(sel.job.role or 'Unknown')
+            company_placed_students[cname].add(sel.student_id)
 
-        # Count PlacementAssignment placements
+        # From PlacementAssignments (selected)
         if not is_internship_view:
             for pa in placement_assignments_qs.filter(status='selected').select_related('placement'):
                 cname = pa.placement.company_name
-                if cname in company_details:
-                    company_details[cname]['placed_count'] += 1
+                if not cname:
+                    continue
+                # Bug 1 fix: auto-create entry so placements are never silently dropped
+                if cname not in company_details:
+                    company_details[cname] = {
+                        'roles': set(), 'max_package': 0.0, 'min_package': float('inf'),
+                        'placed_count': 0, 'salaries': [], 'locations': set()
+                    }
+                    role_name = pa.placement.position or 'Unknown'
+                    company_details[cname]['roles'].add(role_name)
+                    company_details[cname]['locations'].add('On-Campus')
+                company_placed_students[cname].add(pa.student_id)
 
-        # Reconcile total companies count to guarantee 100% consistency
+        # Bug 2 fix: write unique student counts back to company_details
+        for cname, student_ids in company_placed_students.items():
+            company_details[cname]['placed_count'] = len(student_ids)
+
+        # Reconcile total companies count AFTER company_details is fully built
+        # (now includes companies that only appeared via placement assignments)
         total_companies = len(company_details)
 
         # Aggregate stats
