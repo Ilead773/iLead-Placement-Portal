@@ -336,16 +336,62 @@ class AuthViewSet(viewsets.ViewSet):
             subject = 'Password Reset Request'
             message = f"""
             You requested a password reset for your iLEAD Placement Portal account.
-            Please click the link below to set a new password:
+            Please copy and paste the link below to set a new password:
 
             {reset_url}
 
             This link is valid for 24 hours. If you did not request this, please ignore this email.
             """
 
+            html_message = f"""
+            <html>
+                <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; padding: 40px 20px; margin: 0; color: #334155;">
+                    <div style="max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <!-- Brand Banner -->
+                        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 30px; text-align: center;">
+                            <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">iLEAD Placement Portal</h2>
+                        </div>
+                        
+                        <!-- Content Body -->
+                        <div style="padding: 32px 24px;">
+                            <p style="font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">Hello,</p>
+                            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 24px;">You requested a password reset for your iLEAD Placement Portal account. Please click the button below to set a new password:</p>
+                            
+                            <!-- Action Button -->
+                            <div style="text-align: center; margin-bottom: 28px; margin-top: 20px;">
+                                <a href="{reset_url}" style="background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 32px; font-size: 14px; font-weight: 700; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                                    Reset Password
+                                </a>
+                            </div>
+                            
+                            <!-- Validity Warning -->
+                            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px;">
+                                <p style="font-size: 13px; color: #b45309; margin: 0; font-weight: 600;">
+                                    ⚠️ This link is valid for 24 hours.
+                                </p>
+                            </div>
+                            
+                            <!-- Fallback Link -->
+                            <p style="font-size: 12px; color: #64748b; line-height: 1.5; margin-bottom: 0;">
+                                If the button above doesn't work, copy and paste the following link into your browser:
+                                <br/>
+                                <a href="{reset_url}" style="color: #2563eb; text-decoration: none; word-break: break-all; display: block; margin-top: 6px;">{reset_url}</a>
+                            </p>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="background-color: #f1f5f9; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="font-size: 11px; color: #94a3b8; margin: 0;">Sent securely via iLEAD Placement Portal</p>
+                            <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 0 0;">If you did not request this password reset, please ignore this email.</p>
+                        </div>
+                    </div>
+                </body>
+            </html>
+            """
+
             logger.info(f"Attempting to send password reset email to user ID: {user.id}")
             from core.tasks import async_send_mail
-            async_send_mail.delay(subject, message, [user.email], fail_silently=False)
+            async_send_mail.delay(subject, message, [user.email], fail_silently=False, html_message=html_message)
             logger.info(f"Email queued successfully for user ID: {user.id}")
 
             # ── Set rate-limit keys AFTER successful send ─────────────────
