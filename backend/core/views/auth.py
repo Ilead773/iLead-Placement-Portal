@@ -275,6 +275,11 @@ class AuthViewSet(viewsets.ViewSet):
           - Per email/login_id : 1 request per 5 minutes
           - Per IP address     : 5 requests per 10 minutes
         """
+        return Response(
+            {'error': 'Forgot password service is temporarily disabled.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
         from django.core.cache import cache
 
         identity = request.data.get('identity', '').strip()
@@ -390,9 +395,9 @@ class AuthViewSet(viewsets.ViewSet):
             """
 
             logger.info(f"Attempting to send password reset email to user ID: {user.id}")
-            from core.tasks import async_send_mail
-            async_send_mail.delay(subject, message, [user.email], fail_silently=False, html_message=html_message)
-            logger.info(f"Email queued successfully for user ID: {user.id}")
+            from django.core.mail import send_mail
+            send_mail(subject, message, None, [user.email], fail_silently=False, html_message=html_message)
+            logger.info(f"Email sent successfully for user ID: {user.id}")
 
             # ── Set rate-limit keys AFTER successful send ─────────────────
             cache.set(identity_key, True, COOLDOWN_SECONDS)
