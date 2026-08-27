@@ -1148,7 +1148,7 @@ const EditJob = () => {
                   <span style={{ color: (formData.eligibility_rules.allowed_statuses || []).length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: (formData.eligibility_rules.allowed_statuses || []).length === 0 ? '500' : '700' }}>
                     {(formData.eligibility_rules.allowed_statuses || []).length === 0 
                       ? 'All Statuses (Default)' 
-                      : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active' : s === 'exited_3yr' ? '3-Year Exit' : '4-Year Graduate').join(', ')}`
+                      : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active (Normal / Continuing)' : s === 'exited_3yr' ? '3-Year Exit (Sem 6 Exit)' : '4-Year Graduate').join(', ')}`
                     }
                   </span>
                   <ChevronDown size={18} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: statusDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
@@ -1164,8 +1164,8 @@ const EditJob = () => {
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {[
-                          { val: 'active', label: 'Active' },
-                          { val: 'exited_3yr', label: '3-Year Exit' },
+                          { val: 'active', label: 'Active (Normal / Continuing)' },
+                          { val: 'exited_3yr', label: '3-Year Exit (Semester 6 Exit)' },
                           { val: 'graduated_4yr', label: '4-Year Graduate' }
                         ].map(statusItem => {
                           const isChecked = (formData.eligibility_rules.allowed_statuses || []).includes(statusItem.val);

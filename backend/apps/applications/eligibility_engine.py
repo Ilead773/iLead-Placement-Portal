@@ -330,7 +330,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     if allowed_statuses:
         student_status = getattr(student, 'status', 'active')
         if student_status not in allowed_statuses:
-            status_map = {'active': 'Active', 'exited_3yr': '3-Year Exit', 'graduated_4yr': '4-Year Graduate'}
+            status_map = {'active': 'Active (Normal / Continuing)', 'exited_3yr': '3-Year Exit (Semester 6 Exit)', 'graduated_4yr': '4-Year Graduate'}
             allowed_labels = [status_map.get(s, s) for s in allowed_statuses]
             failing_checks.append({
                 'check_name': 'student_status',

@@ -952,8 +952,8 @@ export default function Students() {
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Academic Status</label>
             <select className="input-field" value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={{ width: '100%' }}>
               <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="exited_3yr">3-Year Exit</option>
+              <option value="active">Active (Normal / Continuing)</option>
+              <option value="exited_3yr">3-Year Exit (Semester 6 Exit)</option>
               <option value="graduated_4yr">4-Year Graduate</option>
             </select>
           </div>
@@ -1101,7 +1101,7 @@ export default function Students() {
                     </td>
                     <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                       <span className={`badge ${s.status === 'exited_3yr' ? 'badge-warning' : s.status === 'graduated_4yr' ? 'badge-info' : 'badge-success'}`}>
-                        {s.status === 'exited_3yr' ? '3-Year Exit' : s.status === 'graduated_4yr' ? '4-Year Graduate' : 'Active'}
+                        {s.status === 'exited_3yr' ? '3-Year Exit (Sem 6 Exit)' : s.status === 'graduated_4yr' ? '4-Year Graduate' : 'Active (Normal)'}
                       </span>
                     </td>
                     <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>

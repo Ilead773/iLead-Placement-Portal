@@ -930,7 +930,7 @@ const CreateJob = () => {
                 <span className={(formData.eligibility_rules.allowed_statuses || []).length === 0 ? 'text-muted font-normal' : 'text-primary'}>
                   {(formData.eligibility_rules.allowed_statuses || []).length === 0 
                     ? 'All Statuses (Default)' 
-                    : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active' : s === 'exited_3yr' ? '3-Year Exit' : '4-Year Graduate').join(', ')}`
+                    : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active (Normal / Continuing)' : s === 'exited_3yr' ? '3-Year Exit (Sem 6 Exit)' : '4-Year Graduate').join(', ')}`
                   }
                 </span>
                 <ChevronDown size={18} className={`text-muted transition-transform duration-200 ${statusDropdownOpen ? '-rotate-180' : 'rotate-0'}`} />
@@ -946,8 +946,8 @@ const CreateJob = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                       {[
-                        { val: 'active', label: 'Active' },
-                        { val: 'exited_3yr', label: '3-Year Exit' },
+                        { val: 'active', label: 'Active (Normal / Continuing)' },
+                        { val: 'exited_3yr', label: '3-Year Exit (Semester 6 Exit)' },
                         { val: 'graduated_4yr', label: '4-Year Graduate' }
                       ].map(statusItem => {
                         const isChecked = (formData.eligibility_rules.allowed_statuses || []).includes(statusItem.val);
