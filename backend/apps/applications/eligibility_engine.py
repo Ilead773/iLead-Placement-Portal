@@ -326,7 +326,7 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
         passing_checks.append('semester')
 
     # 5.6 Student Status Check (NEP Exit / Active status check)
-    allowed_statuses = rules.get('allowed_statuses', ['active'])
+    allowed_statuses = rules.get('allowed_statuses', [])
     if allowed_statuses:
         student_status = getattr(student, 'status', 'active')
         if student_status not in allowed_statuses:
