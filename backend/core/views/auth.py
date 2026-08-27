@@ -298,7 +298,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         # ── Rate limit 2: per IP address ──────────────────────────────────
         IP_WINDOW_SECONDS = 10 * 60  # 10-minute window
-        IP_MAX_REQUESTS   = 5        # max 5 reset attempts from same IP
+        IP_MAX_REQUESTS   = 100       # max 100 reset attempts from same IP for testing
         ip = (
             request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
             or request.META.get('REMOTE_ADDR', 'unknown')
