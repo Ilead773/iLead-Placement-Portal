@@ -609,6 +609,10 @@ class StudentViewSet(viewsets.ViewSet):
         if backlogs_count_max:
             qs = qs.filter(backlogs_count__lte=int(backlogs_count_max))
 
+        status_param = request.query_params.get('status')
+        if status_param:
+            qs = qs.filter(status=status_param)
+
         # Skill filter — filter students who have a skill matching the given name(s)
         skill_param = request.query_params.get('skill')
         if skill_param:

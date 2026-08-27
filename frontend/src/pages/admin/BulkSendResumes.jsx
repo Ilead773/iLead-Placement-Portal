@@ -649,6 +649,11 @@ const BulkSendResumes = () => {
                   <span>🎓 Min CGPA: <strong style={{ color: 'var(--text-primary)', fontWeight: '750' }}>{selectedJob.eligibility_rules?.min_cgpa ?? '6.0'}</strong></span>
                   <span>⚠️ Backlogs: <strong style={{ color: 'var(--text-primary)', fontWeight: '750' }}>{selectedJob.eligibility_rules?.no_backlog ? 'Not Allowed' : 'Allowed'}</strong></span>
                   <span>📁 Openings: <strong style={{ color: 'var(--text-primary)', fontWeight: '750' }}>{selectedJob.openings_count ?? '1'} vacancy</strong></span>
+                  <span>📅 Semesters: <strong style={{ color: 'var(--text-primary)', fontWeight: '750' }}>
+                    {selectedJob.eligibility_rules?.allowed_semesters && selectedJob.eligibility_rules.allowed_semesters.length > 0
+                      ? [...selectedJob.eligibility_rules.allowed_semesters].sort((a, b) => parseInt(a) - parseInt(b)).join(', ')
+                      : 'All'}
+                  </strong></span>
                 </div>
                 
                 {selectedJob.eligibility_rules?.allowed_branches && selectedJob.eligibility_rules.allowed_branches.length > 0 && (

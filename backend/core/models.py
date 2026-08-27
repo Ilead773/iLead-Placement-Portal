@@ -98,6 +98,18 @@ class Student(models.Model):
         null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(12)],
     )
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('exited_3yr', '3-Year Exit'),
+        ('graduated_4yr', '4-Year Graduate'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active',
+        db_index=True,
+        help_text="Current academic/placement status of the student."
+    )
     attendance = models.FloatField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],

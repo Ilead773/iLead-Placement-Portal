@@ -26,8 +26,8 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['name', 'registration_number', 'email', 'course', 'stream', 'semester', 'cgpa']
-    list_filter = ['course', 'stream', 'semester', 'passing_year']
+    list_display = ['name', 'registration_number', 'email', 'course', 'stream', 'semester', 'cgpa', 'status']
+    list_filter = ['status', 'course', 'stream', 'semester', 'passing_year']
     search_fields = ['name', 'registration_number', 'email']
 
 

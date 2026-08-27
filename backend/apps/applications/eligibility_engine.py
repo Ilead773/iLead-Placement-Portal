@@ -325,6 +325,23 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     else:
         passing_checks.append('semester')
 
+    # 5.6 Student Status Check (NEP Exit / Active status check)
+    allowed_statuses = rules.get('allowed_statuses', ['active'])
+    if allowed_statuses:
+        student_status = getattr(student, 'status', 'active')
+        if student_status not in allowed_statuses:
+            status_map = {'active': 'Active', 'exited_3yr': '3-Year Exit', 'graduated_4yr': '4-Year Graduate'}
+            allowed_labels = [status_map.get(s, s) for s in allowed_statuses]
+            failing_checks.append({
+                'check_name': 'student_status',
+                'reason': f'Your status ({status_map.get(student_status, student_status)}) is not eligible for this role.',
+                'how_to_fix': f'This opportunity is only open to students with status: {", ".join(allowed_labels)}.'
+            })
+        else:
+            passing_checks.append('student_status')
+    else:
+        passing_checks.append('student_status')
+
     # 6. Deadline Check
     if datetime.now(timezone.utc) > job.application_deadline:
         failing_checks.append({

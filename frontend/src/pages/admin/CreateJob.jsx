@@ -19,6 +19,7 @@ const CreateJob = () => {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [availableSemesters, setAvailableSemesters] = useState([]);
   const [semDropdownOpen, setSemDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [courseSearch, setCourseSearch] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState({});
 
@@ -137,6 +138,7 @@ const CreateJob = () => {
               allowed_years: data.eligibility_rules?.allowed_years || [],
               allowed_categories: data.eligibility_rules?.allowed_categories || [],
               allowed_semesters: data.eligibility_rules?.allowed_semesters || [],
+              allowed_statuses: data.eligibility_rules?.allowed_statuses || ['active'],
               allowed_students: []
             },
             rounds: (data.rounds || []).map(r => ({
@@ -192,7 +194,7 @@ const CreateJob = () => {
       eligibility_rules: {
         min_cgpa: '', min_attendance: '', max_backlogs: '',
         allowed_branches: [], allowed_years: [], allowed_categories: [], allowed_students: [],
-        allowed_semesters: []
+        allowed_semesters: [], allowed_statuses: ['active']
       },
       rounds: []
     };
@@ -308,6 +310,25 @@ const CreateJob = () => {
       handleEligibilityChange('allowed_semesters', allSems);
     } else {
       handleEligibilityChange('allowed_semesters', []);
+    }
+  };
+
+  const handleStatusToggle = (statusVal) => {
+    const currentSelected = formData.eligibility_rules.allowed_statuses || [];
+    let newSelected;
+    if (currentSelected.includes(statusVal)) {
+      newSelected = currentSelected.filter(name => name !== statusVal);
+    } else {
+      newSelected = [...currentSelected, statusVal];
+    }
+    handleEligibilityChange('allowed_statuses', newSelected);
+  };
+
+  const handleSelectAllStatuses = (selectAll) => {
+    if (selectAll) {
+      handleEligibilityChange('allowed_statuses', ['active', 'exited_3yr', 'graduated_4yr']);
+    } else {
+      handleEligibilityChange('allowed_statuses', []);
     }
   };
 
@@ -890,6 +911,60 @@ const CreateJob = () => {
                             />
                             <span className="text-xs font-bold text-secondary">
                               Semester {sem.name} {sem.count > 0 && <span className="text-[10px] text-muted">({sem.count} students)</span>}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="relative max-w-md ml-11 mt-4">
+              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Academic Status</label>
+              <div 
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none"
+              >
+                <span className={(formData.eligibility_rules.allowed_statuses || []).length === 0 ? 'text-muted font-normal' : 'text-primary'}>
+                  {(formData.eligibility_rules.allowed_statuses || []).length === 0 
+                    ? 'All Statuses (Default)' 
+                    : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active' : s === 'exited_3yr' ? '3-Year Exit' : '4-Year Graduate').join(', ')}`
+                  }
+                </span>
+                <ChevronDown size={18} className={`text-muted transition-transform duration-200 ${statusDropdownOpen ? '-rotate-180' : 'rotate-0'}`} />
+              </div>
+
+              {statusDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setStatusDropdownOpen(false)}></div>
+                  <div className="absolute left-0 right-0 mt-2 z-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden p-3 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2 mb-2">
+                      <button type="button" onClick={() => handleSelectAllStatuses(true)} className="text-[10px] font-black uppercase text-[var(--accent-primary)] hover:underline bg-none border-none cursor-pointer">Select All</button>
+                      <button type="button" onClick={() => handleSelectAllStatuses(false)} className="text-[10px] font-black uppercase text-muted hover:underline bg-none border-none cursor-pointer">Clear All</button>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {[
+                        { val: 'active', label: 'Active' },
+                        { val: 'exited_3yr', label: '3-Year Exit' },
+                        { val: 'graduated_4yr', label: '4-Year Graduate' }
+                      ].map(statusItem => {
+                        const isChecked = (formData.eligibility_rules.allowed_statuses || []).includes(statusItem.val);
+                        return (
+                          <div 
+                            key={statusItem.val}
+                            onClick={() => handleStatusToggle(statusItem.val)}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-card-hover)] cursor-pointer select-none transition-colors"
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer"
+                            />
+                            <span className="text-xs font-bold text-secondary">
+                              {statusItem.label}
                             </span>
                           </div>
                         );

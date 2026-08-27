@@ -312,7 +312,8 @@ export default function Students() {
     stream: '',
     semester: '',
     cgpaRange: '',
-    trainingRange: ''
+    trainingRange: '',
+    status: ''
   });
 
   const fetchStudentProfile = async (studentId) => {
@@ -393,6 +394,7 @@ export default function Students() {
       if (filters.course) params.set('course', filters.course);
       if (filters.stream) params.set('stream', filters.stream);
       if (filters.semester) params.set('semester', filters.semester);
+      if (filters.status) params.set('status', filters.status);
       
       if (filters.cgpaRange) {
         if (filters.cgpaRange === 'high') {
@@ -820,7 +822,7 @@ export default function Students() {
           style={{ display: 'flex', alignItems: 'center', gap: 8, height: 42 }}
         >
           {showAdvancedFilters ? '✕ Hide Filters' : '⚙️ Advanced Filters'}
-          {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange) && !showAdvancedFilters && (
+          {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange || filters.status) && !showAdvancedFilters && (
             <span style={{ 
               background: 'var(--accent-primary)', color: 'white', borderRadius: '50%', 
               width: 20, height: 20, fontSize: '0.7rem', display: 'inline-flex', 
@@ -831,13 +833,13 @@ export default function Students() {
           )}
         </button>
 
-        {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange || search) && (
+        {(filters.year || filters.category || filters.backlogs || filters.course || filters.stream || filters.semester || filters.cgpaRange || filters.trainingRange || filters.status || search) && (
           <button 
             className="btn btn-secondary btn-sm"
             onClick={() => {
               setSearch('');
               setDebouncedSearch('');
-              setFilters({ year: '', category: '', backlogs: '', course: '', stream: '', semester: '', cgpaRange: '', trainingRange: '' });
+              setFilters({ year: '', category: '', backlogs: '', course: '', stream: '', semester: '', cgpaRange: '', trainingRange: '', status: '' });
             }}
             style={{ 
               padding: '0 16px', fontSize: '0.85rem', height: '42px', borderRadius: '8px', 
@@ -945,6 +947,16 @@ export default function Students() {
               <option value="false">Clear (No Backlogs)</option>
             </select>
           </div>
+
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Academic Status</label>
+            <select className="input-field" value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={{ width: '100%' }}>
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="exited_3yr">3-Year Exit</option>
+              <option value="graduated_4yr">4-Year Graduate</option>
+            </select>
+          </div>
         </div>
       )}
 
@@ -1005,7 +1017,8 @@ export default function Students() {
                   <th>CGPA</th>
                   <th>General Attd</th>
                   <th>Training Attd</th>
-                  <th style={{ whiteSpace: 'nowrap' }}>Status</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Academic Status</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>Account Status</th>
                   <th style={{ whiteSpace: 'nowrap' }}>Actions</th>
                 </tr>
               </thead>
@@ -1084,6 +1097,11 @@ export default function Students() {
                         color: s.training_attendance >= 100.0 ? '#10b981' : s.training_attendance >= 80.0 ? '#f59e0b' : '#ef4444'
                       }}>
                         {s.training_attendance != null ? `${s.training_attendance}%` : '—'}
+                      </span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                      <span className={`badge ${s.status === 'exited_3yr' ? 'badge-warning' : s.status === 'graduated_4yr' ? 'badge-info' : 'badge-success'}`}>
+                        {s.status === 'exited_3yr' ? '3-Year Exit' : s.status === 'graduated_4yr' ? '4-Year Graduate' : 'Active'}
                       </span>
                     </td>
                     <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>

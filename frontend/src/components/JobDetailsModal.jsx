@@ -241,6 +241,14 @@ const JobDetailsModal = ({
                         </span>
                       </div>
                     )}
+                    <div>
+                      <span className="text-secondary font-medium block mb-0.5">Eligible Semesters</span>
+                      <span className="font-bold text-primary">
+                        {job.eligibility_rules?.allowed_semesters && job.eligibility_rules.allowed_semesters.length > 0
+                          ? [...job.eligibility_rules.allowed_semesters].sort((a, b) => parseInt(a) - parseInt(b)).join(', ')
+                          : 'All Semesters'}
+                      </span>
+                    </div>
                     {job.hr_email && (
                       <div>
                         <span className="text-secondary font-medium block mb-0.5">HR Email Contact</span>

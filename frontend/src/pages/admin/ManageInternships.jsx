@@ -216,6 +216,11 @@ const ManageInternships = () => {
                 <div className="job-meta-item-pills">
                   <span className="category-badge">Category {job.category || 'C'}</span>
                   <span className="openings-badge">{job.openings_count || 1} Openings</span>
+                  <span className="semesters-badge">
+                    {job.eligibility_rules?.allowed_semesters && job.eligibility_rules.allowed_semesters.length > 0
+                      ? `Sem: ${[...job.eligibility_rules.allowed_semesters].sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}`
+                      : 'All Semesters'}
+                  </span>
                 </div>
               </div>
             </div>
