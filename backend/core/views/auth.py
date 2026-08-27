@@ -390,9 +390,9 @@ class AuthViewSet(viewsets.ViewSet):
             """
 
             logger.info(f"Attempting to send password reset email to user ID: {user.id}")
-            from django.core.mail import send_mail
-            send_mail(subject, message, None, [user.email], fail_silently=False, html_message=html_message)
-            logger.info(f"Email sent successfully for user ID: {user.id}")
+            from core.tasks import async_send_mail
+            async_send_mail.delay(subject, message, [user.email], fail_silently=False, html_message=html_message)
+            logger.info(f"Email queued successfully for user ID: {user.id}")
 
             # ── Set rate-limit keys AFTER successful send ─────────────────
             cache.set(identity_key, True, COOLDOWN_SECONDS)
