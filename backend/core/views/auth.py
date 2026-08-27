@@ -282,7 +282,7 @@ class AuthViewSet(viewsets.ViewSet):
             return Response({'error': 'Login ID or Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # ── Rate limit 1: per identity (email / login_id) ─────────────────
-        COOLDOWN_SECONDS = 10  # 10 seconds for testing/development (down from 5 mins)
+        COOLDOWN_SECONDS = 5 * 60  # 5 minutes
         identity_key = f'pwd_reset_identity:{identity.lower()}'
         if cache.get(identity_key):
             # Calculate remaining seconds so the frontend can show a countdown
