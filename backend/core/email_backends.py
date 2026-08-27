@@ -255,169 +255,208 @@ class BrevoEmailBackend(BaseEmailBackend):
             or self.test_redirect_email
         )
 
+        # Resolve all available configurations
+        all_configs = getattr(settings, 'BREVO_ROTATION_CONFIG', [])
+        if not all_configs:
+            all_configs = [{
+                'api_key': getattr(settings, 'BREVO_API_KEY', None),
+                'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+            }]
+
+        # Order configurations (active headroom first, then exhausted configs)
+        from django.utils import timezone
+        from core.models import SentEmailLog
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        limit = getattr(settings, 'BREVO_DAILY_LIMIT', 300)
+
+        ordered_configs = []
+        exhausted_configs = []
+        for cfg in all_configs:
+            cfg_from = cfg.get('from_email')
+            sent_count = SentEmailLog.objects.filter(
+                sender_email_used=cfg_from,
+                sent_at__gte=today_start
+            ).count() if cfg_from else limit
+            
+            if sent_count < (limit - 5):
+                ordered_configs.append(cfg)
+            else:
+                exhausted_configs.append(cfg)
+
+        configs_to_try = ordered_configs + exhausted_configs
         sent_count = 0
 
         for message in email_messages:
-            try:
-                original_to = list(message.to)
-                if not original_to:
-                    continue
+            original_to = list(message.to)
+            if not original_to:
+                continue
 
-                # Resolve active configuration dynamically
-                active_cfg = get_active_brevo_config()
-                api_key = active_cfg.get('api_key') or self.api_key
-                
-                # Prioritize rotated config email if message uses default fallback
-                from_email = message.from_email
-                default_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
-                if not from_email or from_email == default_email:
-                    from_email = active_cfg.get('from_email') or default_email
+            subject = message.subject
 
-                if not api_key:
-                    logger.error("Brevo API key is not configured.")
-                    if not self.fail_silently:
-                        raise ValueError("Brevo API key is not configured.")
-                    continue
+            # TEST MODE: redirect all emails to the admin/test address
+            if test_mode and test_redirect_email:
+                to_emails = [test_redirect_email]
+                original_to_str = ', '.join(original_to)
+                subject = f"[TEST → {original_to_str}] {subject}"
+                logger.info(
+                    f"[BREVO TEST MODE] Redirecting email originally for "
+                    f"{original_to_str} to {test_redirect_email}"
+                )
+            else:
+                to_emails = original_to
 
-                client = Brevo(api_key=api_key)
-
-                # Resolve sender
-                sender_name, sender_email = parseaddr(from_email)
-                sender = SendTransacEmailRequestSender(
-                    email=sender_email,
-                    name=sender_name if sender_name else None
+            # Map TO recipients
+            to_list = []
+            for email in to_emails:
+                name, email_addr = parseaddr(email)
+                to_list.append(
+                    SendTransacEmailRequestToItem(
+                        email=email_addr,
+                        name=name if name else None
+                    )
                 )
 
-                subject = message.subject
+            kwargs_params = {
+                "to": to_list,
+                "subject": subject,
+            }
 
-                # TEST MODE: redirect all emails to the admin/test address
-                if test_mode and test_redirect_email:
-                    to_emails = [test_redirect_email]
-                    original_to_str = ', '.join(original_to)
-                    subject = f"[TEST → {original_to_str}] {subject}"
-                    logger.info(
-                        f"[BREVO TEST MODE] Redirecting email originally for "
-                        f"{original_to_str} to {test_redirect_email}"
-                    )
-                else:
-                    to_emails = original_to
-
-                # Map TO recipients
-                to_list = []
-                for email in to_emails:
+            # Add CC if present (skip in test mode)
+            if message.cc and not test_mode:
+                cc_list = []
+                for email in message.cc:
                     name, email_addr = parseaddr(email)
-                    to_list.append(
-                        SendTransacEmailRequestToItem(
+                    cc_list.append(
+                        SendTransacEmailRequestCcItem(
                             email=email_addr,
                             name=name if name else None
                         )
                     )
+                kwargs_params["cc"] = cc_list
 
-                kwargs_params = {
-                    "sender": sender,
-                    "to": to_list,
-                    "subject": subject,
-                }
-
-                # Add CC if present (skip in test mode)
-                if message.cc and not test_mode:
-                    cc_list = []
-                    for email in message.cc:
-                        name, email_addr = parseaddr(email)
-                        cc_list.append(
-                            SendTransacEmailRequestCcItem(
-                                email=email_addr,
-                                name=name if name else None
-                            )
+            # Add BCC if present (skip in test mode)
+            if message.bcc and not test_mode:
+                bcc_list = []
+                for email in message.bcc:
+                    name, email_addr = parseaddr(email)
+                    bcc_list.append(
+                        SendTransacEmailRequestBccItem(
+                            email=email_addr,
+                            name=name if name else None
                         )
-                    kwargs_params["cc"] = cc_list
-
-                # Add BCC if present (skip in test mode)
-                if message.bcc and not test_mode:
-                    bcc_list = []
-                    for email in message.bcc:
-                        name, email_addr = parseaddr(email)
-                        bcc_list.append(
-                            SendTransacEmailRequestBccItem(
-                                email=email_addr,
-                                name=name if name else None
-                            )
-                        )
-                    kwargs_params["bcc"] = bcc_list
-
-                # Add Reply-To if present
-                if message.reply_to:
-                    reply_name, reply_email = parseaddr(message.reply_to[0])
-                    kwargs_params["reply_to"] = SendTransacEmailRequestReplyTo(
-                        email=reply_email,
-                        name=reply_name if reply_name else None
                     )
+                kwargs_params["bcc"] = bcc_list
 
-                # Determine content type
-                is_html = getattr(message, 'content_subtype', '') == 'html'
+            # Add Reply-To if present
+            if message.reply_to:
+                reply_name, reply_email = parseaddr(message.reply_to[0])
+                kwargs_params["reply_to"] = SendTransacEmailRequestReplyTo(
+                    email=reply_email,
+                    name=reply_name if reply_name else None
+                )
 
-                # Check for HTML alternatives (multipart messages)
-                html_content = None
-                if hasattr(message, 'alternatives') and message.alternatives:
-                    for alt_content, alt_mime in message.alternatives:
-                        if alt_mime == 'text/html':
-                            html_content = alt_content
-                            break
+            # Determine content type
+            is_html = getattr(message, 'content_subtype', '') == 'html'
 
-                if is_html:
-                    kwargs_params["html_content"] = message.body
-                elif html_content:
-                    kwargs_params["html_content"] = html_content
-                    kwargs_params["text_content"] = message.body
-                else:
-                    kwargs_params["text_content"] = message.body
+            # Check for HTML alternatives (multipart messages)
+            html_content = None
+            if hasattr(message, 'alternatives') and message.alternatives:
+                for alt_content, alt_mime in message.alternatives:
+                    if alt_mime == 'text/html':
+                        html_content = alt_content
+                        break
 
-                # Support attachments (Base64 encoded)
-                if message.attachments:
-                    attachment_list = []
-                    for attachment in message.attachments:
-                        if isinstance(attachment, tuple):
-                            filename = attachment[0]
-                            content = attachment[1]
-                            if isinstance(content, bytes):
-                                file_content = base64.b64encode(content).decode("utf-8")
-                            else:
-                                file_content = base64.b64encode(
-                                    str(content).encode("utf-8")
-                                ).decode("utf-8")
-                            attachment_list.append(
-                                SendTransacEmailRequestAttachmentItem(
-                                    name=filename,
-                                    content=file_content,
-                                )
-                            )
+            if is_html:
+                kwargs_params["html_content"] = message.body
+            elif html_content:
+                kwargs_params["html_content"] = html_content
+                kwargs_params["text_content"] = message.body
+            else:
+                kwargs_params["text_content"] = message.body
+
+            # Support attachments (Base64 encoded)
+            if message.attachments:
+                attachment_list = []
+                for attachment in message.attachments:
+                    if isinstance(attachment, tuple):
+                        filename = attachment[0]
+                        content = attachment[1]
+                        if isinstance(content, bytes):
+                            file_content = base64.b64encode(content).decode("utf-8")
                         else:
-                            logger.warning(
-                                f"Skipping unsupported attachment format type: {type(attachment)}"
+                            file_content = base64.b64encode(
+                                str(content).encode("utf-8")
+                            ).decode("utf-8")
+                        attachment_list.append(
+                            SendTransacEmailRequestAttachmentItem(
+                                name=filename,
+                                content=file_content,
                             )
-                    if attachment_list:
-                        kwargs_params["attachment"] = attachment_list
-
-                # Send via SDK client
-                client.transactional_emails.send_transac_email(**kwargs_params)
-                sent_count += 1
-
-                # Log the sent email in SentEmailLog
-                try:
-                    from core.models import SentEmailLog
-                    for recipient in original_to:
-                        SentEmailLog.objects.create(
-                            recipient=recipient,
-                            subject=subject,
-                            api_key_used=api_key[-10:] if api_key else None,
-                            sender_email_used=sender_email
                         )
-                except Exception as log_err:
-                    logger.warning(f"Failed to create SentEmailLog for Brevo send: {log_err}")
+                    else:
+                        logger.warning(
+                            f"Skipping unsupported attachment format type: {type(attachment)}"
+                        )
+                if attachment_list:
+                    kwargs_params["attachment"] = attachment_list
 
-            except Exception as e:
-                logger.error(f"Failed to send email via Brevo: {e}", exc_info=True)
+            # --- API failover loop ---
+            success = False
+            last_error = None
+
+            for cfg in configs_to_try:
+                api_key = cfg.get('api_key')
+                if not api_key:
+                    continue
+
+                # Prioritize rotated config email if message uses default fallback
+                msg_from = message.from_email
+                default_email = getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+                if not msg_from or msg_from == default_email:
+                    from_email = cfg.get('from_email') or default_email
+                else:
+                    from_email = msg_from
+
+                try:
+                    client = Brevo(api_key=api_key)
+
+                    # Resolve sender
+                    sender_name, sender_email = parseaddr(from_email)
+                    sender = SendTransacEmailRequestSender(
+                        email=sender_email,
+                        name=sender_name if sender_name else None
+                    )
+                    kwargs_params["sender"] = sender
+
+                    # Send via SDK client
+                    client.transactional_emails.send_transac_email(**kwargs_params)
+                    success = True
+                    sent_count += 1
+
+                    # Log the sent email in SentEmailLog
+                    try:
+                        from core.models import SentEmailLog
+                        for recipient in original_to:
+                            SentEmailLog.objects.create(
+                                recipient=recipient,
+                                subject=subject,
+                                api_key_used=api_key[-10:] if api_key else None,
+                                sender_email_used=sender_email
+                            )
+                    except Exception as log_err:
+                        logger.warning(f"Failed to create SentEmailLog for Brevo send: {log_err}")
+
+                    break  # Success! Skip the remaining configurations
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to send email using Brevo account ({from_email}) with error: {e}. "
+                        f"Trying next configured account..."
+                    )
+                    last_error = e
+
+            if not success:
+                logger.error(f"All configured Brevo accounts failed to send email. Last error: {last_error}", exc_info=True)
                 if not self.fail_silently:
-                    raise e
+                    raise last_error
 
         return sent_count
