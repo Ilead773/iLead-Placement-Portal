@@ -418,6 +418,26 @@ class BrevoEmailBackend(BaseEmailBackend):
                     from_email = msg_from
 
                 try:
+                    # 1. Query Brevo Account details to check remaining free credits
+                    # Brevo API returns 201 synchronously for sending even when free credits are 0,
+                    # so we must check credits actively to trigger failover.
+                    import requests
+                    try:
+                        res = requests.get("https://api.brevo.com/v3/account", headers={
+                            "accept": "application/json",
+                            "api-key": api_key
+                        }, timeout=5)
+                        if res.status_code == 200:
+                            account_data = res.json()
+                            for p in account_data.get("plan", []):
+                                if p.get("type") == "free" and p.get("credits") == 0:
+                                    raise ValueError(f"Brevo account {from_email} has 0 remaining free credits.")
+                    except Exception as credit_err:
+                        if isinstance(credit_err, ValueError):
+                            raise credit_err
+                        # Ignore general network/API errors here and let the send proceed
+                        pass
+
                     client = Brevo(api_key=api_key)
 
                     # Resolve sender
