@@ -442,9 +442,11 @@ class BrevoEmailBackend(BaseEmailBackend):
 
                     # Resolve sender
                     sender_name, sender_email = parseaddr(from_email)
+                    if not sender_name:
+                        sender_name = "iLEAD Placement Cell"
                     sender = SendTransacEmailRequestSender(
                         email=sender_email,
-                        name=sender_name if sender_name else None
+                        name=sender_name
                     )
                     kwargs_params["sender"] = sender
 
