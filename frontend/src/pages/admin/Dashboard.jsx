@@ -561,8 +561,8 @@ export default function Dashboard() {
     salaryGrowth:      isInternship ? 'Monthly Internship Volume' : 'Salary Growth Rate — Monthly Volume',
     avgSalaryByComp:   isInternship ? 'Avg Stipend by Company (Top 10)' : 'Avg Salary by Company (Top 10)',
     compTableHeaders:  isInternship
-      ? ['#', 'Company', 'Avg Stipend (₹/mo)', 'Max Stipend (₹/mo)', 'Students Placed', 'Roles']
-      : ['#', 'Company', 'Avg Salary (LPA)', 'Max Package (LPA)', 'Students Placed', 'Roles'],
+      ? ['#', 'Company', 'Max Stipend (₹/mo)', 'Students Placed', 'Roles']
+      : ['#', 'Company', 'Max Package (LPA)', 'Students Placed', 'Roles'],
     formatComp: (val) => {
       if (val == null || isNaN(val) || parseFloat(val) === 0) return '—';
       const n = parseFloat(val);
@@ -1185,7 +1185,6 @@ export default function Dashboard() {
                       className="hover-row">
                       <td style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: '8px 10px', fontWeight: 800, color: 'var(--text-primary)' }}>{c.company_name}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, color: COLORS.warning }}>{T.formatComp(c.avg_package)}</td>
                       <td style={{ padding: '8px 10px', fontWeight: 800, color: COLORS.success }}>{T.formatComp(c.max_package)}</td>
                       <td style={{ padding: '8px 10px' }}>
                         <span style={{ background: COLORS.info + '18', color: COLORS.info, padding: '2px 8px', borderRadius: 99, fontWeight: 800, fontSize: '0.7rem' }}>{c.placed_count}</span>

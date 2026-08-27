@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from '../../api/axios';
 import logo from '../../logo.png';
 
+const COOLDOWN_KEY = 'fp_cooldown_until'; // localStorage key
+
 const ForgotPassword = () => {
     const [identity, setIdentity]     = useState('');
     const [message, setMessage]       = useState('');
@@ -10,23 +12,43 @@ const ForgotPassword = () => {
     const [cooldown, setCooldown]     = useState(0); // seconds remaining
     const timerRef                    = useRef(null);
 
-    // Start countdown timer
-    const startCooldown = (seconds) => {
-        setCooldown(seconds);
+    // Calculate remaining seconds from a stored expiry timestamp
+    const getRemainingSeconds = () => {
+        const until = parseInt(localStorage.getItem(COOLDOWN_KEY) || '0', 10);
+        return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    };
+
+    // Tick the countdown every second, clearing when done
+    const startTick = () => {
         clearInterval(timerRef.current);
         timerRef.current = setInterval(() => {
-            setCooldown((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            const remaining = getRemainingSeconds();
+            setCooldown(remaining);
+            if (remaining <= 0) {
+                clearInterval(timerRef.current);
+                localStorage.removeItem(COOLDOWN_KEY);
+            }
         }, 1000);
     };
 
-    // Clean up timer on unmount
-    useEffect(() => () => clearInterval(timerRef.current), []);
+    // On mount: restore any active cooldown from localStorage
+    useEffect(() => {
+        const remaining = getRemainingSeconds();
+        if (remaining > 0) {
+            setCooldown(remaining);
+            startTick();
+        }
+        // Clean up interval on unmount
+        return () => clearInterval(timerRef.current);
+    }, []);
+
+    // Start a fresh cooldown and persist expiry time
+    const startCooldown = (seconds) => {
+        const until = Date.now() + seconds * 1000;
+        localStorage.setItem(COOLDOWN_KEY, String(until));
+        setCooldown(seconds);
+        startTick();
+    };
 
     const formatCountdown = (secs) => {
         const m = Math.floor(secs / 60);
@@ -58,6 +80,7 @@ const ForgotPassword = () => {
             setLoading(false);
         }
     };
+
 
     const isDisabled = loading || cooldown > 0;
 

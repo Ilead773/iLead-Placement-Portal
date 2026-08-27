@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../../api/axios';
 import logo from '../../logo.png';
 import { Eye, EyeOff } from 'lucide-react';
+
+const RequirementItem = ({ met, label }) => (
+    <li className={`req-item ${met ? 'met' : 'unmet'}`}>
+        <span className="req-icon">{met ? '✓' : '○'}</span>
+        <span>{label}</span>
+    </li>
+);
 
 const ResetPassword = () => {
     const { uid, token } = useParams();
@@ -78,6 +85,19 @@ const ResetPassword = () => {
                             </div>
                         </div>
 
+                        {password.length > 0 && (
+                            <div className="password-requirements">
+                                <p className="req-title">Password must contain:</p>
+                                <ul className="req-list">
+                                    <RequirementItem met={password.length >= 8} label="At least 8 characters" />
+                                    <RequirementItem met={/[A-Z]/.test(password)} label="One uppercase letter (A-Z)" />
+                                    <RequirementItem met={/[a-z]/.test(password)} label="One lowercase letter (a-z)" />
+                                    <RequirementItem met={/[0-9]/.test(password)} label="One number (0-9)" />
+                                    <RequirementItem met={/[^A-Za-z0-9]/.test(password)} label="One special character (!@#$...)" />
+                                </ul>
+                            </div>
+                        )}
+
                         <div className="input-group">
                             <label>Confirm Password</label>
                             <div className="password-input-container">
@@ -98,6 +118,11 @@ const ResetPassword = () => {
                                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
+                            {confirmPassword.length > 0 && (
+                                <p className={`password-match-hint ${password === confirmPassword ? 'match' : 'no-match'}`}>
+                                    {password === confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                                </p>
+                            )}
                         </div>
 
                         <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
