@@ -377,6 +377,7 @@ CELERY_TASK_ROUTES = {
     'apps.applications.tasks.send_job_alert_task': {'queue': 'notifications'},
     'apps.applications.tasks.send_notification_email': {'queue': 'notifications'},
     'apps.applications.tasks.send_bulk_notification_emails': {'queue': 'notifications'},
+    'core.tasks.async_send_mail': {'queue': 'notifications'},
 }
 # Cache backend (used by rate limiting + scraper query caching)
 if TESTING or os.environ.get('USE_LOCMEM_CACHE', 'False') == 'True':
