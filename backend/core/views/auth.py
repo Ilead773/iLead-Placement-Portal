@@ -275,11 +275,6 @@ class AuthViewSet(viewsets.ViewSet):
           - Per email/login_id : 1 request per 5 minutes
           - Per IP address     : 5 requests per 10 minutes
         """
-        return Response(
-            {'error': 'Forgot password service is temporarily disabled.'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-
         from django.core.cache import cache
 
         identity = request.data.get('identity', '').strip()
