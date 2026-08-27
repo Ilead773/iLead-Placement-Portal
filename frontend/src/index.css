@@ -12230,3 +12230,73 @@ tr:hover .company-logo-badge {
     overflow-x: hidden !important;
   }
 }
+
+/* ─── Email Sent State ────────────────────────────────────────────────── */
+.email-sent-view {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.success-mail-pop {
+  color: var(--accent-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: var(--accent-soft);
+  border: 2px solid rgba(37, 99, 235, 0.15);
+  border-radius: 50%;
+  margin: 10px auto 24px;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
+  animation: popCheckmark 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.resend-section {
+  padding: 16px;
+  background: var(--bg-body);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  margin-bottom: 24px;
+  text-align: center;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.resend-btn-alt {
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  width: 100%;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.resend-btn-alt:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--text-muted);
+}
+
+.resend-btn-alt:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.back-different-btn {
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.back-different-btn:hover {
+  color: var(--accent-primary);
+}

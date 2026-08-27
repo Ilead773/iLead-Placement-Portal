@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from '../../api/axios';
 import logo from '../../logo.png';
+import { Mail, ArrowLeft } from 'lucide-react';
 
 const COOLDOWN_KEY = 'fp_cooldown_until'; // localStorage key
 
@@ -10,6 +11,8 @@ const ForgotPassword = () => {
     const [error, setError]           = useState('');
     const [loading, setLoading]       = useState(false);
     const [cooldown, setCooldown]     = useState(0); // seconds remaining
+    const [isSent, setIsSent]         = useState(false);
+    const [sentEmail, setSentEmail]   = useState('');
     const timerRef                    = useRef(null);
 
     // Calculate remaining seconds from a stored expiry timestamp
@@ -57,7 +60,7 @@ const ForgotPassword = () => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (cooldown > 0) return; // extra guard
         setLoading(true);
         setMessage('');
@@ -66,6 +69,8 @@ const ForgotPassword = () => {
         try {
             const response = await axios.post('/auth/forgot-password/', { identity });
             setMessage(response.data.message);
+            setIsSent(true);
+            setSentEmail(identity);
             // Start cooldown using retry_after_seconds from backend (default 5 min)
             const wait = response.data.retry_after_seconds || 300;
             startCooldown(wait);
@@ -89,41 +94,109 @@ const ForgotPassword = () => {
             <div className="auth-card card">
                 <div className="auth-header">
                     <img src={logo} alt="iLEAD Logo" className="auth-logo-img" />
-                    <h1 className="branded-title">
-                        <span className="portal-text">Forgot Password</span>
-                    </h1>
-                    <p>Enter your Login ID or Email to reset your password</p>
+                    {!isSent ? (
+                        <>
+                            <h1 className="branded-title">
+                                <span className="portal-text">Forgot Password</span>
+                            </h1>
+                            <p>Enter your Login ID or Email to reset your password</p>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="branded-title">
+                                <span className="portal-text">Check Your Email</span>
+                            </h1>
+                            <p>We've sent password reset instructions</p>
+                        </>
+                    )}
                 </div>
 
-                {message && <div className="alert alert-success">{message}</div>}
-                {error   && <div className="alert alert-error">{error}</div>}
+                {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <label>Login ID or Registered Email</label>
-                        <input
-                            type="text"
-                            value={identity}
-                            onChange={(e) => setIdentity(e.target.value)}
-                            placeholder="e.g. stu001 or john@example.com"
-                            className="input-field"
-                            required
-                            autoFocus
-                            disabled={isDisabled}
-                        />
+                {!isSent ? (
+                    <>
+                        {message && <div className="alert alert-success">{message}</div>}
+                        <form onSubmit={handleSubmit}>
+                            <div className="input-group">
+                                <label>Login ID or Registered Email</label>
+                                <input
+                                    type="text"
+                                    value={identity}
+                                    onChange={(e) => setIdentity(e.target.value)}
+                                    placeholder="e.g. stu001 or john@example.com"
+                                    className="input-field"
+                                    required
+                                    autoFocus
+                                    disabled={isDisabled}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="btn btn-primary btn-full"
+                                disabled={isDisabled}
+                            >
+                                {loading ? 'Sending…' : cooldown > 0 ? `Resend in ${formatCountdown(cooldown)}` : 'Send Reset Link'}
+                            </button>
+                        </form>
+                    </>
+                ) : (
+                    <div className="email-sent-view">
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div className="success-mail-pop">
+                                <Mail size={36} />
+                            </div>
+                        </div>
+                        
+                        <p style={{ 
+                            fontSize: '0.95rem', 
+                            color: 'var(--text-secondary)', 
+                            lineHeight: '1.6',
+                            marginBottom: '24px',
+                            textAlign: 'center'
+                        }}>
+                            We sent a password reset link to <strong style={{ color: 'var(--text-primary)' }}>{sentEmail}</strong>. 
+                            Please check your inbox and spam folder, and follow the instructions to set a new password.
+                        </p>
+
+                        {message && <div className="alert alert-success" style={{ marginBottom: '24px' }}>{message}</div>}
+
+                        <div className="resend-section">
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                                Didn't receive the email?
+                            </p>
+                            {cooldown > 0 ? (
+                                <p style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                                    You can request another link in <span style={{ color: 'var(--accent-primary)' }}>{formatCountdown(cooldown)}</span>
+                                </p>
+                            ) : (
+                                <button
+                                    onClick={() => handleSubmit()}
+                                    className="resend-btn-alt"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Sending...' : 'Resend Email'}
+                                </button>
+                            )}
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                            <button
+                                onClick={() => {
+                                    setIsSent(false);
+                                    setMessage('');
+                                    setError('');
+                                }}
+                                className="back-different-btn"
+                            >
+                                <ArrowLeft size={16} /> Enter a different email/ID
+                            </button>
+                        </div>
                     </div>
-
-                    <button
-                        type="submit"
-                        className="btn btn-primary btn-full"
-                        disabled={isDisabled}
-                    >
-                        {loading ? 'Sending…' : cooldown > 0 ? `Resend in ${formatCountdown(cooldown)}` : 'Send Reset Link'}
-                    </button>
-                </form>
+                )}
 
                 <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                    <a href="/login" style={{ fontSize: '0.9rem', color: '#8b5cf6', textDecoration: 'none' }}>
+                    <a href="/login" style={{ fontSize: '0.9rem', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: '500' }}>
                         Back to Login
                     </a>
                 </div>
