@@ -102,7 +102,9 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             # Fields from core.Student
             'student_name', 'student_phone', 'student_year', 'student_category', 'student_backlogs',
-            'student_course', 'student_department'
+            'student_course', 'student_department',
+            # Add missing fields expected by frontend
+            'student_id', 'student_email', 'course', 'stream', 'semester', 'passing_year'
         ]
         read_only_fields = ['id', 'student', 'completion_score', 'completion_details', 'improvement_suggestions']
 
@@ -113,6 +115,12 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     student_backlogs = serializers.BooleanField(source='student.backlogs', read_only=True)
     student_course = serializers.CharField(source='student.course', read_only=True)
     student_department = serializers.SerializerMethodField(read_only=True)
+    student_id = serializers.CharField(source='student.registration_number', read_only=True)
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    course = serializers.CharField(source='student.course', read_only=True)
+    stream = serializers.CharField(source='student.stream', read_only=True)
+    semester = serializers.IntegerField(source='student.semester', read_only=True)
+    passing_year = serializers.IntegerField(source='student.passing_year', read_only=True)
 
     def get_student_department(self, obj):
         from .rules import get_department_by_course
