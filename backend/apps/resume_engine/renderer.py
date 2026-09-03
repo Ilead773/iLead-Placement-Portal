@@ -146,6 +146,14 @@ class ResumeRenderer:
         else:
             html = self.render_html(canonical_json, template)
 
+        # Fail-Safe: Auto-correct any lingering HTML-escaped SVG tags defensively before PDF compilation
+        if '&lt;svg' in html or '&lt;path' in html:
+            html = html.replace('&lt;svg', '<svg').replace('&lt;/svg&gt;', '</svg>')
+            html = html.replace('&lt;path', '<path').replace('&lt;/path&gt;', '</path>')
+            html = html.replace('&lt;polyline', '<polyline').replace('&lt;/polyline&gt;', '</polyline>')
+            html = html.replace('&lt;circle', '<circle').replace('&lt;/circle&gt;', '</circle>')
+            html = html.replace('&gt;', '>')
+
         try:
             from weasyprint import HTML
             pdf_bytes = HTML(string=html).write_pdf()
