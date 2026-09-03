@@ -46,6 +46,18 @@ class ResumeViewSet(viewsets.ViewSet):
         resume = get_object_or_404(BuiltResume, id=pk, student=student)
         
         if resume.custom_html:
+            if '<style>' not in resume.custom_html and resume.template:
+                full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>{resume.template.css_styles}</style>
+</head>
+<body>
+{resume.custom_html}
+</body>
+</html>"""
+                return Response({'html': full_html})
             return Response({'html': resume.custom_html})
             
         # Otherwise, render it from the template
@@ -314,6 +326,14 @@ class ResumeViewSet(viewsets.ViewSet):
         student = request.user.student_profile
         resume = get_object_or_404(BuiltResume, id=pk, student=student)
         
+        if not resume.generated_pdf:
+            from apps.resumes.tasks import generate_resume_pdf
+            try:
+                generate_resume_pdf(str(resume.id), str(resume.template_id))
+                resume.refresh_from_db()
+            except Exception as e:
+                logger.error(f"On-demand PDF generation failed for {resume.id}: {e}")
+
         if not resume.generated_pdf:
             return Response({'error': 'PDF not generated yet.'}, status=status.HTTP_404_NOT_FOUND)
             
