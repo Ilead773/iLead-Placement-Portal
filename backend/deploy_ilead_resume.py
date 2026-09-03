@@ -235,6 +235,31 @@ HTML_TEMPLATE = """<div class="resume-container">
                         </div>
                         {% endfor %}
                     {% endif %}
+
+                    {% if projects %}
+                    <div style="margin-top: 10px;">
+                        <h3 class="section-title">PROJECTS</h3>
+                        {% for proj in projects %}
+                        <div class="experience-item">
+                            <div class="exp-header">
+                                <span class="company-name">{{ proj.title }}</span>
+                                {% if proj.date_formatted or proj.date %}
+                                | <span class="duration">({{ proj.date_formatted|default:proj.date }})</span>
+                                {% endif %}
+                            </div>
+                            {% if proj.description %}
+                            <p class="exp-desc">{{ proj.description }}</p>
+                            {% endif %}
+                            {% if proj.technologies %}
+                            <p class="ach-desc"><strong>Tools & Technologies:</strong> {{ proj.technologies|join:", " }}</p>
+                            {% endif %}
+                            {% if proj.link %}
+                            <p class="ach-desc"><strong>Link:</strong> <a href="{{ proj.link }}" target="_blank" style="color: var(--primary-color);">{{ proj.link }}</a></p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </td>
         </tr>
