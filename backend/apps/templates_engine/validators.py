@@ -18,7 +18,7 @@ ALLOWED_TAGS = [
     'table', 'tr', 'td', 'th', 'thead', 'tbody', 'tfoot',
     'div', 'span', 'section', 'header', 'footer', 'article', 'aside',
     'img', 'a', 'hr',
-    'svg', 'path', 'polyline', 'circle', 'line', 'g', 'rect', 'polygon', 'use', 'defs', 'symbol'
+    'svg', 'path', 'polyline', 'circle',
 ]
 
 ALLOWED_ATTRIBUTES = {
@@ -26,13 +26,9 @@ ALLOWED_ATTRIBUTES = {
     'a': ['href', 'title', 'target'],
     'img': ['src', 'alt', 'width', 'height'],
     'svg': ['width', 'height', 'viewbox', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'xmlns', 'style'],
-    'path': ['d', 'style', 'fill', 'stroke'],
-    'polyline': ['points', 'style', 'fill', 'stroke'],
-    'circle': ['cx', 'cy', 'r', 'style', 'fill', 'stroke'],
-    'line': ['x1', 'y1', 'x2', 'y2', 'style', 'stroke'],
-    'rect': ['x', 'y', 'width', 'height', 'rx', 'ry', 'style', 'fill', 'stroke'],
-    'g': ['fill', 'stroke', 'style'],
-    'use': ['href', 'xlink:href']
+    'path': ['d', 'style'],
+    'polyline': ['points', 'style'],
+    'circle': ['cx', 'cy', 'r', 'style'],
 }
 
 DANGEROUS_CSS_PATTERNS = [
