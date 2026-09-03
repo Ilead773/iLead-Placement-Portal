@@ -269,8 +269,10 @@ class ResumeViewSet(viewsets.ViewSet):
             }
             css_sanitizer = CSSSanitizer(allowed_css_properties=[
                 'color', 'background-color', 'font-family', 'font-size', 'font-weight', 
-                'margin', 'padding', 'border', 'width', 'height', 'display', 'flex', 
-                'text-align', 'line-height', 'text-decoration', 'list-style-type'
+                'margin', 'padding', 'border', 'border-radius', 'width', 'height', 'max-width', 'max-height',
+                'min-width', 'min-height', 'display', 'flex', 'align-items', 'justify-content', 'vertical-align',
+                'text-align', 'line-height', 'text-decoration', 'list-style-type', 'background', 'box-sizing',
+                'flex-shrink', 'flex-grow', 'overflow'
             ])
             
             sanitized = bleach.clean(
