@@ -79,7 +79,8 @@ class ResumeViewSet(viewsets.ViewSet):
         title = request.data.get('title', f"Resume - {request.user.name}")
         
         student = request.user.student_profile
-        if BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
+        is_demo = getattr(request.user, 'login_id', '') == 'demo.student'
+        if not is_demo and BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
             return Response(
                 {'error': f'Maximum limit of {settings.MAX_BUILT_RESUMES} built resumes reached.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -155,7 +156,8 @@ class ResumeViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         student = request.user.student_profile
-        if BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
+        is_demo = getattr(request.user, 'login_id', '') == 'demo.student'
+        if not is_demo and BuiltResume.objects.filter(student=student).count() >= settings.MAX_BUILT_RESUMES:
             return Response(
                 {'error': f'Maximum limit of {settings.MAX_BUILT_RESUMES} built resumes reached.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -340,7 +342,8 @@ class ResumeUploadViewSet(viewsets.ViewSet):
             return Response({'error': 'No file provided.'}, status=400)
 
         student = request.user.student_profile
-        if ResumeUpload.objects.filter(student=student).count() >= settings.MAX_UPLOADED_RESUMES:
+        is_demo = getattr(request.user, 'login_id', '') == 'demo.student'
+        if not is_demo and ResumeUpload.objects.filter(student=student).count() >= settings.MAX_UPLOADED_RESUMES:
             return Response(
                 {'error': f'Maximum limit of {settings.MAX_UPLOADED_RESUMES} uploaded resumes reached.'},
                 status=status.HTTP_400_BAD_REQUEST
