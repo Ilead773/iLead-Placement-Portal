@@ -1536,6 +1536,7 @@ export default function StudentProfile() {
                     >
                       <Download size={12} /> Download
                     </button>
+                    {/* Temporarily hidden Edit Builder link
                     {primaryResume.type === 'built' && (
                       <Link 
                         to="/student/resumes"
@@ -1544,6 +1545,7 @@ export default function StudentProfile() {
                         Edit Builder
                       </Link>
                     )}
+                    */}
                   </div>
                 </div>
               ) : (

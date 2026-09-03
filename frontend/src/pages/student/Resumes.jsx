@@ -663,6 +663,7 @@ export default function StudentResumes() {
                                 >
                                   <Download size={14} />
                                 </button>
+                                {/* Temporarily hidden Edit button
                                 <button 
                                   onClick={() => handleEditClick(resume.id)}
                                   className="btn btn-sm btn-primary"
@@ -670,6 +671,7 @@ export default function StudentResumes() {
                                 >
                                   Edit
                                 </button>
+                                */}
                               </>
                             )}
                             <button 
