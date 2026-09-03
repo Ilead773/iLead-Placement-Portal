@@ -756,9 +756,6 @@ export default function StudentResumes() {
                             font-family: 'Inter', sans-serif !important;
                             line-height: 1.5;
                           }
-                          .photo-frame { width: 75px !important; height: 75px !important; border-radius: 50% !important; overflow: hidden !important; display: inline-block !important; }
-                          .candidate-photo { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-                          img { max-width: 100%; }
                           *:hover { outline: 1px dashed rgba(249, 115, 22, 0.3); outline-offset: 4px; }
                           * { transition: outline 0.1s; }
                           [contenteditable]:empty::before { content: 'Empty element...'; color: #ccc; }

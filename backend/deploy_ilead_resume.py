@@ -165,12 +165,10 @@ HTML_TEMPLATE = """<div class="resume-container">
                     </h3>
                     <ul class="bullet-list">
                         {% for skill_group in skills %}
-                            {% if skill_group.items %}
+                            {% if skill_group.category == 'Technical' or skill_group.category == 'Other' %}
                                 {% for item in skill_group.items %}
                                     <li>{{ item }}</li>
                                 {% endfor %}
-                            {% else %}
-                                <li>{{ skill_group }}</li>
                             {% endif %}
                         {% endfor %}
                     </ul>

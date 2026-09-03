@@ -46,18 +46,6 @@ class ResumeViewSet(viewsets.ViewSet):
         resume = get_object_or_404(BuiltResume, id=pk, student=student)
         
         if resume.custom_html:
-            if '<style>' not in resume.custom_html and resume.template:
-                full_html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>{resume.template.css_styles}</style>
-</head>
-<body>
-{resume.custom_html}
-</body>
-</html>"""
-                return Response({'html': full_html})
             return Response({'html': resume.custom_html})
             
         # Otherwise, render it from the template
@@ -264,19 +252,11 @@ class ResumeViewSet(viewsets.ViewSet):
                 'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                 'br', 'hr', 'table', 'tbody', 'thead', 'tr', 'td', 'th',
                 'style', 'b', 'strong', 'i', 'em', 'u', 'center', 'ul', 'ol', 'li',
-                'header', 'section', 'article', 'footer', 'aside', 'nav', 'img',
-                'svg', 'path', 'polyline', 'circle', 'line', 'g', 'rect', 'polygon'
+                'header', 'section', 'article', 'footer', 'aside', 'nav', 'img'
             ]
             allowed_attrs = { 
                 '*': ['style', 'class', 'id'],
-                'img': ['src', 'alt', 'width', 'height'],
-                'svg': ['width', 'height', 'viewbox', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'xmlns', 'style'],
-                'path': ['d', 'style', 'fill', 'stroke'],
-                'polyline': ['points', 'style', 'fill', 'stroke'],
-                'circle': ['cx', 'cy', 'r', 'style', 'fill', 'stroke'],
-                'line': ['x1', 'y1', 'x2', 'y2', 'style', 'stroke'],
-                'rect': ['x', 'y', 'width', 'height', 'rx', 'ry', 'style', 'fill', 'stroke'],
-                'g': ['fill', 'stroke', 'style']
+                'img': ['src', 'alt', 'width', 'height']
             }
             css_sanitizer = CSSSanitizer(allowed_css_properties=[
                 'color', 'background-color', 'font-family', 'font-size', 'font-weight', 
@@ -326,14 +306,6 @@ class ResumeViewSet(viewsets.ViewSet):
         student = request.user.student_profile
         resume = get_object_or_404(BuiltResume, id=pk, student=student)
         
-        if not resume.generated_pdf:
-            from apps.resumes.tasks import generate_resume_pdf
-            try:
-                generate_resume_pdf(str(resume.id), str(resume.template_id))
-                resume.refresh_from_db()
-            except Exception as e:
-                logger.error(f"On-demand PDF generation failed for {resume.id}: {e}")
-
         if not resume.generated_pdf:
             return Response({'error': 'PDF not generated yet.'}, status=status.HTTP_404_NOT_FOUND)
             
