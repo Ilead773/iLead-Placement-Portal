@@ -252,11 +252,18 @@ class ResumeViewSet(viewsets.ViewSet):
                 'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                 'br', 'hr', 'table', 'tbody', 'thead', 'tr', 'td', 'th',
                 'style', 'b', 'strong', 'i', 'em', 'u', 'center', 'ul', 'ol', 'li',
-                'header', 'section', 'article', 'footer', 'aside', 'nav', 'img'
+                'header', 'section', 'article', 'footer', 'aside', 'nav', 'img',
+                'svg', 'path', 'polyline', 'circle', 'line', 'rect', 'g'
             ]
             allowed_attrs = { 
                 '*': ['style', 'class', 'id'],
-                'img': ['src', 'alt', 'width', 'height']
+                'img': ['src', 'alt', 'width', 'height'],
+                'svg': ['viewbox', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'xmlns', 'style', 'width', 'height'],
+                'path': ['d', 'fill', 'stroke', 'stroke-width'],
+                'polyline': ['points', 'fill', 'stroke'],
+                'circle': ['cx', 'cy', 'r', 'fill', 'stroke'],
+                'line': ['x1', 'y1', 'x2', 'y2', 'stroke'],
+                'rect': ['x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'stroke']
             }
             css_sanitizer = CSSSanitizer(allowed_css_properties=[
                 'color', 'background-color', 'font-family', 'font-size', 'font-weight', 
