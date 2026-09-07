@@ -1126,75 +1126,7 @@ const EditJob = () => {
               </div>
             </div>
 
-            <div style={{ flex: 1, minWidth: '280px', marginTop: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Select Academic Status</label>
-              <div style={{ position: 'relative' }}>
-                <div 
-                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    userSelect: 'none'
-                  }}
-                >
-                  <span style={{ color: (formData.eligibility_rules.allowed_statuses || []).length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: (formData.eligibility_rules.allowed_statuses || []).length === 0 ? '500' : '700' }}>
-                    {(formData.eligibility_rules.allowed_statuses || []).length === 0 
-                      ? 'All Statuses (Default)' 
-                      : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active (Normal / Continuing)' : s === 'exited_3yr' ? '3-Year Exit (Sem 6 Exit)' : '4-Year Graduate').join(', ')}`
-                    }
-                  </span>
-                  <ChevronDown size={18} style={{ color: 'var(--text-muted)', transition: 'transform 0.2s', transform: statusDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                </div>
 
-                {statusDropdownOpen && (
-                  <>
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }} onClick={() => setStatusDropdownOpen(false)}></div>
-                    <div style={{ position: 'absolute', left: 0, right: 0, marginTop: '8px', zIndex: 20, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', padding: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px', marginBottom: '8px' }}>
-                        <button type="button" onClick={() => handleSelectAllStatuses(true)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Select All</button>
-                        <button type="button" onClick={() => handleSelectAllStatuses(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Clear All</button>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {[
-                          { val: 'active', label: 'Active (Normal / Continuing)' },
-                          { val: 'exited_3yr', label: '3-Year Exit (Semester 6 Exit)' },
-                          { val: 'graduated_4yr', label: '4-Year Graduate' }
-                        ].map(statusItem => {
-                          const isChecked = (formData.eligibility_rules.allowed_statuses || []).includes(statusItem.val);
-                          return (
-                            <div 
-                              key={statusItem.val}
-                              onClick={() => handleStatusToggle(statusItem.val)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', transition: 'colors 0.15s' }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <input 
-                                type="checkbox"
-                                checked={isChecked}
-                                readOnly
-                                style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
-                              />
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
-                                {statusItem.label}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* ─── Advanced Targeting Section ─── */}

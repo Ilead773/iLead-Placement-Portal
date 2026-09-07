@@ -921,59 +921,7 @@ const CreateJob = () => {
               )}
             </div>
 
-            <div className="relative max-w-md ml-11 mt-4">
-              <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Academic Status</label>
-              <div 
-                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none"
-              >
-                <span className={(formData.eligibility_rules.allowed_statuses || []).length === 0 ? 'text-muted font-normal' : 'text-primary'}>
-                  {(formData.eligibility_rules.allowed_statuses || []).length === 0 
-                    ? 'All Statuses (Default)' 
-                    : `Statuses: ${(formData.eligibility_rules.allowed_statuses || []).map(s => s === 'active' ? 'Active (Normal / Continuing)' : s === 'exited_3yr' ? '3-Year Exit (Sem 6 Exit)' : '4-Year Graduate').join(', ')}`
-                  }
-                </span>
-                <ChevronDown size={18} className={`text-muted transition-transform duration-200 ${statusDropdownOpen ? '-rotate-180' : 'rotate-0'}`} />
-              </div>
 
-              {statusDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setStatusDropdownOpen(false)}></div>
-                  <div className="absolute left-0 right-0 mt-2 z-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden p-3 animate-in fade-in-50 zoom-in-95 duration-100">
-                    <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2 mb-2">
-                      <button type="button" onClick={() => handleSelectAllStatuses(true)} className="text-[10px] font-black uppercase text-[var(--accent-primary)] hover:underline bg-none border-none cursor-pointer">Select All</button>
-                      <button type="button" onClick={() => handleSelectAllStatuses(false)} className="text-[10px] font-black uppercase text-muted hover:underline bg-none border-none cursor-pointer">Clear All</button>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {[
-                        { val: 'active', label: 'Active (Normal / Continuing)' },
-                        { val: 'exited_3yr', label: '3-Year Exit (Semester 6 Exit)' },
-                        { val: 'graduated_4yr', label: '4-Year Graduate' }
-                      ].map(statusItem => {
-                        const isChecked = (formData.eligibility_rules.allowed_statuses || []).includes(statusItem.val);
-                        return (
-                          <div 
-                            key={statusItem.val}
-                            onClick={() => handleStatusToggle(statusItem.val)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-card-hover)] cursor-pointer select-none transition-colors"
-                          >
-                            <input 
-                              type="checkbox"
-                              checked={isChecked}
-                              readOnly
-                              className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer"
-                            />
-                            <span className="text-xs font-bold text-secondary">
-                              {statusItem.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </section>
 
           {/* Card 5: Advanced Targeting Section */}
