@@ -51,6 +51,12 @@ class JobViewSet(viewsets.ModelViewSet):
                 from apps.applications.models import Application
                 deleted_job_ids = Application.objects.filter(student=student_profile, is_deleted=True).values_list('job_id', flat=True)
                 qs = qs.exclude(id__in=deleted_job_ids)
+
+                # 6th Semester Exit Students with backlogs can ONLY view internships
+                student_status = getattr(student_profile, 'status', 'active')
+                student_has_backlogs = bool(getattr(student_profile, 'backlogs', False)) or (getattr(student_profile, 'backlogs_count', 0) or 0) > 0
+                if student_status == 'exited_3yr' and student_has_backlogs:
+                    qs = qs.filter(listing_type='internship')
         # Filter by listing_type if provided (e.g. ?listing_type=internship)
         listing_type = self.request.query_params.get('listing_type')
         if listing_type in ('job', 'internship'):

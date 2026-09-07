@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import axios from '../../api/axios';
 import JobCard from '../../components/JobCard';
 import { toast } from 'react-hot-toast';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, AlertTriangle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useAuthStore from '../../store/authStore';
 
 const JobCardSkeleton = () => {
   return (
@@ -172,6 +174,9 @@ const Jobs = () => {
     );
   });
 
+  const user = useAuthStore(state => state.user);
+  const is6thSemExitWithBacklogs = user?.student_status === 'exited_3yr' && user?.has_backlogs;
+
   return (
     <div>
       <div className="page-header mb-8">
@@ -180,6 +185,27 @@ const Jobs = () => {
           <p className="text-secondary mt-2">Find and apply to the best matching jobs for your profile.</p>
         </div>
       </div>
+
+      {is6thSemExitWithBacklogs && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="flex-shrink-0 w-6 h-6 text-amber-500" />
+            <div>
+              <p className="font-bold text-sm">Notice for 6th Semester Exit Students</p>
+              <p className="text-xs opacity-90">
+                As a 6th semester exit student with active backlogs, you are eligible to view and apply for <strong>Internships</strong> only.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/student/internships"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5 whitespace-nowrap transition-colors"
+          >
+            Go to Internships
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      )}
 
       {/* Tabs Container */}
       <div className="border-b border-border-color/30 mb-6">

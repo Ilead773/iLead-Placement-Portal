@@ -8,6 +8,8 @@ import re
 
 class UserSerializer(serializers.ModelSerializer):
     features = serializers.SerializerMethodField()
+    student_status = serializers.SerializerMethodField()
+    has_backlogs = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -15,8 +17,18 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'login_id', 'email', 'name', 'role', 'temp_password_flag', 'password_reset_required',
             'can_manage_students', 'can_manage_placements', 'can_manage_resumes',
             'can_manage_assignments', 'can_send_notifications', 'can_view_scraping', 'can_view_clicks',
-            'features'
+            'features', 'student_status', 'has_backlogs'
         ]
+
+    def get_student_status(self, obj):
+        student = getattr(obj, 'student_profile', None)
+        return student.status if student else None
+
+    def get_has_backlogs(self, obj):
+        student = getattr(obj, 'student_profile', None)
+        if not student:
+            return False
+        return bool(student.backlogs) or (student.backlogs_count or 0) > 0
 
     def get_features(self, obj):
         features_dict = {}

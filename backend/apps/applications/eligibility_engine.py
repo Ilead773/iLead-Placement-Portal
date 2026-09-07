@@ -209,6 +209,23 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     else:
         passing_checks.append('backlogs')
 
+    # 2.7 6th Semester Exit Student Backlogs Check
+    # 6th semester exit students (status == 'exited_3yr') with active backlogs can ONLY view and apply to internships.
+    student_status = getattr(student, 'status', 'active')
+    student_has_backlogs = bool(getattr(student, 'backlogs', False)) or (getattr(student, 'backlogs_count', 0) or 0) > 0
+    if student_status == 'exited_3yr' and student_has_backlogs:
+        job_listing_type = getattr(job, 'listing_type', 'job')
+        if job_listing_type != 'internship':
+            failing_checks.append({
+                'check_name': 'exit_student_backlogs',
+                'reason': '6th semester exit students with active backlogs can only view and apply to internships.',
+                'how_to_fix': 'Clear your backlogs or view available internship listings.'
+            })
+        else:
+            passing_checks.append('exit_student_backlogs')
+    else:
+        passing_checks.append('exit_student_backlogs')
+
     # 3. Branch/Stream Check (Course eligibility verification)
     allowed_branches = rules.get('allowed_branches', [])
     if allowed_branches:

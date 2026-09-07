@@ -69,4 +69,111 @@ def test_job_required_skills_matching(student_user):
     assert 'skills' in eligibility_matched['passing_checks']
 
 
+@pytest.mark.django_db
+def test_6th_sem_exit_student_with_backlogs_restricted_from_jobs(student_user):
+    student = Student.objects.get(user=student_user)
+    StudentProfile.objects.get_or_create(student=student)
+    baker.make(BuiltResume, student=student, is_primary=True, is_deleted=False)
+
+    student.status = 'exited_3yr'
+    student.backlogs = True
+    student.backlogs_count = 1
+    student.save()
+
+    # Job listing (listing_type='job')
+    job = baker.make(
+        Job,
+        listing_type='job',
+        job_type='internal',
+        category='C',
+        status='active',
+        application_deadline=timezone.now() + timedelta(days=30),
+        eligibility_rules={},
+    )
+
+    eligibility = check_eligibility(student, job)
+    assert eligibility['eligible'] is False
+    assert any(x['check_name'] == 'exit_student_backlogs' for x in eligibility['failing_checks'])
+
+
+@pytest.mark.django_db
+def test_6th_sem_exit_student_with_backlogs_allowed_for_internships(student_user):
+    student = Student.objects.get(user=student_user)
+    StudentProfile.objects.get_or_create(student=student)
+    baker.make(BuiltResume, student=student, is_primary=True, is_deleted=False)
+
+    student.status = 'exited_3yr'
+    student.backlogs = True
+    student.backlogs_count = 1
+    student.save()
+
+    # Internship listing (listing_type='internship')
+    internship = baker.make(
+        Job,
+        listing_type='internship',
+        job_type='internal',
+        category='C',
+        status='active',
+        application_deadline=timezone.now() + timedelta(days=30),
+        eligibility_rules={},
+    )
+
+    eligibility = check_eligibility(student, internship)
+    assert eligibility['eligible'] is True
+    assert 'exit_student_backlogs' in eligibility['passing_checks']
+
+
+@pytest.mark.django_db
+def test_6th_sem_exit_student_without_backlogs_allowed_for_jobs(student_user):
+    student = Student.objects.get(user=student_user)
+    StudentProfile.objects.get_or_create(student=student)
+    baker.make(BuiltResume, student=student, is_primary=True, is_deleted=False)
+
+    student.status = 'exited_3yr'
+    student.backlogs = False
+    student.backlogs_count = 0
+    student.save()
+
+    job = baker.make(
+        Job,
+        listing_type='job',
+        job_type='internal',
+        category='C',
+        status='active',
+        application_deadline=timezone.now() + timedelta(days=30),
+        eligibility_rules={},
+    )
+
+    eligibility = check_eligibility(student, job)
+    assert eligibility['eligible'] is True
+    assert 'exit_student_backlogs' in eligibility['passing_checks']
+
+
+@pytest.mark.django_db
+def test_active_student_with_backlogs_not_restricted_by_exit_rule(student_user):
+    student = Student.objects.get(user=student_user)
+    StudentProfile.objects.get_or_create(student=student)
+    baker.make(BuiltResume, student=student, is_primary=True, is_deleted=False)
+
+    student.status = 'active'
+    student.backlogs = True
+    student.backlogs_count = 1
+    student.save()
+
+    job = baker.make(
+        Job,
+        listing_type='job',
+        job_type='internal',
+        category='C',
+        status='active',
+        application_deadline=timezone.now() + timedelta(days=30),
+        eligibility_rules={},
+    )
+
+    eligibility = check_eligibility(student, job)
+    assert eligibility['eligible'] is True
+    assert 'exit_student_backlogs' in eligibility['passing_checks']
+
+
+
 
