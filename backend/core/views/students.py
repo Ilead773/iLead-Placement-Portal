@@ -506,8 +506,6 @@ class StudentViewSet(viewsets.ViewSet):
                 semesters_list.append({'name': '6', 'count': cnt, 'label': f'Semester 6 ({cnt} students)'})
                 semesters_list.append({'name': '6_without_backlog', 'count': without_bl, 'label': f'Semester 6 - Without Backlogs ({without_bl} students)'})
                 semesters_list.append({'name': '6_with_backlog', 'count': with_bl, 'label': f'Semester 6 - With Backlogs ({with_bl} students)'})
-            elif sem_val == 3:
-                semesters_list.append({'name': '3', 'count': cnt, 'label': f'Semester 3 (MSc Media Science - {cnt} students)'})
             else:
                 semesters_list.append({'name': str(sem_val), 'count': cnt, 'label': f'Semester {sem_val} ({cnt} students)'})
 
