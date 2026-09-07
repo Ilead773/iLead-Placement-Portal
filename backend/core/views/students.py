@@ -503,7 +503,6 @@ class StudentViewSet(viewsets.ViewSet):
                 with_bl = sem6_qs.filter(backlogs_count__gt=0).count()
                 without_bl = sem6_qs.filter(backlogs_count=0).count()
                 
-                semesters_list.append({'name': '6', 'count': cnt, 'label': f'Semester 6 ({cnt} students)'})
                 semesters_list.append({'name': '6_without_backlog', 'count': without_bl, 'label': f'Semester 6 - Without Backlogs ({without_bl} students)'})
                 semesters_list.append({'name': '6_with_backlog', 'count': with_bl, 'label': f'Semester 6 - With Backlogs ({with_bl} students)'})
             else:
