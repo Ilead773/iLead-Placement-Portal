@@ -494,11 +494,28 @@ class StudentViewSet(viewsets.ViewSet):
                 if s:
                     course_stream_map[c].append({'name': s, 'count': cnt})
                     
+        semesters_list = []
+        for item in sem_counts:
+            sem_val = item['semester']
+            cnt = item['count']
+            if sem_val == 6:
+                sem6_qs = Student.objects.filter(semester=6)
+                with_bl = sem6_qs.filter(backlogs_count__gt=0).count()
+                without_bl = sem6_qs.filter(backlogs_count=0).count()
+                
+                semesters_list.append({'name': '6', 'count': cnt, 'label': f'Semester 6 ({cnt} students)'})
+                semesters_list.append({'name': '6_without_backlog', 'count': without_bl, 'label': f'Semester 6 - Without Backlogs ({without_bl} students)'})
+                semesters_list.append({'name': '6_with_backlog', 'count': with_bl, 'label': f'Semester 6 - With Backlogs ({with_bl} students)'})
+            elif sem_val == 3:
+                semesters_list.append({'name': '3', 'count': cnt, 'label': f'Semester 3 (MSc Media Science - {cnt} students)'})
+            else:
+                semesters_list.append({'name': str(sem_val), 'count': cnt, 'label': f'Semester {sem_val} ({cnt} students)'})
+
         return Response({
             'courses': [{'name': item['course'], 'count': item['count']} for item in course_counts],
             'streams': [{'name': item['stream'], 'count': item['count']} for item in stream_counts],
             'years': [{'name': item['year'], 'count': item['count']} for item in year_counts],
-            'semesters': [{'name': str(item['semester']), 'count': item['count']} for item in sem_counts],
+            'semesters': semesters_list,
             'categories': [{'name': item['category'], 'count': item['count']} for item in cat_counts],
             'course_stream_map': course_stream_map
         })
@@ -581,7 +598,15 @@ class StudentViewSet(viewsets.ViewSet):
             qs = qs.filter(cgpa__lte=float(cgpa_max))
         semester = request.query_params.get('semester')
         if semester:
-            qs = qs.filter(semester=int(semester))
+            if str(semester) == '6_without_backlog':
+                qs = qs.filter(semester=6, backlogs_count=0)
+            elif str(semester) == '6_with_backlog':
+                qs = qs.filter(semester=6, backlogs_count__gt=0)
+            else:
+                try:
+                    qs = qs.filter(semester=int(semester))
+                except (ValueError, TypeError):
+                    pass
             
         year = request.query_params.get('year')
         if year:

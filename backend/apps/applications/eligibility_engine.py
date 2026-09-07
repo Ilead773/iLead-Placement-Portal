@@ -325,17 +325,32 @@ def _check_eligibility_uncached(student, job, ignore_profile_resume=False):
     allowed_semesters = rules.get('allowed_semesters', [])
     if allowed_semesters:
         student_sem = student.semester
-        allowed_sems_ints = []
+        student_backlogs = int(getattr(student, 'backlogs_count', 0) or 0)
+        
+        sem_eligible = False
         for s in allowed_semesters:
-            try:
-                allowed_sems_ints.append(int(s))
-            except (ValueError, TypeError):
-                pass
-        if student_sem not in allowed_sems_ints:
+            s_str = str(s)
+            if s_str == '6_without_backlog':
+                if student_sem == 6 and student_backlogs == 0:
+                    sem_eligible = True
+                    break
+            elif s_str == '6_with_backlog':
+                if student_sem == 6 and student_backlogs > 0:
+                    sem_eligible = True
+                    break
+            else:
+                try:
+                    if student_sem == int(s):
+                        sem_eligible = True
+                        break
+                except (ValueError, TypeError):
+                    pass
+
+        if not sem_eligible:
             failing_checks.append({
                 'check_name': 'semester',
-                'reason': f'Semester {student_sem or "Not specified"} is not eligible for this role.',
-                'how_to_fix': f'Eligible semesters: {", ".join(map(str, allowed_sems_ints))}'
+                'reason': f'Semester {student_sem} is not eligible for this role.',
+                'how_to_fix': f'Eligible semesters: {", ".join(map(str, allowed_semesters))}'
             })
         else:
             passing_checks.append('semester')

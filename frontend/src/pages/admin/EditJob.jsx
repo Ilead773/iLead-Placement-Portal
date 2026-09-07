@@ -1114,7 +1114,7 @@ const EditJob = () => {
                                 style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
                               />
                               <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
-                                Semester {sem.name} {sem.count > 0 && <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>({sem.count} students)</span>}
+                                {sem.label || `Semester ${sem.name} (${sem.count} students)`}
                               </span>
                             </div>
                           );

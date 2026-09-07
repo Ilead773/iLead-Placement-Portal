@@ -910,7 +910,7 @@ const CreateJob = () => {
                               className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer"
                             />
                             <span className="text-xs font-bold text-secondary">
-                              Semester {sem.name} {sem.count > 0 && <span className="text-[10px] text-muted">({sem.count} students)</span>}
+                              {sem.label || `Semester ${sem.name} (${sem.count} students)`}
                             </span>
                           </div>
                         );

@@ -284,7 +284,8 @@ export default function Students() {
     const semsWithCounts = allSems.map(s => {
       const match = availableSemesters.find(as => as.name === s.val);
       const count = match ? match.count : 0;
-      return { val: s.val, label: `${s.label} (${count})` };
+      const label = match && match.label ? match.label : `${s.label} (${count})`;
+      return { val: s.val, label };
     });
     if (filters.year === '1st') return semsWithCounts.filter(s => ['1', '2'].includes(s.val));
     if (filters.year === '2nd') return semsWithCounts.filter(s => ['3', '4'].includes(s.val));
