@@ -1027,7 +1027,7 @@ const EditJob = () => {
           </div>
 
           {/* ─── Target Semesters Section ─── */}
-          <div className="col-span-2 mt-6">
+          <div className="col-span-2 mt-6" style={{ position: 'relative', zIndex: semDropdownOpen ? 50 : 1 }}>
             <div 
               style={{
                 background: 'var(--bg-card)',
@@ -1232,7 +1232,7 @@ const EditJob = () => {
                 ) : targetingResults.length > 0 ? (
                   <div className="overflow-x-auto">
                     <div style={{ maxHeight: '300px', overflowY: 'auto', minWidth: '600px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 160px 72px', padding: '8px 20px', background: 'var(--bg-card-hover)', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 2 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '44px 1fr 160px 72px', padding: '8px 20px', background: 'var(--bg-card-hover)', borderBottom: '1px solid var(--border-color)', position: 'sticky', top: 0, zIndex: 1 }}>
                         <input type="checkbox" style={{ cursor: 'pointer', width: 15, height: 15 }}
                           checked={targetingResults.length > 0 && targetingResults.every(s => (formData.eligibility_rules.allowed_students || []).some(sel => sel.id === s.id))}
                           onChange={e => {

@@ -851,7 +851,7 @@ const CreateInternship = () => {
           </section>
 
           {/* Card 4.5: Target Semesters Eligibility */}
-          <section className="card p-8 border border-[var(--border-color)] rounded-2xl shadow-sm bg-[var(--bg-card)] relative" style={{ overflow: 'visible' }}>
+          <section className="card p-8 border border-[var(--border-color)] rounded-2xl shadow-sm bg-[var(--bg-card)] relative" style={{ overflow: 'visible', zIndex: semDropdownOpen ? 50 : 1 }}>
             <div className="flex flex-col gap-2 mb-6 pb-5 border-b border-[var(--border-light)]">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[rgba(16,185,129,0.1)] text-[#10b981]">
@@ -997,7 +997,7 @@ const CreateInternship = () => {
                 ) : targetingResults.length > 0 ? (
                   <div className="overflow-x-auto">
                     <div className="max-h-80 overflow-y-auto bg-[var(--bg-card)] min-w-[600px]">
-                      <div className="grid grid-cols-[44px_1fr_160px_72px] px-8 py-3 bg-[var(--bg-card-hover)] border-b border-[var(--border-color)] sticky top-0 z-10">
+                      <div className="grid grid-cols-[44px_1fr_160px_72px] px-8 py-3 bg-[var(--bg-card-hover)] border-b border-[var(--border-color)] sticky top-0 z-1">
                         <input type="checkbox" className="w-4 h-4 cursor-pointer self-center"
                           checked={targetingResults.length > 0 && targetingResults.every(s => (formData.eligibility_rules.allowed_students || []).some(sel => sel.id === s.id))}
                           onChange={e => {
