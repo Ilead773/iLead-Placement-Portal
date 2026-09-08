@@ -866,11 +866,11 @@ const CreateInternship = () => {
               </p>
             </div>
 
-            <div className="relative max-w-md ml-11">
+            <div className="relative max-w-xl ml-11">
               <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Semesters</label>
               <div 
                 onClick={() => setSemDropdownOpen(!semDropdownOpen)}
-                className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none"
+                className="input-field shadow-sm cursor-pointer flex justify-between items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3 px-4 text-sm font-semibold select-none min-h-[44px]"
               >
                 <span className={(formData.eligibility_rules.allowed_semesters || []).length === 0 ? 'text-muted font-normal' : 'text-primary'}>
                   {(formData.eligibility_rules.allowed_semesters || []).length === 0 
@@ -884,7 +884,7 @@ const CreateInternship = () => {
               {semDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setSemDropdownOpen(false)}></div>
-                  <div className="absolute left-0 right-0 mt-2 z-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden p-3 animate-in fade-in-50 zoom-in-95 duration-100">
+                  <div className="absolute left-0 right-0 mt-2 z-20 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-xl overflow-hidden p-3 min-w-[340px]">
                     <div className="flex justify-between items-center border-b border-[var(--border-light)] pb-2 mb-2">
                       <button type="button" onClick={() => handleSelectAllSemesters(true)} className="text-[10px] font-black uppercase text-[var(--accent-primary)] hover:underline bg-none border-none cursor-pointer">Select All</button>
                       <button type="button" onClick={() => handleSelectAllSemesters(false)} className="text-[10px] font-black uppercase text-muted hover:underline bg-none border-none cursor-pointer">Clear All</button>
@@ -896,15 +896,15 @@ const CreateInternship = () => {
                           <div 
                             key={sem.name}
                             onClick={() => handleSemesterToggle(sem.name)}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-card-hover)] cursor-pointer select-none transition-colors"
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[var(--bg-card-hover)] cursor-pointer select-none transition-colors min-h-[38px]"
                           >
                             <input 
                               type="checkbox"
                               checked={isChecked}
                               readOnly
-                              className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer"
+                              className="w-4 h-4 rounded text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] border-[var(--border-color)] cursor-pointer flex-shrink-0"
                             />
-                            <span className="text-xs font-bold text-secondary">
+                            <span className="text-xs font-bold text-secondary whitespace-nowrap overflow-hidden text-ellipsis">
                               {sem.label || `Semester ${sem.name} (${sem.count} students)`}
                             </span>
                           </div>

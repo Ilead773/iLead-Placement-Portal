@@ -260,7 +260,7 @@ export default function Students() {
     let autoYear = filters.year;
     if (['1', '2'].includes(semValue)) autoYear = '1st';
     else if (['3', '4'].includes(semValue)) autoYear = '2nd';
-    else if (['5', '6'].includes(semValue)) autoYear = '3rd';
+    else if (['5', '6'].includes(semValue) || semValue.startsWith('6_')) autoYear = '3rd';
     else if (['7', '8'].includes(semValue)) autoYear = '4th';
 
     setFilters(prev => ({
@@ -271,25 +271,29 @@ export default function Students() {
   };
 
   const getFilteredSemesters = () => {
-    const allSems = [
-      { val: '1', label: 'Semester 1' },
-      { val: '2', label: 'Semester 2' },
-      { val: '3', label: 'Semester 3' },
-      { val: '4', label: 'Semester 4' },
-      { val: '5', label: 'Semester 5' },
-      { val: '6', label: 'Semester 6' },
-      { val: '7', label: 'Semester 7' },
-      { val: '8', label: 'Semester 8' },
-    ];
-    const semsWithCounts = allSems.map(s => {
-      const match = availableSemesters.find(as => as.name === s.val);
-      const count = match ? match.count : 0;
-      const label = match && match.label ? match.label : `${s.label} (${count})`;
-      return { val: s.val, label };
-    });
+    let semsWithCounts = [];
+    if (availableSemesters && availableSemesters.length > 0) {
+      semsWithCounts = availableSemesters.map(as => ({
+        val: as.name,
+        label: as.label || `Semester ${as.name} (${as.count})`
+      }));
+    } else {
+      const allSems = [
+        { val: '1', label: 'Semester 1 (0)' },
+        { val: '2', label: 'Semester 2 (0)' },
+        { val: '3', label: 'Semester 3 (0)' },
+        { val: '4', label: 'Semester 4 (0)' },
+        { val: '5', label: 'Semester 5 (0)' },
+        { val: '6', label: 'Semester 6 (0)' },
+        { val: '7', label: 'Semester 7 (0)' },
+        { val: '8', label: 'Semester 8 (0)' },
+      ];
+      semsWithCounts = allSems;
+    }
+
     if (filters.year === '1st') return semsWithCounts.filter(s => ['1', '2'].includes(s.val));
     if (filters.year === '2nd') return semsWithCounts.filter(s => ['3', '4'].includes(s.val));
-    if (filters.year === '3rd') return semsWithCounts.filter(s => ['5', '6'].includes(s.val));
+    if (filters.year === '3rd') return semsWithCounts.filter(s => ['5', '6'].includes(s.val) || s.val.startsWith('6_'));
     if (filters.year === '4th') return semsWithCounts.filter(s => ['7', '8'].includes(s.val));
     return semsWithCounts;
   };

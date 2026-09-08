@@ -1061,7 +1061,7 @@ const EditJob = () => {
                 </div>
               </div>
 
-              <div className="relative max-w-md" style={{ marginTop: '15px' }}>
+              <div className="relative max-w-xl" style={{ marginTop: '15px' }}>
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2 block">Select Semesters</label>
                 <div 
                   onClick={() => setSemDropdownOpen(!semDropdownOpen)}
@@ -1076,7 +1076,8 @@ const EditJob = () => {
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    minHeight: '44px'
                   }}
                 >
                   <span style={{ color: (formData.eligibility_rules.allowed_semesters || []).length === 0 ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: (formData.eligibility_rules.allowed_semesters || []).length === 0 ? '500' : '700' }}>
@@ -1091,7 +1092,7 @@ const EditJob = () => {
                 {semDropdownOpen && (
                   <>
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }} onClick={() => setSemDropdownOpen(false)}></div>
-                    <div style={{ position: 'absolute', left: 0, right: 0, marginTop: '8px', zIndex: 20, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', padding: '12px' }}>
+                    <div style={{ position: 'absolute', left: 0, right: 0, marginTop: '8px', zIndex: 20, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', padding: '12px', minWidth: '340px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px', marginBottom: '8px' }}>
                         <button type="button" onClick={() => handleSelectAllSemesters(true)} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Select All</button>
                         <button type="button" onClick={() => handleSelectAllSemesters(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', cursor: 'pointer' }}>Clear All</button>
@@ -1103,7 +1104,7 @@ const EditJob = () => {
                             <div 
                               key={sem.name}
                               onClick={() => handleSemesterToggle(sem.name)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '12px', cursor: 'pointer', transition: 'colors 0.15s' }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '12px', cursor: 'pointer', transition: 'colors 0.15s', minHeight: '38px' }}
                               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card-hover)'}
                               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                             >
@@ -1111,9 +1112,9 @@ const EditJob = () => {
                                 type="checkbox"
                                 checked={isChecked}
                                 readOnly
-                                style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer', flexShrink: 0 }}
                               />
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {sem.label || `Semester ${sem.name} (${sem.count} students)`}
                               </span>
                             </div>
