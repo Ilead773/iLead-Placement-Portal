@@ -890,31 +890,36 @@ export default function StudentResumes() {
 
       {/* Quick Resume Preview Modal */}
       {previewResumeHtml && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between text-white">
+        <div 
+          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 md:p-6 animate-in fade-in"
+          style={{ zIndex: 99999, top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-[900px] h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="px-6 py-3.5 border-b border-slate-800 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/10 text-orange-400 rounded-lg">
-                  <Eye size={20} />
+                <div className="p-1.5 bg-orange-500/10 text-orange-400 rounded-lg">
+                  <Eye size={18} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base m-0 text-white">{previewResumeTitle}</h3>
-                  <p className="text-xs text-slate-400 m-0">Quick Document Preview</p>
+                  <h3 className="font-bold text-sm m-0 text-white leading-tight">{previewResumeTitle}</h3>
+                  <p className="text-[10px] text-slate-400 m-0">Quick Document Preview</p>
                 </div>
               </div>
               <button
                 onClick={() => setPreviewResumeHtml('')}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-6 bg-slate-950 flex justify-center">
-              <iframe
-                srcDoc={previewResumeHtml}
-                title="Resume Quick Preview"
-                className="w-full max-w-[800px] h-[1050px] bg-white rounded shadow-lg border-none"
-              />
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-950 flex justify-center items-start">
+              <div className="w-full max-w-[820px] bg-white rounded shadow-xl overflow-hidden min-h-[1050px]">
+                <iframe
+                  srcDoc={previewResumeHtml}
+                  title="Resume Quick Preview"
+                  className="w-full h-[1100px] bg-white border-none"
+                />
+              </div>
             </div>
           </div>
         </div>
