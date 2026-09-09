@@ -183,7 +183,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
     if (!html) {
       doc.open();
-      doc.write('<html><body style="font-family:sans-serif;padding:20px;">Loading Live Preview...</body></html>');
+      doc.write('<html><body style="font-family:sans-serif;padding:30px;color:#666;">Loading Live Preview...</body></html>');
       doc.close();
       return;
     }
@@ -253,56 +253,64 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   return (
     <div 
       className="fixed inset-0 bg-slate-950 text-white flex flex-col w-screen h-screen overflow-hidden"
-      style={{ zIndex: 99999, top: 0, left: 0, right: 0, bottom: 0 }}
+      style={{ zIndex: 999999, top: 0, left: 0, right: 0, bottom: 0 }}
     >
       
       {/* Top Bar Navigation */}
-      <header className="h-14 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0">
+      <header className="h-16 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-400">
-            <Sparkles size={18} />
+          <div className="p-2 bg-orange-500/10 rounded-xl text-orange-400">
+            <Sparkles size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-sm m-0 leading-tight">Side-by-Side Live Resume Editor</h3>
-            <p className="text-[10px] text-slate-400 m-0">Edit on the left • Real-time preview on the right</p>
+            <h3 className="font-bold text-base m-0 leading-tight text-white">Side-by-Side Live Resume Editor</h3>
+            <p className="text-xs text-slate-400 m-0">Edit on the left pane • Real-time live A4 preview on the right</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => setFullscreenPreview(!fullscreenPreview)}
-            className="btn btn-sm text-xs py-1.5 px-3 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 rounded-lg"
+            className="btn btn-sm text-xs py-2 px-3 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 rounded-lg font-semibold"
           >
             {fullscreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />} 
-            {fullscreenPreview ? 'Exit Fullscreen' : 'Fullscreen Preview'}
+            {fullscreenPreview ? 'Show Split Editor' : 'Fullscreen Preview'}
           </button>
           
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="btn btn-sm py-1.5 px-4 bg-orange-500 hover:bg-orange-600 border-none font-bold text-white shadow-lg shadow-orange-500/20 flex items-center gap-1.5 rounded-lg cursor-pointer"
+            className="btn btn-sm py-2 px-5 bg-orange-500 hover:bg-orange-600 border-none font-bold text-white shadow-lg shadow-orange-500/25 flex items-center gap-2 rounded-lg cursor-pointer text-xs"
           >
-            <Save size={14} /> {isSaving ? 'Saving...' : 'Save & Regenerate PDF'}
+            <Save size={15} /> {isSaving ? 'Saving...' : 'Save & Regenerate PDF'}
           </button>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             title="Close Editor"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
       </header>
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex overflow-hidden w-full h-[calc(100vh-56px)]">
+      <div className="flex-1 flex flex-row overflow-hidden w-full h-[calc(100vh-64px)]">
         
         {/* Left Side: Form Editor Panel */}
-        <div className={`${fullscreenPreview ? 'hidden' : 'w-full md:w-[450px] lg:w-[480px]'} flex flex-col bg-slate-950 border-r border-slate-800 shrink-0 h-full`}>
+        <div 
+          style={{ 
+            width: fullscreenPreview ? '0px' : '440px', 
+            minWidth: fullscreenPreview ? '0px' : '360px',
+            display: fullscreenPreview ? 'none' : 'flex',
+            flexDirection: 'column'
+          }}
+          className="bg-slate-950 border-r border-slate-800 shrink-0 h-full overflow-hidden"
+        >
           
           {/* Tab Selection */}
-          <div className="flex overflow-x-auto bg-slate-900/80 border-b border-slate-800 px-3 py-2 gap-1 scrollbar-none shrink-0">
+          <div className="flex overflow-x-auto bg-slate-900/90 border-b border-slate-800 px-3 py-2.5 gap-1.5 scrollbar-none shrink-0">
             {navTabs.map(tab => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -310,27 +318,27 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                     active 
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25' 
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
                   }`}
                 >
-                  <Icon size={13} /> {tab.label}
+                  <Icon size={14} /> {tab.label}
                 </button>
               );
             })}
           </div>
 
           {/* Form Tab Content */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-5 text-slate-200">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-200">
             
             {/* 1. Personal Info Tab */}
             {activeTab === 'personal' && (
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Personal Contact Information</h4>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">Full Name</label>
                     <input 
@@ -405,7 +413,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   onChange={e => updateSummary(e.target.value)}
                   rows={6}
                   className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed"
-                  placeholder="e.g. Ambitious Computer Science graduate with hands-on experience in full-stack web development..."
+                  placeholder="e.g. Ambitious Business Administration student with strong leadership and academic performance..."
                 />
               </div>
             )}
@@ -417,23 +425,23 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Education & CGPA Marks</h4>
                   <button 
                     onClick={addEducation}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2 py-1 rounded"
+                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
                   >
                     <Plus size={12} /> Add Education
                   </button>
                 </div>
 
                 {canonical.education?.map((edu, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-2.5">
+                  <div key={idx} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
                     <button 
                       onClick={() => removeEducation(idx)}
-                      className="absolute top-2.5 right-2.5 text-slate-500 hover:text-red-400 transition-colors p-1"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-400 mb-1">Degree / Course</label>
                         <input 
@@ -441,7 +449,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           value={edu.degree || ''} 
                           onChange={e => updateEducation(idx, 'degree', e.target.value)}
                           placeholder="e.g. BBA / Class XII"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -452,7 +460,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           value={edu.institution || ''} 
                           onChange={e => updateEducation(idx, 'institution', e.target.value)}
                           placeholder="e.g. iLEAD / DPS"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -463,7 +471,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           value={edu.field || ''} 
                           onChange={e => updateEducation(idx, 'field', e.target.value)}
                           placeholder="e.g. MAKAUT / Commerce"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -474,7 +482,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           value={edu.graduation_date || ''} 
                           onChange={e => updateEducation(idx, 'graduation_date', e.target.value)}
                           placeholder="e.g. 2026"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -485,7 +493,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           value={edu.gpa || ''} 
                           onChange={e => updateEducation(idx, 'gpa', e.target.value)}
                           placeholder="e.g. 8.75 CGPA or 85% (Leave blank to hide)"
-                          className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -501,29 +509,29 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Work & Internship Experience</h4>
                   <button 
                     onClick={addExperience}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2 py-1 rounded"
+                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
                   >
                     <Plus size={12} /> Add Experience
                   </button>
                 </div>
 
                 {canonical.experience?.map((exp, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-2.5">
+                  <div key={idx} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
                     <button 
                       onClick={() => removeExperience(idx)}
-                      className="absolute top-2.5 right-2.5 text-slate-500 hover:text-red-400 transition-colors p-1"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-400 mb-1">Company / Organization</label>
                         <input 
                           type="text" 
                           value={exp.company || ''} 
                           onChange={e => updateExperience(idx, 'company', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -533,7 +541,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={exp.position || ''} 
                           onChange={e => updateExperience(idx, 'position', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -544,7 +552,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                         value={exp.description || ''} 
                         onChange={e => updateExperience(idx, 'description', e.target.value)}
                         rows={3}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
                       />
                     </div>
                   </div>
@@ -559,29 +567,29 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Key Projects</h4>
                   <button 
                     onClick={addProject}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2 py-1 rounded"
+                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
                   >
                     <Plus size={12} /> Add Project
                   </button>
                 </div>
 
                 {canonical.projects?.map((proj, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-2.5">
+                  <div key={idx} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
                     <button 
                       onClick={() => removeProject(idx)}
-                      className="absolute top-2.5 right-2.5 text-slate-500 hover:text-red-400 transition-colors p-1"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-400 mb-1">Project Title</label>
                         <input 
                           type="text" 
                           value={proj.title || ''} 
                           onChange={e => updateProject(idx, 'title', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
@@ -591,7 +599,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={Array.isArray(proj.technologies) ? proj.technologies.join(', ') : (proj.technologies || '')} 
                           onChange={e => updateProject(idx, 'technologies', e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -602,7 +610,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                         value={proj.description || ''} 
                         onChange={e => updateProject(idx, 'description', e.target.value)}
                         rows={2}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
                       />
                     </div>
                   </div>
@@ -621,7 +629,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <textarea 
                     value={canonical.skills?.[0]?.items ? canonical.skills[0].items.join(', ') : ''} 
                     onChange={e => updateSkills(0, e.target.value)}
-                    rows={5}
+                    rows={6}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500"
                     placeholder="Python, React, SQL, Problem Solving, Communication..."
                   />
@@ -635,18 +643,18 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         {/* Right Side: Real-Time Live Preview Panel */}
         <div className="flex-1 bg-slate-900 flex flex-col h-full overflow-y-auto p-4 md:p-8 items-center justify-start relative">
           
-          <div className="w-full max-w-[850px] bg-slate-950/80 border border-slate-800 px-4 py-2 flex items-center justify-between text-xs text-slate-400 rounded-t-lg mb-0 shrink-0">
-            <span className="flex items-center gap-2 font-mono text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Real-Time Preview
+          <div className="w-full max-w-[860px] bg-slate-950 border border-slate-800 px-4 py-2 flex items-center justify-between text-xs text-slate-400 rounded-t-xl mb-0 shrink-0 shadow-md">
+            <span className="flex items-center gap-2 font-mono text-emerald-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Real-Time A4 Preview
             </span>
-            <span>A4 Document Preview</span>
+            <span>A4 Print Scale: 100%</span>
           </div>
 
-          <div className="w-full max-w-[850px] bg-white shadow-2xl rounded-b-lg overflow-hidden min-h-[1080px] shrink-0 my-auto">
+          <div className="w-full max-w-[860px] bg-white shadow-2xl rounded-b-xl overflow-hidden min-h-[1100px] shrink-0 my-auto border border-slate-800">
             <iframe
               ref={iframeRef}
               title="Resume Live Preview"
-              className="w-full h-[1100px] border-none bg-white"
+              className="w-full h-[1120px] border-none bg-white"
             />
           </div>
         </div>

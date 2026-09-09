@@ -59,14 +59,15 @@ export default function StudentResumes() {
   // Side-by-Side Editor & Preview Modal State
   const [activeSideBySideResume, setActiveSideBySideResume] = useState(null);
   const [previewResumeHtml, setPreviewResumeHtml] = useState('');
-  const [previewResumeTitle, setPreviewResumeTitle] = useState('');
+  const [previewResumeObj, setPreviewResumeObj] = useState(null);
 
-  const handlePreviewClick = async (resumeId, resumeTitle) => {
+  const handlePreviewClick = async (resume) => {
     try {
       toast.loading('Loading Preview...', { id: 'preview-load' });
-      const res = await api.get(`resumes/${resumeId}/html/`);
+      const res = await api.get(`resumes/${resume.id}/html/`);
       setPreviewResumeHtml(res.data.html || '');
-      setPreviewResumeTitle(resumeTitle || 'Resume Preview');
+      setPreviewResumeTitle(resume.title || 'Resume Preview');
+      setPreviewResumeObj(resume);
       toast.dismiss('preview-load');
     } catch (err) {
       toast.error('Failed to load resume preview', { id: 'preview-load' });
@@ -462,7 +463,7 @@ export default function StudentResumes() {
                       {/* Action icons right aligned */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button 
-                          onClick={() => handlePreviewClick(resume.id, resume.title)} 
+                          onClick={() => handlePreviewClick(resume)} 
                           style={{ background: 'transparent', border: 'none', padding: '6px' }}
                           className="text-muted hover:text-orange-500 transition-colors cursor-pointer"
                           title="Preview Resume"
@@ -515,7 +516,7 @@ export default function StudentResumes() {
                                 </button>
                                 <button 
                                   onClick={() => {
-                                    handlePreviewClick(resume.id, resume.title);
+                                    handlePreviewClick(resume);
                                     setActiveMenuId(null);
                                   }}
                                   className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1.5"
@@ -717,7 +718,7 @@ export default function StudentResumes() {
                                   </button>
                                 )}
                                 <button 
-                                  onClick={() => handlePreviewClick(resume.id, resume.title)} 
+                                  onClick={() => handlePreviewClick(resume)} 
                                   className="btn btn-sm btn-secondary flex items-center gap-1"
                                   title="Preview Resume HTML"
                                   style={{ fontSize: '10px' }}
@@ -905,12 +906,24 @@ export default function StudentResumes() {
                   <p className="text-[10px] text-slate-400 m-0">Quick Document Preview</p>
                 </div>
               </div>
-              <button
-                onClick={() => setPreviewResumeHtml('')}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const r = previewResumeObj;
+                    setPreviewResumeHtml('');
+                    if (r) handleSideBySideEditClick(r);
+                  }}
+                  className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs shadow-md border-none cursor-pointer"
+                >
+                  <Edit size={13} /> Open Side-by-Side Editor
+                </button>
+                <button
+                  onClick={() => setPreviewResumeHtml('')}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-950 flex justify-center items-start">
               <div className="w-full max-w-[820px] bg-white rounded shadow-xl overflow-hidden min-h-[1050px]">
