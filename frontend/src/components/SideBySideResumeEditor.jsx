@@ -221,7 +221,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to save resume updates', { id: 'save-resume' });
-    } fontally {
+    } finally {
       setIsSaving(false);
     }
   };
