@@ -147,8 +147,13 @@ class ResumeRenderer:
             html = self.render_html(canonical_json, template)
 
         try:
-            from weasyprint import HTML
-            pdf_bytes = HTML(string=html).write_pdf()
+            from weasyprint import HTML, default_url_fetcher
+
+            def fast_url_fetcher(url, timeout=3, *args, **kwargs):
+                """Wrap default fetcher with a strict timeout to prevent hangs on remote images/fonts."""
+                return default_url_fetcher(url, timeout=timeout, *args, **kwargs)
+
+            pdf_bytes = HTML(string=html, url_fetcher=fast_url_fetcher).write_pdf()
             logger.info("PDF rendered via weasyprint")
             return pdf_bytes
         except ImportError:

@@ -493,8 +493,10 @@ def check_certificate_eligibility(self, student_id, course_id, force=False):
         # Render PDF
         pdf_bytes = None
         try:
-            from weasyprint import HTML
-            pdf_bytes = HTML(string=html_content).write_pdf()
+            from weasyprint import HTML, default_url_fetcher
+            def fast_url_fetcher(url, timeout=3, *args, **kwargs):
+                return default_url_fetcher(url, timeout=timeout, *args, **kwargs)
+            pdf_bytes = HTML(string=html_content, url_fetcher=fast_url_fetcher).write_pdf()
             logger.info("Certificate PDF successfully generated via WeasyPrint.")
         except ImportError:
             logger.warning("weasyprint not installed. Generating dummy certificate file content instead.")
