@@ -73,13 +73,13 @@ export default function StudentResumes() {
   }, []);
 
   useEffect(() => {
-    // Poll if there are processing resumes (1s interval for snappy UI feedback)
+    // Poll if there are processing resumes
     const pollInterval = setInterval(() => {
       const hasProcessing = resumes.some(r => r.state === 'processing' || r.state === 'parsing' || r.state === 'draft' || r.state === 'pending');
       if (hasProcessing) {
         fetchResumes();
       }
-    }, 1000);
+    }, 3000);
 
     return () => clearInterval(pollInterval);
   }, [resumes]);
