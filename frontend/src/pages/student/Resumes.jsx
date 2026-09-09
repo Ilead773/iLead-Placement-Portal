@@ -60,6 +60,7 @@ export default function StudentResumes() {
   const [activeSideBySideResume, setActiveSideBySideResume] = useState(null);
   const [previewResumeHtml, setPreviewResumeHtml] = useState('');
   const [previewResumeObj, setPreviewResumeObj] = useState(null);
+  const [previewResumeTitle, setPreviewResumeTitle] = useState('');
 
   const handlePreviewClick = async (resume) => {
     try {

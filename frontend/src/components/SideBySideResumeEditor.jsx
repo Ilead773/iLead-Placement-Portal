@@ -42,18 +42,26 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
   const iframeRef = useRef(null);
 
-  // Fetch complete resume HTML template on mount
+  // Fetch complete resume details and HTML template on mount
   useEffect(() => {
-    fetchInitialHtml();
+    fetchInitialData();
   }, [resumeId]);
 
-  const fetchInitialHtml = async () => {
+  const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`resumes/${resumeId}/html/`);
-      setTemplateHtml(res.data.html || '');
+      const [detailRes, htmlRes] = await Promise.all([
+        api.get(`resumes/${resumeId}/`),
+        api.get(`resumes/${resumeId}/html/`)
+      ]);
+
+      if (detailRes.data?.canonical_json) {
+        setCanonical(detailRes.data.canonical_json);
+      }
+      setTemplateHtml(htmlRes.data?.html || '');
     } catch (err) {
-      console.error('Failed to load initial HTML', err);
+      console.error('Failed to load initial resume data', err);
+      toast.error('Failed to load resume details');
     } finally {
       setLoading(false);
     }
