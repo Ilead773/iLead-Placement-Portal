@@ -16,6 +16,7 @@ urlpatterns = [
     path('<uuid:pk>/set-primary/', views.ResumeViewSet.as_view({'post': 'set_primary'})),
     path('<uuid:pk>/download/', views.ResumeViewSet.as_view({'get': 'download'})),
     path('<uuid:pk>/html/', views.ResumeViewSet.as_view({'get': 'html'})),
+    path('<uuid:pk>/preview/', views.ResumeViewSet.as_view({'post': 'preview'})),
     path('generate/', views.ResumeViewSet.as_view({'post': 'generate'})),
     path('<uuid:pk>/status/', views.ResumeViewSet.as_view({'get': 'check_status'})),
 

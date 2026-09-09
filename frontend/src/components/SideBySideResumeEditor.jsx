@@ -23,8 +23,12 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const [activeTab, setActiveTab] = useState('personal');
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [templateHtml, setTemplateHtml] = useState('');
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
+
+  // Raw Text Input States (Preserves commas and trailing spaces while typing)
+  const [skillsText, setSkillsText] = useState('');
+  const [languagesText, setLanguagesText] = useState('');
+  const [strengthsText, setStrengthsText] = useState('');
 
   // Resume Data State
   const [canonical, setCanonical] = useState(() => {
@@ -44,8 +48,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   });
 
   const iframeRef = useRef(null);
+  const previewTimer = useRef(null);
 
-  // Fetch complete resume details and HTML template on mount
+  // Fetch complete resume details and initial HTML template on mount
   useEffect(() => {
     fetchInitialData();
   }, [resumeId]);
@@ -59,14 +64,65 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       ]);
 
       if (detailRes.data?.canonical_json) {
-        setCanonical(detailRes.data.canonical_json);
+        const c = detailRes.data.canonical_json;
+        setCanonical(c);
+        
+        // Sync raw text inputs
+        if (c.skills?.[0]?.items) {
+          setSkillsText(Array.isArray(c.skills[0].items) ? c.skills[0].items.join(', ') : (c.skills[0].items || ''));
+        }
+        if (c.languages) {
+          setLanguagesText(Array.isArray(c.languages) ? c.languages.join(', ') : (c.languages || ''));
+        }
+        if (c.strengths) {
+          setStrengthsText(Array.isArray(c.strengths) ? c.strengths.join(', ') : (c.strengths || ''));
+        }
       }
-      setTemplateHtml(htmlRes.data?.html || '');
+
+      // Initial iframe write
+      if (iframeRef.current && htmlRes.data?.html) {
+        const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.open();
+          iframeDoc.write(htmlRes.data.html);
+          iframeDoc.close();
+        }
+      }
     } catch (err) {
       console.error('Failed to load initial resume data', err);
       toast.error('Failed to load resume details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Debounced Live Preview fetching from Backend Renderer
+  useEffect(() => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => {
+      fetchLivePreviewHtml();
+    }, 150);
+
+    return () => {
+      if (previewTimer.current) clearTimeout(previewTimer.current);
+    };
+  }, [canonical]);
+
+  const fetchLivePreviewHtml = async () => {
+    if (!iframeRef.current || !resumeId) return;
+    const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+    if (!iframeDoc) return;
+
+    try {
+      const previewRes = await api.post(`resumes/${resumeId}/preview/`, { canonical_json: canonical });
+      const liveHtml = previewRes.data?.html;
+      if (liveHtml) {
+        iframeDoc.open();
+        iframeDoc.write(liveHtml);
+        iframeDoc.close();
+      }
+    } catch (err) {
+      console.error('Failed to update live preview', err);
     }
   };
 
@@ -154,10 +210,11 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const updateProject = (index, field, value) => {
     setCanonical(prev => {
       const updated = [...(prev.projects || [])];
+      let valToSave = value;
       if (field === 'technologies' && typeof value === 'string') {
-        value = value.split(',').map(s => s.trim()).filter(Boolean);
+        valToSave = value.split(',').map(s => s.trim()).filter(Boolean);
       }
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = { ...updated[index], [field]: valToSave };
       return { ...prev, projects: updated };
     });
   };
@@ -169,13 +226,14 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     });
   };
 
-  // Skills Helpers
-  const updateSkills = (index, itemsStr) => {
-    const items = itemsStr.split(',').map(s => s.trim()).filter(Boolean);
+  // Skills Handler (Supports smooth comma typing)
+  const handleSkillsTextChange = (str) => {
+    setSkillsText(str);
+    const items = str.split(',').map(s => s.trim()).filter(Boolean);
     setCanonical(prev => {
       const updated = [...(prev.skills || [])];
-      if (!updated[index]) updated[index] = { category: 'Skills', items: [] };
-      updated[index] = { ...updated[index], items };
+      if (!updated[0]) updated[0] = { category: 'Technical Skills', items: [] };
+      updated[0] = { ...updated[0], items };
       return { ...prev, skills: updated };
     });
   };
@@ -206,256 +264,24 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     });
   };
 
-  // Languages & Strengths Helpers
-  const updateCommaSeparated = (field, str) => {
+  // Languages Handler (Supports smooth comma typing)
+  const handleLanguagesTextChange = (str) => {
+    setLanguagesText(str);
     const items = str.split(',').map(s => s.trim()).filter(Boolean);
     setCanonical(prev => ({
       ...prev,
-      [field]: items
+      languages: items
     }));
   };
 
-  // Helper to find a section container by heading keywords across templates
-  const findSectionByHeader = (doc, keywords) => {
-    const headings = Array.from(doc.querySelectorAll('h1, h2, h3, h4, .section-title, .title'));
-    for (const h of headings) {
-      const text = h.textContent.trim().toUpperCase();
-      if (keywords.some(kw => text.includes(kw.toUpperCase()))) {
-        let container = h.closest('.resume-section, .sidebar-section, .main-section, .section, section') || h.parentElement;
-        return { heading: h, container };
-      }
-    }
-    return null;
-  };
-
-  // Render live HTML document into preview iframe
-  useEffect(() => {
-    renderLiveHtml();
-  }, [canonical, templateHtml]);
-
-  const renderLiveHtml = () => {
-    if (!iframeRef.current) return;
-    const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-    if (!iframeDoc) return;
-
-    if (!templateHtml) {
-      iframeDoc.open();
-      iframeDoc.write('<html><body style="font-family:sans-serif;padding:30px;color:#666;">Loading Live Preview...</body></html>');
-      iframeDoc.close();
-      return;
-    }
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(templateHtml, 'text/html');
-
-    // 1. Personal Info Updates
-    const personal = canonical.personal || {};
-    if (personal.name !== undefined) {
-      const nameEl = doc.querySelector('h1, .candidate-name');
-      if (nameEl) nameEl.textContent = personal.name || 'Full Name';
-    }
-
-    const linkedinEl = doc.querySelector('.linkedin-link a, a[href*="linkedin"]');
-    if (linkedinEl) {
-      if (personal.linkedin) {
-        linkedinEl.href = personal.linkedin;
-        linkedinEl.textContent = 'LinkedIn Profile';
-        if (linkedinEl.parentElement) linkedinEl.parentElement.style.display = '';
-      } else if (linkedinEl.parentElement) {
-        linkedinEl.parentElement.style.display = 'none';
-      }
-    }
-
-    const githubEl = doc.querySelector('.github-link a, a[href*="github"]');
-    if (githubEl) {
-      if (personal.github) {
-        githubEl.href = personal.github;
-        githubEl.textContent = 'GitHub Profile';
-        if (githubEl.parentElement) githubEl.parentElement.style.display = '';
-      } else if (githubEl.parentElement) {
-        githubEl.parentElement.style.display = 'none';
-      }
-    }
-
-    const portfolioEl = doc.querySelector('.portfolio-link a, a[href*="portfolio"]');
-    if (portfolioEl) {
-      if (personal.portfolio) {
-        portfolioEl.href = personal.portfolio;
-        portfolioEl.textContent = 'Portfolio Link';
-        if (portfolioEl.parentElement) portfolioEl.parentElement.style.display = '';
-      } else if (portfolioEl.parentElement) {
-        portfolioEl.parentElement.style.display = 'none';
-      }
-    }
-
-    // 2. Summary Section
-    const summarySec = findSectionByHeader(doc, ['CAREER OBJECTIVE', 'PROFESSIONAL SUMMARY', 'SUMMARY', 'OBJECTIVE']);
-    if (summarySec) {
-      if (!canonical.professional_summary?.trim()) {
-        summarySec.container.style.display = 'none';
-      } else {
-        summarySec.container.style.display = '';
-        const p = summarySec.container.querySelector('p, .summary-text');
-        if (p) p.textContent = canonical.professional_summary;
-      }
-    }
-
-    // 3. Education Section
-    const eduSec = findSectionByHeader(doc, ['EDUCATION', 'QUALIFICATION', 'ACADEMIC BACKGROUND']);
-    const eduList = Array.isArray(canonical.education) ? canonical.education : [];
-    if (eduSec) {
-      if (eduList.length === 0) {
-        eduSec.container.style.display = 'none';
-      } else {
-        eduSec.container.style.display = '';
-        const tbody = eduSec.container.querySelector('tbody');
-        if (tbody) {
-          tbody.innerHTML = eduList.map(edu => `
-            <tr>
-              <td class="bold-text">${edu.degree || '-'}</td>
-              <td>${edu.institution || '-'}</td>
-              <td>${edu.field || '-'}</td>
-              <td>${edu.graduation_date || '-'}</td>
-              <td class="bold-text">${edu.gpa || '-'}</td>
-            </tr>
-          `).join('');
-        }
-      }
-    }
-
-    // 4. Experience Section
-    const expSec = findSectionByHeader(doc, ['EXPERIENCE', 'WORK EXPERIENCE', 'EMPLOYMENT']);
-    const expList = Array.isArray(canonical.experience) ? canonical.experience : [];
-    if (expSec) {
-      if (expList.length === 0) {
-        expSec.container.style.display = 'none';
-      } else {
-        expSec.container.style.display = '';
-        const oldItems = expSec.container.querySelectorAll('.experience-item, .item, .resume-item');
-        oldItems.forEach(el => el.remove());
-
-        expList.forEach(exp => {
-          const itemDiv = doc.createElement('div');
-          itemDiv.className = 'experience-item resume-item';
-          itemDiv.style.marginBottom = '12px';
-          itemDiv.innerHTML = `
-            <div class="exp-header item-header">
-              <span class="company-name font-bold">${exp.company || ''}</span>
-              ${exp.position ? ` | <span class="designation job-title">${exp.position}</span>` : ''}
-              ${exp.duration?.start || exp.start_date ? ` | <span class="duration item-date">(${exp.duration?.start || exp.start_date || ''} – ${exp.duration?.current || !exp.duration?.end ? 'Present' : exp.duration?.end})</span>` : ''}
-            </div>
-            ${exp.description ? `<p class="exp-desc item-description" style="margin-top:4px;font-size:12px;color:#333;">${exp.description}</p>` : ''}
-            ${Array.isArray(exp.achievements) && exp.achievements.length > 0 ? `
-              <ul class="bullet-list" style="margin-top:4px;padding-left:18px;font-size:12px;">
-                ${exp.achievements.map(a => `<li>${a}</li>`).join('')}
-              </ul>
-            ` : ''}
-          `;
-          expSec.container.appendChild(itemDiv);
-        });
-      }
-    }
-
-    // 5. Projects Section
-    const projSec = findSectionByHeader(doc, ['PROJECTS', 'KEY PROJECTS', 'ACADEMIC & KEY PROJECTS']);
-    const projList = Array.isArray(canonical.projects) ? canonical.projects : [];
-    if (projSec) {
-      if (projList.length === 0) {
-        projSec.container.style.display = 'none';
-      } else {
-        projSec.container.style.display = '';
-        const oldItems = projSec.container.querySelectorAll('.experience-item, .item, .resume-item');
-        oldItems.forEach(el => el.remove());
-
-        projList.forEach(proj => {
-          const itemDiv = doc.createElement('div');
-          itemDiv.className = 'experience-item resume-item';
-          itemDiv.style.marginBottom = '10px';
-          const techStr = Array.isArray(proj.technologies) ? proj.technologies.join(', ') : (proj.technologies || '');
-          itemDiv.innerHTML = `
-            <div class="exp-header item-header">
-              <span class="company-name project-title font-bold">${proj.title || ''}</span>
-              ${proj.date ? ` | <span class="duration item-date">(${proj.date})</span>` : ''}
-            </div>
-            ${proj.description ? `<p class="exp-desc item-description" style="margin-top:4px;font-size:12px;color:#333;">${proj.description}</p>` : ''}
-            ${techStr ? `<div class="project-tech" style="font-size:11px;margin-top:2px;"><strong>Tech:</strong> ${techStr}</div>` : ''}
-            ${proj.link ? `<div class="project-link" style="font-size:11px;margin-top:2px;"><a href="${proj.link}" target="_blank">${proj.link}</a></div>` : ''}
-          `;
-          projSec.container.appendChild(itemDiv);
-        });
-      }
-    }
-
-    // 6. Skills Section
-    const skillsSec = findSectionByHeader(doc, ['TECHNICAL SKILLS', 'KEY SKILLS', 'SKILLS']);
-    const skillsList = Array.isArray(canonical.skills) ? canonical.skills : [];
-    const hasSkills = skillsList.some(s => (s.items && s.items.length > 0) || (typeof s === 'string' && s.trim()));
-    if (skillsSec) {
-      if (!hasSkills) {
-        skillsSec.container.style.display = 'none';
-      } else {
-        skillsSec.container.style.display = '';
-        const ul = skillsSec.container.querySelector('ul');
-        if (ul) {
-          const allItems = [];
-          skillsList.forEach(s => {
-            if (Array.isArray(s.items)) allItems.push(...s.items);
-            else if (typeof s === 'string') allItems.push(s);
-          });
-          ul.innerHTML = allItems.map(item => `<li>${item}</li>`).join('');
-        }
-      }
-    }
-
-    // 7. Certifications Section
-    const certSec = findSectionByHeader(doc, ['CERTIFICATIONS', 'CERTIFICATION']);
-    const certList = Array.isArray(canonical.certifications) ? canonical.certifications : [];
-    if (certSec) {
-      if (certList.length === 0) {
-        certSec.container.style.display = 'none';
-      } else {
-        certSec.container.style.display = '';
-        const ul = certSec.container.querySelector('ul');
-        if (ul) {
-          ul.innerHTML = certList.map(c => `<li>${c.name || ''}${c.issuer ? ` – ${c.issuer}` : ''}</li>`).join('');
-        }
-      }
-    }
-
-    // 8. Languages Section
-    const langSec = findSectionByHeader(doc, ['LANGUAGES KNOWN', 'LANGUAGES']);
-    const langList = Array.isArray(canonical.languages) ? canonical.languages : [];
-    if (langSec) {
-      if (langList.length === 0) {
-        langSec.container.style.display = 'none';
-      } else {
-        langSec.container.style.display = '';
-        const ul = langSec.container.querySelector('ul');
-        if (ul) {
-          ul.innerHTML = langList.map(l => `<li>${l}</li>`).join('');
-        }
-      }
-    }
-
-    // 9. Strengths Section
-    const strSec = findSectionByHeader(doc, ['STRENGTHS']);
-    const strList = Array.isArray(canonical.strengths) ? canonical.strengths : [];
-    if (strSec) {
-      if (strList.length === 0) {
-        strSec.container.style.display = 'none';
-      } else {
-        strSec.container.style.display = '';
-        const ul = strSec.container.querySelector('ul');
-        if (ul) {
-          ul.innerHTML = strList.map(s => `<li>${s}</li>`).join('');
-        }
-      }
-    }
-
-    // Write updated HTML to iframe
-    iframeDoc.open();
-    iframeDoc.write(doc.documentElement.outerHTML);
-    iframeDoc.close();
+  // Strengths Handler (Supports smooth comma typing)
+  const handleStrengthsTextChange = (str) => {
+    setStrengthsText(str);
+    const items = str.split(',').map(s => s.trim()).filter(Boolean);
+    setCanonical(prev => ({
+      ...prev,
+      strengths: items
+    }));
   };
 
   // Save changes back to API
@@ -887,10 +713,10 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1">Key Skills</label>
                   <textarea 
-                    value={canonical.skills?.[0]?.items ? canonical.skills[0].items.join(', ') : ''} 
-                    onChange={e => updateSkills(0, e.target.value)}
+                    value={skillsText} 
+                    onChange={e => handleSkillsTextChange(e.target.value)}
                     rows={6}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed"
                     placeholder="Python, React, SQL, Problem Solving, Communication..."
                   />
                 </div>
@@ -962,8 +788,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1">Languages Known (comma separated)</label>
                   <input 
                     type="text" 
-                    value={Array.isArray(canonical.languages) ? canonical.languages.join(', ') : ''} 
-                    onChange={e => updateCommaSeparated('languages', e.target.value)}
+                    value={languagesText} 
+                    onChange={e => handleLanguagesTextChange(e.target.value)}
                     placeholder="e.g. English, Hindi, Bengali"
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
@@ -973,8 +799,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1">Strengths (comma separated)</label>
                   <input 
                     type="text" 
-                    value={Array.isArray(canonical.strengths) ? canonical.strengths.join(', ') : ''} 
-                    onChange={e => updateCommaSeparated('strengths', e.target.value)}
+                    value={strengthsText} 
+                    onChange={e => handleStrengthsTextChange(e.target.value)}
                     placeholder="e.g. Leadership, Analytical Thinking, Team Collaboration"
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />

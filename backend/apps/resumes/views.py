@@ -57,6 +57,21 @@ class ResumeViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 
+    @action(detail=True, methods=['post'])
+    def preview(self, request, pk=None):
+        """POST — Render live HTML preview for given canonical_json without saving to DB."""
+        student = request.user.student_profile
+        resume = get_object_or_404(BuiltResume, id=pk, student=student)
+        
+        canonical_data = request.data.get('canonical_json', resume.canonical_json)
+        from apps.resume_engine.renderer import ResumeRenderer
+        renderer = ResumeRenderer()
+        try:
+            html = renderer.render_html(canonical_data, resume.template)
+            return Response({'html': html})
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
     def generate(self, request):
         """POST — Generate a resume from profile data (one-click)."""
         throttle = ResumeGenerationThrottle()
