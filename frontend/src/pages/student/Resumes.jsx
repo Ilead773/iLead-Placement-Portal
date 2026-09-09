@@ -460,7 +460,25 @@ export default function StudentResumes() {
                       </div>
 
                       {/* Action icons right aligned */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button 
+                          onClick={() => handlePreviewClick(resume.id, resume.title)} 
+                          style={{ background: 'transparent', border: 'none', padding: '6px' }}
+                          className="text-muted hover:text-orange-500 transition-colors cursor-pointer"
+                          title="Preview Resume"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleSideBySideEditClick(resume)} 
+                          style={{ background: 'transparent', border: 'none', padding: '6px' }}
+                          className="text-muted hover:text-orange-500 transition-colors cursor-pointer"
+                          title="Edit Resume Side-by-Side"
+                        >
+                          <Edit size={14} />
+                        </button>
+
                         <button 
                           onClick={() => handleDownload(resume.id, resume.title)} 
                           style={{ background: 'transparent', border: 'none', padding: '6px' }}
@@ -485,16 +503,34 @@ export default function StudentResumes() {
                           {activeMenuId === resume.id && (
                             <>
                               <div className="fixed inset-0 z-10" onClick={() => setActiveMenuId(null)} />
-                              <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-zinc-800 rounded-lg border border-border-color shadow-lg py-1 z-20">
+                              <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-zinc-800 rounded-lg border border-border-color shadow-lg py-1 z-20">
+                                <button 
+                                  onClick={() => {
+                                    handleSideBySideEditClick(resume);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-orange-500 hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1.5"
+                                >
+                                  <Edit size={12} /> Edit Resume
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    handlePreviewClick(resume.id, resume.title);
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1.5"
+                                >
+                                  <Eye size={12} /> Quick Preview
+                                </button>
                                 {!resume.is_primary && (
                                   <button 
                                     onClick={() => {
                                       handleSetPrimary(resume.id);
                                       setActiveMenuId(null);
                                     }}
-                                    className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent"
+                                    className="w-full text-left px-3 py-1.5 text-xs text-primary hover:bg-slate-50 dark:hover:bg-zinc-700 font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1.5"
                                   >
-                                    Set Active
+                                    <Star size={12} /> Set Active
                                   </button>
                                 )}
                                 <button 
@@ -502,9 +538,9 @@ export default function StudentResumes() {
                                     handleDelete(resume.id);
                                     setActiveMenuId(null);
                                   }}
-                                  className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold cursor-pointer border-none bg-transparent"
+                                  className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 font-semibold cursor-pointer border-none bg-transparent flex items-center gap-1.5"
                                 >
-                                  Delete
+                                  <Trash2 size={12} /> Delete
                                 </button>
                               </div>
                             </>
