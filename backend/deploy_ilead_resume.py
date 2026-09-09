@@ -116,11 +116,7 @@ HTML_TEMPLATE = """<div class="resume-container">
                             {{ edu.graduation_date|default:"Year" }}
                         </td>
                         <td class="bold-text">
-                            {% if edu.gpa %}
-                                {{ edu.gpa }}
-                            {% else %}
-                                {% if "UG" in edu.degree %}X.XX CGPA{% else %}XX%{% endif %}
-                            {% endif %}
+                            {{ edu.gpa|default:"" }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -130,21 +126,21 @@ HTML_TEMPLATE = """<div class="resume-container">
                         <td>iLEAD</td>
                         <td>MAKAUT</td>
                         <td>20XX – Present</td>
-                        <td class="bold-text">X.XX CGPA</td>
+                        <td class="bold-text">-</td>
                     </tr>
                     <tr>
                         <td class="bold-text">Class XII</td>
                         <td>School Name</td>
                         <td>Board</td>
                         <td>Year</td>
-                        <td class="bold-text">XX%</td>
+                        <td class="bold-text">-</td>
                     </tr>
                     <tr>
                         <td class="bold-text">Class X</td>
                         <td>School Name</td>
                         <td>Board</td>
                         <td>Year</td>
-                        <td class="bold-text">XX%</td>
+                        <td class="bold-text">-</td>
                     </tr>
                 {% endif %}
             </tbody>

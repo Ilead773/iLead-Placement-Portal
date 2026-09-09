@@ -15,9 +15,12 @@ import {
   Layout,
   History,
   Star,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  X
 } from 'lucide-react';
 import OnScreenResumeEditor from '../../components/OnScreenResumeEditor';
+import SideBySideResumeEditor from '../../components/SideBySideResumeEditor';
 import ConfirmModal from '../../components/ConfirmModal';
 import ResumeGeneratingOverlay from '../../components/ResumeGeneratingOverlay';
 
@@ -52,6 +55,27 @@ export default function StudentResumes() {
   const [editingTitleId, setEditingTitleId] = useState(null);
   const [editTitleVal, setEditTitleVal] = useState("");
   const [activeMenuId, setActiveMenuId] = useState(null);
+
+  // Side-by-Side Editor & Preview Modal State
+  const [activeSideBySideResume, setActiveSideBySideResume] = useState(null);
+  const [previewResumeHtml, setPreviewResumeHtml] = useState('');
+  const [previewResumeTitle, setPreviewResumeTitle] = useState('');
+
+  const handlePreviewClick = async (resumeId, resumeTitle) => {
+    try {
+      toast.loading('Loading Preview...', { id: 'preview-load' });
+      const res = await api.get(`resumes/${resumeId}/html/`);
+      setPreviewResumeHtml(res.data.html || '');
+      setPreviewResumeTitle(resumeTitle || 'Resume Preview');
+      toast.dismiss('preview-load');
+    } catch (err) {
+      toast.error('Failed to load resume preview', { id: 'preview-load' });
+    }
+  };
+
+  const handleSideBySideEditClick = (resume) => {
+    setActiveSideBySideResume(resume);
+  };
 
   // Confirmation Modal State
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -657,21 +681,28 @@ export default function StudentResumes() {
                                   </button>
                                 )}
                                 <button 
+                                  onClick={() => handlePreviewClick(resume.id, resume.title)} 
+                                  className="btn btn-sm btn-secondary flex items-center gap-1"
+                                  title="Preview Resume HTML"
+                                  style={{ fontSize: '10px' }}
+                                >
+                                  <Eye size={12} /> Preview
+                                </button>
+                                <button 
                                   onClick={() => handleDownload(resume.id, resume.title)} 
                                   className="btn btn-sm btn-secondary"
                                   title="Download PDF"
                                 >
                                   <Download size={14} />
                                 </button>
-                                {/* Temporarily hidden Edit button
                                 <button 
-                                  onClick={() => handleEditClick(resume.id)}
-                                  className="btn btn-sm btn-primary"
+                                  onClick={() => handleSideBySideEditClick(resume)}
+                                  className="btn btn-sm btn-primary flex items-center gap-1"
+                                  title="Edit Resume Side-by-Side"
                                   style={{ fontSize: '10px' }}
                                 >
-                                  Edit
+                                  <Edit size={12} /> Edit
                                 </button>
-                                */}
                               </>
                             )}
                             <button 
@@ -809,6 +840,50 @@ export default function StudentResumes() {
           </div>
         </div>
       )}
+      {/* Side-by-Side Live Resume Editor */}
+      {activeSideBySideResume && (
+        <SideBySideResumeEditor
+          resumeId={activeSideBySideResume.id}
+          initialData={activeSideBySideResume}
+          onClose={() => setActiveSideBySideResume(null)}
+          onSaveSuccess={() => {
+            fetchResumes();
+          }}
+        />
+      )}
+
+      {/* Quick Resume Preview Modal */}
+      {previewResumeHtml && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-500/10 text-orange-400 rounded-lg">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base m-0 text-white">{previewResumeTitle}</h3>
+                  <p className="text-xs text-slate-400 m-0">Quick Document Preview</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewResumeHtml('')}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-6 bg-slate-950 flex justify-center">
+              <iframe
+                srcDoc={previewResumeHtml}
+                title="Resume Quick Preview"
+                className="w-full max-w-[800px] h-[1050px] bg-white rounded shadow-lg border-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={confirmOpen}
         title={confirmTitle}
