@@ -163,9 +163,9 @@ HTML_TEMPLATE = """<div class="resume-container">
                         {% for skill_group in skills %}
                             {% if skill_group.items %}
                                 {% for item in skill_group.items %}
-                                    <li>{{ item }}</li>
+                                    {% if item %}<li>{{ item }}</li>{% endif %}
                                 {% endfor %}
-                            {% else %}
+                            {% elif skill_group and not skill_group.category %}
                                 <li>{{ skill_group }}</li>
                             {% endif %}
                         {% endfor %}
@@ -213,13 +213,16 @@ HTML_TEMPLATE = """<div class="resume-container">
                         {% for exp in experience %}
                         <div class="experience-item">
                             <div class="exp-header">
-                                <span class="company-name">{{ exp.company }}</span> |
-                                <span class="designation"> {{ exp.position }}</span> |
-                                <span class="duration">
-                                    ({% if exp.duration.start_formatted %}{{ exp.duration.start_formatted }}{% else %}{{ exp.start_date_formatted|default:"" }}{% endif %}
-                                    –
-                                    {% if exp.duration.current or not exp.duration.end %}Present{% else %}{{ exp.duration.end_formatted }}{% endif %})
-                                </span>
+                                {% if exp.company %}<span class="company-name">{{ exp.company }}</span>{% endif %}
+                                {% if exp.position %}{% if exp.company %} | {% endif %}<span class="designation">{{ exp.position }}</span>{% endif %}
+                                {% if exp.duration.start or exp.duration.end or exp.start_date or exp.end_date %}
+                                    {% if exp.company or exp.position %} | {% endif %}
+                                    <span class="duration">
+                                        ({% if exp.duration.start_formatted %}{{ exp.duration.start_formatted }}{% elif exp.duration.start %}{{ exp.duration.start }}{% else %}{{ exp.start_date_formatted|default:exp.start_date|default:"" }}{% endif %}
+                                        –
+                                        {% if exp.duration.current or not exp.duration.end %}Present{% elif exp.duration.end_formatted %}{{ exp.duration.end_formatted }}{% else %}{{ exp.duration.end }}{% endif %})
+                                    </span>
+                                {% endif %}
                             </div>
                             {% if exp.achievements %}
                             <ul class="bullet-list">
@@ -245,7 +248,13 @@ HTML_TEMPLATE = """<div class="resume-container">
                                 | <span class="duration">({{ proj.date_formatted|default:proj.date }})</span>
                                 {% endif %}
                             </div>
-                            {% if proj.description %}
+                            {% if proj.highlights %}
+                            <ul class="bullet-list">
+                                {% for highlight in proj.highlights %}
+                                <li>{{ highlight }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% elif proj.description %}
                             <p class="exp-desc">{{ proj.description }}</p>
                             {% endif %}
                             {% if proj.technologies %}

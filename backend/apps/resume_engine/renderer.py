@@ -56,8 +56,20 @@ class ResumeRenderer:
             # Deep copy and format dates for clean display
             import copy
             
-            experience_list = copy.deepcopy(canonical_json.get('experience', []))
-            for exp in experience_list:
+            raw_experience = copy.deepcopy(canonical_json.get('experience', []))
+            experience_list = []
+            for exp in raw_experience:
+                if not isinstance(exp, dict):
+                    continue
+                has_content = any([
+                    bool(str(exp.get('company', '')).strip()),
+                    bool(str(exp.get('position', '')).strip()),
+                    bool(str(exp.get('description', '')).strip()),
+                    bool(exp.get('achievements'))
+                ])
+                if not has_content:
+                    continue
+
                 dur = exp.get('duration', {})
                 if dur:
                     if dur.get('start'):
@@ -69,35 +81,111 @@ class ResumeRenderer:
                 if exp.get('end_date'):
                     exp['end_date_formatted'] = month_year_filter(exp['end_date'])
 
-            education_list = copy.deepcopy(canonical_json.get('education', []))
-            for edu in education_list:
+                # If achievements (bullet points) is not set but description has multiple lines or bullets, parse into points
+                if not exp.get('achievements') and exp.get('description'):
+                    raw_lines = [l.strip().lstrip('•-* ').strip() for l in str(exp['description']).split('\n') if l.strip()]
+                    if len(raw_lines) > 1:
+                        exp['achievements'] = raw_lines
+
+                experience_list.append(exp)
+
+            raw_education = copy.deepcopy(canonical_json.get('education', []))
+            education_list = []
+            for edu in raw_education:
+                if not isinstance(edu, dict):
+                    continue
+                has_edu = any([
+                    bool(str(edu.get('degree', '')).strip()),
+                    bool(str(edu.get('institution', '')).strip()),
+                    bool(str(edu.get('field', '')).strip())
+                ])
+                if not has_edu:
+                    continue
                 if edu.get('graduation_date'):
                     edu['graduation_date_formatted'] = month_year_filter(edu['graduation_date'])
+                education_list.append(edu)
 
-            certifications_list = copy.deepcopy(canonical_json.get('certifications', []))
-            for cert in certifications_list:
+            raw_certifications = copy.deepcopy(canonical_json.get('certifications', []))
+            certifications_list = []
+            for cert in raw_certifications:
+                if not isinstance(cert, dict):
+                    continue
+                if not cert.get('name') or not str(cert.get('name', '')).strip():
+                    continue
                 if cert.get('date'):
                     cert['date_formatted'] = month_year_filter(cert.get('date'))
+                certifications_list.append(cert)
 
-            projects_list = copy.deepcopy(canonical_json.get('projects', []))
-            for proj in projects_list:
+            raw_projects = copy.deepcopy(canonical_json.get('projects', []))
+            projects_list = []
+            for proj in raw_projects:
+                if not isinstance(proj, dict):
+                    continue
+                has_proj = any([
+                    bool(str(proj.get('title', '')).strip()),
+                    bool(str(proj.get('description', '')).strip()),
+                    bool(proj.get('highlights')),
+                    bool(proj.get('technologies'))
+                ])
+                if not has_proj:
+                    continue
                 if proj.get('date'):
                     proj['date_formatted'] = month_year_filter(proj.get('date'))
+
+                # If highlights (bullet points) is not set but description has multiple lines or bullets, parse into points
+                if not proj.get('highlights') and proj.get('description'):
+                    raw_lines = [l.strip().lstrip('•-* ').strip() for l in str(proj['description']).split('\n') if l.strip()]
+                    if len(raw_lines) > 1:
+                        proj['highlights'] = raw_lines
+
+                projects_list.append(proj)
+
+            # Sanitize Skills (Never pass empty dictionary groups that render as Python dict literals)
+            raw_skills = canonical_json.get('skills', [])
+            skills_list = []
+            for sg in raw_skills:
+                if isinstance(sg, dict):
+                    items = [str(i).strip() for i in sg.get('items', []) if i and str(i).strip()]
+                    if items:
+                        skills_list.append({'category': sg.get('category', 'Technical Skills'), 'items': items})
+                elif isinstance(sg, str) and sg.strip():
+                    skills_list.append(sg.strip())
+
+            # Sanitize Achievements
+            raw_achievements = canonical_json.get('achievements', [])
+            achievements_list = []
+            for ach in raw_achievements:
+                if isinstance(ach, dict):
+                    if ach.get('title') or ach.get('description'):
+                        achievements_list.append(ach)
+                elif isinstance(ach, str) and ach.strip():
+                    achievements_list.append({'title': ach.strip()})
+
+            # Sanitize Extracurricular Activities
+            raw_extra = canonical_json.get('extra_curricular', [])
+            extra_list = [str(x).strip() for x in raw_extra if x and str(x).strip()]
+
+            # Sanitize Languages and Strengths
+            raw_languages = canonical_json.get('languages', [])
+            languages_list = [str(l).strip() for l in raw_languages if l and str(l).strip()]
+
+            raw_strengths = canonical_json.get('strengths', [])
+            strengths_list = [str(s).strip() for s in raw_strengths if s and str(s).strip()]
 
             context = Context({
                 'resume': canonical_json,
                 'personal': canonical_json.get('personal', {}),
-                'skills': canonical_json.get('skills', []),
+                'skills': skills_list,
                 'experience': experience_list,
                 'projects': projects_list,
                 'education': education_list,
                 'certifications': certifications_list,
                 'department': canonical_json.get('department', ''),
                 'summary': canonical_json.get('professional_summary', ''),
-                'achievements': canonical_json.get('achievements', []),
-                'extra_curricular': canonical_json.get('extra_curricular', []),
-                'strengths': canonical_json.get('strengths', []),
-                'languages': canonical_json.get('languages', []),
+                'achievements': achievements_list,
+                'extra_curricular': extra_list,
+                'strengths': strengths_list,
+                'languages': languages_list,
                 'institute_logo': canonical_json.get('personal', {}).get('institute_logo') or canonical_json.get('personal', {}).get('logo', ''),
             })
             body_html = django_template.render(context)

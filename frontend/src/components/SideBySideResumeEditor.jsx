@@ -10,6 +10,8 @@ import {
   Sparkles, 
   Globe, 
   Award,
+  Trophy,
+  Flame,
   ListChecks,
   Plus,
   Trash2,
@@ -29,6 +31,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const [skillsText, setSkillsText] = useState('');
   const [languagesText, setLanguagesText] = useState('');
   const [strengthsText, setStrengthsText] = useState('');
+  const [extraCurricularText, setExtraCurricularText] = useState('');
 
   // Resume Data State
   const [canonical, setCanonical] = useState(() => {
@@ -38,7 +41,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       education: [],
       experience: [],
       projects: [],
-      skills: [{ category: 'Technical Skills', items: [] }],
+      skills: [],
       languages: [],
       certifications: [],
       achievements: [],
@@ -70,12 +73,18 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         // Sync raw text inputs
         if (c.skills?.[0]?.items) {
           setSkillsText(Array.isArray(c.skills[0].items) ? c.skills[0].items.join(', ') : (c.skills[0].items || ''));
+        } else if (Array.isArray(c.skills) && c.skills.length > 0 && typeof c.skills[0] === 'string') {
+          setSkillsText(c.skills.join(', '));
         }
+
         if (c.languages) {
           setLanguagesText(Array.isArray(c.languages) ? c.languages.join(', ') : (c.languages || ''));
         }
         if (c.strengths) {
           setStrengthsText(Array.isArray(c.strengths) ? c.strengths.join(', ') : (c.strengths || ''));
+        }
+        if (c.extra_curricular) {
+          setExtraCurricularText(Array.isArray(c.extra_curricular) ? c.extra_curricular.join('\n') : (c.extra_curricular || ''));
         }
       }
 
@@ -226,16 +235,14 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     });
   };
 
-  // Skills Handler (Supports smooth comma typing)
+  // Skills Handler (Supports smooth comma typing & cleans up when empty)
   const handleSkillsTextChange = (str) => {
     setSkillsText(str);
     const items = str.split(',').map(s => s.trim()).filter(Boolean);
-    setCanonical(prev => {
-      const updated = [...(prev.skills || [])];
-      if (!updated[0]) updated[0] = { category: 'Technical Skills', items: [] };
-      updated[0] = { ...updated[0], items };
-      return { ...prev, skills: updated };
-    });
+    setCanonical(prev => ({
+      ...prev,
+      skills: items.length > 0 ? [{ category: 'Technical Skills', items }] : []
+    }));
   };
 
   // Certifications Helpers
@@ -262,6 +269,42 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       const updated = (prev.certifications || []).filter((_, i) => i !== index);
       return { ...prev, certifications: updated };
     });
+  };
+
+  // Achievements Helpers
+  const addAchievement = () => {
+    setCanonical(prev => ({
+      ...prev,
+      achievements: [
+        ...(prev.achievements || []),
+        { title: '', issuer: '', description: '' }
+      ]
+    }));
+  };
+
+  const updateAchievement = (index, field, value) => {
+    setCanonical(prev => {
+      const updated = [...(prev.achievements || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, achievements: updated };
+    });
+  };
+
+  const removeAchievement = (index) => {
+    setCanonical(prev => {
+      const updated = (prev.achievements || []).filter((_, i) => i !== index);
+      return { ...prev, achievements: updated };
+    });
+  };
+
+  // Extracurricular Handler
+  const handleExtraCurricularChange = (str) => {
+    setExtraCurricularText(str);
+    const items = str.split('\n').map(s => s.trim().replace(/^[•\-\*]\s*/, '')).filter(Boolean);
+    setCanonical(prev => ({
+      ...prev,
+      extra_curricular: items
+    }));
   };
 
   // Languages Handler (Supports smooth comma typing)
@@ -312,6 +355,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     { id: 'projects', label: 'Projects', icon: FolderKanban },
     { id: 'skills', label: 'Skills', icon: Globe },
     { id: 'certifications', label: 'Certifications', icon: Award },
+    { id: 'achievements', label: 'Achievements', icon: Trophy },
+    { id: 'extracurricular', label: 'Activities', icon: Flame },
     { id: 'more', label: 'Languages & Strengths', icon: ListChecks },
   ];
 
@@ -369,8 +414,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         {/* Left Side: Form Editor Panel */}
         <div 
           style={{ 
-            width: fullscreenPreview ? '0px' : '440px', 
-            minWidth: fullscreenPreview ? '0px' : '360px',
+            width: fullscreenPreview ? '0px' : '460px', 
+            minWidth: fullscreenPreview ? '0px' : '380px',
             display: fullscreenPreview ? 'none' : 'flex',
             flexDirection: 'column'
           }}
@@ -454,16 +499,29 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                       type="text" 
                       value={canonical.personal?.linkedin || ''} 
                       onChange={e => updatePersonal('linkedin', e.target.value)}
+                      placeholder="https://linkedin.com/in/..."
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">GitHub / Portfolio URL</label>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Portfolio Link</label>
+                    <input 
+                      type="text" 
+                      value={canonical.personal?.portfolio || ''} 
+                      onChange={e => updatePersonal('portfolio', e.target.value)}
+                      placeholder="https://myportfolio.com"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">GitHub URL (Optional - leave empty to hide)</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.github || ''} 
                       onChange={e => updatePersonal('github', e.target.value)}
+                      placeholder="https://github.com/... (Leave empty if not needed)"
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
@@ -576,11 +634,14 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               </div>
             )}
 
-            {/* 4. Experience Tab */}
+            {/* 4. Experience Tab (Now with Bullet Points / Points Mode) */}
             {activeTab === 'experience' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Work & Internship Experience</h4>
+                  <div>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Work & Internship Experience</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Enter key responsibilities line-by-line to render as bullet points</p>
+                  </div>
                   <button 
                     type="button"
                     onClick={addExperience}
@@ -611,6 +672,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={exp.company || ''} 
                           onChange={e => updateExperience(idx, 'company', e.target.value)}
+                          placeholder="e.g. Amazon / Tech Solutions"
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
@@ -621,19 +683,66 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={exp.position || ''} 
                           onChange={e => updateExperience(idx, 'position', e.target.value)}
+                          placeholder="e.g. Business Analyst Intern"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Start Date</label>
+                        <input 
+                          type="text" 
+                          value={exp.duration?.start || exp.start_date || ''} 
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateExperience(idx, 'duration', { ...(exp.duration || {}), start: val });
+                            updateExperience(idx, 'start_date', val);
+                          }}
+                          placeholder="e.g. June 2024"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">End Date (Leave blank for 'Present')</label>
+                        <input 
+                          type="text" 
+                          value={exp.duration?.end || exp.end_date || ''} 
+                          onChange={e => {
+                            const val = e.target.value;
+                            updateExperience(idx, 'duration', { ...(exp.duration || {}), end: val });
+                            updateExperience(idx, 'end_date', val);
+                          }}
+                          placeholder="e.g. Present / August 2024"
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Description / Key Accomplishments</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-400">
+                          Responsibilities & Key Points (One point per line for bullet points)
+                        </label>
+                        <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
+                      </div>
                       <textarea 
-                        value={exp.description || ''} 
-                        onChange={e => updateExperience(idx, 'description', e.target.value)}
-                        rows={3}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        value={
+                          Array.isArray(exp.achievements) && exp.achievements.length > 0 
+                            ? exp.achievements.join('\n') 
+                            : (exp.description || '')
+                        } 
+                        onChange={e => {
+                          const text = e.target.value;
+                          const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+                          updateExperience(idx, 'achievements', lines);
+                          updateExperience(idx, 'description', text);
+                        }}
+                        rows={4}
+                        placeholder="• Spearheaded marketing campaigns and boosted reach by 35%&#10;• Analyzed client requirements and streamlined reporting&#10;• Mentored 4 team members on market research techniques"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
                       />
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Press Enter to create a new bullet point</span>
                     </div>
                   </div>
                 ))}
@@ -675,6 +784,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={proj.title || ''} 
                           onChange={e => updateProject(idx, 'title', e.target.value)}
+                          placeholder="e.g. Smart IoT Management System"
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
@@ -685,19 +795,47 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                           type="text" 
                           value={Array.isArray(proj.technologies) ? proj.technologies.join(', ') : (proj.technologies || '')} 
                           onChange={e => updateProject(idx, 'technologies', e.target.value)}
+                          placeholder="e.g. Python, React, IoT, MySQL"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Project Link / URL (Optional)</label>
+                        <input 
+                          type="text" 
+                          value={proj.link || ''} 
+                          onChange={e => updateProject(idx, 'link', e.target.value)}
+                          placeholder="https://github.com/... or live demo"
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Project Summary</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-400">
+                          Project Details & Key Points (One point per line for bullet points)
+                        </label>
+                        <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
+                      </div>
                       <textarea 
-                        value={proj.description || ''} 
-                        onChange={e => updateProject(idx, 'description', e.target.value)}
-                        rows={2}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        value={
+                          Array.isArray(proj.highlights) && proj.highlights.length > 0 
+                            ? proj.highlights.join('\n') 
+                            : (proj.description || '')
+                        } 
+                        onChange={e => {
+                          const text = e.target.value;
+                          const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+                          updateProject(idx, 'highlights', lines);
+                          updateProject(idx, 'description', text);
+                        }}
+                        rows={3}
+                        placeholder="• Built responsive frontend with React, Tailwind CSS, and Chart.js&#10;• Designed REST APIs with Django REST Framework&#10;• Implemented automated CI/CD pipeline"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
                       />
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Press Enter to create a new bullet point</span>
                     </div>
                   </div>
                 ))}
@@ -707,8 +845,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 6. Skills Tab */}
             {activeTab === 'skills' && (
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Skills & Technical Competencies</h4>
-                <p className="text-[11px] text-slate-400">Enter skills separated by commas.</p>
+                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Key Skills & Competencies</h4>
+                <p className="text-[11px] text-slate-400">Enter skills separated by commas. Clear the box completely to hide the Skills section.</p>
                 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-400 mb-1">Key Skills</label>
@@ -717,7 +855,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                     onChange={e => handleSkillsTextChange(e.target.value)}
                     rows={6}
                     className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed"
-                    placeholder="Python, React, SQL, Problem Solving, Communication..."
+                    placeholder="Python, React, SQL, Problem Solving, Communication, Team Leadership..."
                   />
                 </div>
               </div>
@@ -779,7 +917,96 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               </div>
             )}
 
-            {/* 8. Languages & Strengths Tab */}
+            {/* 8. Achievements & Responsibilities Tab */}
+            {activeTab === 'achievements' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Achievements & Positions of Responsibility</h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">College council roles, awards, competitions, hackathons</p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={addAchievement}
+                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                  >
+                    <Plus size={12} /> Add Achievement
+                  </button>
+                </div>
+
+                {canonical.achievements?.map((ach, idx) => (
+                  <div key={ach.id || ach._id || `ach-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeAchievement(idx);
+                      }}
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      title="Remove entry"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Role / Achievement Title</label>
+                        <input 
+                          type="text" 
+                          value={ach.title || ''} 
+                          onChange={e => updateAchievement(idx, 'title', e.target.value)}
+                          placeholder="e.g. Class Representative & Coordinator"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Organization / Authority</label>
+                        <input 
+                          type="text" 
+                          value={ach.issuer || ''} 
+                          onChange={e => updateAchievement(idx, 'issuer', e.target.value)}
+                          placeholder="e.g. iLEAD Student Council"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Description / Contribution</label>
+                        <input 
+                          type="text" 
+                          value={ach.description || ''} 
+                          onChange={e => updateAchievement(idx, 'description', e.target.value)}
+                          placeholder="e.g. Organized annual academic symposium and placement training"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 9. Extracurricular Activities Tab */}
+            {activeTab === 'extracurricular' && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Extra-Curricular Activities</h4>
+                <p className="text-[11px] text-slate-400">Enter each activity on a new line (e.g. clubs, sports, volunteering, fests).</p>
+                
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Activities (One per line)</label>
+                  <textarea 
+                    value={extraCurricularText} 
+                    onChange={e => handleExtraCurricularChange(e.target.value)}
+                    rows={6}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
+                    placeholder="Technical Head – iLEAD Tech Fest 2025&#10;Member – Coding Club, iLEAD&#10;NSS Volunteer – Community Digital Literacy Drive"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 10. Languages & Strengths Tab */}
             {activeTab === 'more' && (
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Languages & Strengths</h4>
