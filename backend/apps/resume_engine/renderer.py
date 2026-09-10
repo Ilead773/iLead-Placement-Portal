@@ -190,6 +190,35 @@ class ResumeRenderer:
             })
             body_html = django_template.render(context)
 
+            # Screen preview styling so iframe renders with authentic A4 margins and footer in flow
+            screen_styles = """
+    @media screen {
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+        }
+        .resume-container {
+            box-sizing: border-box !important;
+            padding: 14mm 16mm 18mm 16mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 100% !important;
+            background: #ffffff !important;
+        }
+        .resume-footer {
+            position: static !important;
+            margin-top: 25px !important;
+            bottom: auto !important;
+            left: auto !important;
+            right: auto !important;
+        }
+    }
+            """
+
             # Wrap in full HTML document with CSS
             full_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -197,7 +226,10 @@ class ResumeRenderer:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{canonical_json.get('personal', {}).get('name', 'Resume')}</title>
-    <style>{template.css_styles}</style>
+    <style>
+{template.css_styles}
+{screen_styles}
+    </style>
 </head>
 <body>
 {body_html}

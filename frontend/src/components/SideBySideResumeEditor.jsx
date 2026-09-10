@@ -53,12 +53,30 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const iframeRef = useRef(null);
   const previewTimer = useRef(null);
 
+  const adjustIframeHeight = () => {
+    if (!iframeRef.current) return;
+    try {
+      const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+      if (iframeDoc && (iframeDoc.body || iframeDoc.documentElement)) {
+        const scrollHeight = Math.max(
+          iframeDoc.body?.scrollHeight || 0,
+          iframeDoc.documentElement?.scrollHeight || 0,
+          1122
+        );
+        iframeRef.current.style.height = `${scrollHeight + 25}px`;
+      }
+    } catch (err) {
+      console.error('Failed to adjust iframe height', err);
+    }
+  };
+
   // Fetch complete resume details and initial HTML template on mount
   useEffect(() => {
     fetchInitialData();
   }, [resumeId]);
 
   const fetchInitialData = async () => {
+    if (!resumeId) return;
     try {
       setLoading(true);
       const [detailRes, htmlRes] = await Promise.all([
@@ -66,15 +84,19 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         api.get(`resumes/${resumeId}/html/`)
       ]);
 
-      if (detailRes.data?.canonical_json) {
-        const c = detailRes.data.canonical_json;
+      const data = detailRes.data;
+      if (data?.canonical_json) {
+        const c = data.canonical_json;
         setCanonical(c);
         
         // Sync raw text inputs
-        if (c.skills?.[0]?.items) {
-          setSkillsText(Array.isArray(c.skills[0].items) ? c.skills[0].items.join(', ') : (c.skills[0].items || ''));
-        } else if (Array.isArray(c.skills) && c.skills.length > 0 && typeof c.skills[0] === 'string') {
-          setSkillsText(c.skills.join(', '));
+        if (c.skills) {
+          const list = [];
+          c.skills.forEach(sg => {
+            if (typeof sg === 'string') list.push(sg);
+            else if (sg?.items && Array.isArray(sg.items)) list.push(...sg.items);
+          });
+          setSkillsText(list.join(', '));
         }
 
         if (Array.isArray(c.experience)) {
@@ -110,6 +132,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           iframeDoc.open();
           iframeDoc.write(htmlRes.data.html);
           iframeDoc.close();
+          setTimeout(adjustIframeHeight, 40);
         }
       }
     } catch (err) {
@@ -144,6 +167,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         iframeDoc.open();
         iframeDoc.write(liveHtml);
         iframeDoc.close();
+        setTimeout(adjustIframeHeight, 40);
       }
     } catch (err) {
       console.error('Failed to update live preview', err);
@@ -1076,11 +1100,13 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           </div>
 
           {/* Authentic Elevated A4 Document Sheet */}
-          <div className="w-full max-w-[860px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-slate-300/80 dark:border-zinc-800 min-h-[1120px] shrink-0 overflow-hidden mb-8">
+          <div className="w-full max-w-[860px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-slate-300/80 dark:border-zinc-800 min-h-[1122px] shrink-0 mb-8 transition-all">
             <iframe
               ref={iframeRef}
               title="Resume Live Preview"
-              className="w-full h-[1140px] border-none bg-white block"
+              onLoad={adjustIframeHeight}
+              className="w-full min-h-[1122px] border-none bg-white block"
+              style={{ height: '1122px' }}
             />
           </div>
         </div>

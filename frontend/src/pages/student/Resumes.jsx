@@ -933,12 +933,22 @@ export default function StudentResumes() {
             </div>
 
             {/* Document Canvas (Natural neutral viewer desk with authentic paper elevation) */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-200/80 dark:bg-zinc-900/90 flex justify-center items-start">
-              <div className="w-full max-w-[820px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.16)] border border-slate-300 dark:border-zinc-800 min-h-[1120px] overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-200/80 dark:bg-zinc-900/90 flex flex-col items-center justify-start">
+              <div className="w-full max-w-[840px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.16)] border border-slate-300 dark:border-zinc-800 min-h-[1122px] shrink-0 mb-8 transition-all">
                 <iframe
                   srcDoc={previewResumeHtml}
                   title="Resume Quick Preview"
-                  className="w-full h-[1150px] bg-white border-none block"
+                  onLoad={(e) => {
+                    try {
+                      const doc = e.target.contentDocument || e.target.contentWindow?.document;
+                      if (doc && (doc.body || doc.documentElement)) {
+                        const h = Math.max(doc.body?.scrollHeight || 0, doc.documentElement?.scrollHeight || 0, 1122);
+                        e.target.style.height = `${h + 20}px`;
+                      }
+                    } catch (err) {}
+                  }}
+                  className="w-full min-h-[1122px] bg-white border-none block"
+                  style={{ height: '1122px' }}
                 />
               </div>
             </div>
