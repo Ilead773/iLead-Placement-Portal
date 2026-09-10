@@ -570,10 +570,6 @@ def seed_ilead_kolkata_template():
         </table>
     </div>
     {% endif %}
-
-    <footer class="resume-footer">
-        Campus: 113, Matheswartola Road, Kolkata 700 046, West Bengal, India, Ph: +91.33.4018 2000/02 Fax: +91.33.4018 2016
-    </footer>
 </div>"""
 
     css_styles = """:root {

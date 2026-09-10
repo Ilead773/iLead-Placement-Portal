@@ -51,7 +51,11 @@ class ResumeRenderer:
         """
         try:
             logger.info("Rendering resume HTML")
-            django_template = Template(template.html_template)
+            import re
+            html_tpl = template.html_template
+            if html_tpl:
+                html_tpl = re.sub(r'<footer\s+class=["\']resume-footer["\'][^>]*>.*?</footer>', '', html_tpl, flags=re.DOTALL | re.IGNORECASE)
+            django_template = Template(html_tpl)
             
             # Deep copy and format dates for clean display
             import copy
@@ -210,11 +214,11 @@ class ResumeRenderer:
             background: #ffffff !important;
         }
         .resume-footer {
-            position: static !important;
-            margin-top: 25px !important;
-            bottom: auto !important;
-            left: auto !important;
-            right: auto !important;
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
     }
             """
@@ -229,6 +233,7 @@ class ResumeRenderer:
     <style>
 {template.css_styles}
 {screen_styles}
+.resume-footer {{ display: none !important; }}
     </style>
 </head>
 <body>
@@ -249,13 +254,18 @@ class ResumeRenderer:
         """
         if custom_html is not None:
             print(f"DEBUG RENDER: Using custom_html (length: {len(custom_html)})")
+            import re
+            custom_html = re.sub(r'<footer\s+class=["\']resume-footer["\'][^>]*>.*?</footer>', '', custom_html, flags=re.DOTALL | re.IGNORECASE)
             # If custom_html is provided, wrap it in the template's CSS styles
             # so that formatting is preserved in the PDF.
             html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <style>{template.css_styles}</style>
+    <style>
+{template.css_styles}
+.resume-footer {{ display: none !important; }}
+    </style>
 </head>
 <body>
 <div class="resume-container">

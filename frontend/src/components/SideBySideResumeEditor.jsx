@@ -26,6 +26,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
+  const [zoom, setZoom] = useState(85);
+  const [deskTheme, setDeskTheme] = useState('dark');
 
   // Raw Text Input States (Preserves commas and trailing spaces while typing)
   const [skillsText, setSkillsText] = useState('');
@@ -63,7 +65,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           iframeDoc.documentElement?.scrollHeight || 0,
           1122
         );
-        iframeRef.current.style.height = `${scrollHeight + 25}px`;
+        iframeRef.current.style.height = `${scrollHeight + 30}px`;
       }
     } catch (err) {
       console.error('Failed to adjust iframe height', err);
@@ -101,14 +103,14 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
         if (Array.isArray(c.experience)) {
           c.experience.forEach(exp => {
-            if (exp.description === undefined && Array.isArray(exp.achievements) && exp.achievements.length > 0) {
+            if (!exp.description && exp.achievements && Array.isArray(exp.achievements)) {
               exp.description = exp.achievements.join('\n');
             }
           });
         }
-        if (Array.isArray(c.projects)) {
+        if (c.projects && Array.isArray(c.projects)) {
           c.projects.forEach(proj => {
-            if (proj.description === undefined && Array.isArray(proj.highlights) && proj.highlights.length > 0) {
+            if (!proj.description && proj.highlights && Array.isArray(proj.highlights)) {
               proj.description = proj.highlights.join('\n');
             }
           });
@@ -203,19 +205,19 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     }));
   };
 
-  const updateEducation = (index, field, value) => {
+  const updateEducation = (idx, field, value) => {
     setCanonical(prev => {
-      const updated = [...(prev.education || [])];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, education: updated };
+      const next = [...(prev.education || [])];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...prev, education: next };
     });
   };
 
-  const removeEducation = (index) => {
-    setCanonical(prev => {
-      const updated = (prev.education || []).filter((_, i) => i !== index);
-      return { ...prev, education: updated };
-    });
+  const removeEducation = (idx) => {
+    setCanonical(prev => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== idx)
+    }));
   };
 
   // Experience Helpers
@@ -224,37 +226,37 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       ...prev,
       experience: [
         ...(prev.experience || []),
-        { company: '', position: '', duration: { start: '', end: '' }, description: '', achievements: [] }
+        { company: '', position: '', duration: { start: '', end: '', current: false }, description: '', achievements: [] }
       ]
     }));
   };
 
-  const updateExperience = (index, field, value) => {
+  const updateExperience = (idx, field, value) => {
     setCanonical(prev => {
-      const updated = [...(prev.experience || [])];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, experience: updated };
+      const next = [...(prev.experience || [])];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...prev, experience: next };
     });
   };
 
-  const removeExperience = (index) => {
+  const handleExperienceTextChange = (idx, text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     setCanonical(prev => {
-      const updated = (prev.experience || []).filter((_, i) => i !== index);
-      return { ...prev, experience: updated };
-    });
-  };
-
-  const handleExperienceTextChange = (index, text) => {
-    const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
-    setCanonical(prev => {
-      const updated = [...(prev.experience || [])];
-      updated[index] = {
-        ...(updated[index] || {}),
+      const next = [...(prev.experience || [])];
+      next[idx] = { 
+        ...next[idx], 
         description: text,
-        achievements: lines
+        achievements: lines 
       };
-      return { ...prev, experience: updated };
+      return { ...prev, experience: next };
     });
+  };
+
+  const removeExperience = (idx) => {
+    setCanonical(prev => ({
+      ...prev,
+      experience: prev.experience.filter((_, i) => i !== idx)
+    }));
   };
 
   // Projects Helpers
@@ -263,50 +265,53 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       ...prev,
       projects: [
         ...(prev.projects || []),
-        { title: '', description: '', technologies: [], link: '', date: '' }
+        { title: '', description: '', technologies: [], link: '', date: '', highlights: [] }
       ]
     }));
   };
 
-  const updateProject = (index, field, value) => {
+  const updateProject = (idx, field, value) => {
     setCanonical(prev => {
-      const updated = [...(prev.projects || [])];
-      let valToSave = value;
+      const next = [...(prev.projects || [])];
       if (field === 'technologies' && typeof value === 'string') {
-        valToSave = value.split(',').map(s => s.trim()).filter(Boolean);
+        next[idx] = { 
+          ...next[idx], 
+          technologies: value.split(',').map(s => s.trim()).filter(Boolean) 
+        };
+      } else {
+        next[idx] = { ...next[idx], [field]: value };
       }
-      updated[index] = { ...updated[index], [field]: valToSave };
-      return { ...prev, projects: updated };
+      return { ...prev, projects: next };
     });
   };
 
-  const removeProject = (index) => {
+  const handleProjectTextChange = (idx, text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     setCanonical(prev => {
-      const updated = (prev.projects || []).filter((_, i) => i !== index);
-      return { ...prev, projects: updated };
-    });
-  };
-
-  const handleProjectTextChange = (index, text) => {
-    const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
-    setCanonical(prev => {
-      const updated = [...(prev.projects || [])];
-      updated[index] = {
-        ...(updated[index] || {}),
+      const next = [...(prev.projects || [])];
+      next[idx] = { 
+        ...next[idx], 
         description: text,
-        highlights: lines
+        highlights: lines 
       };
-      return { ...prev, projects: updated };
+      return { ...prev, projects: next };
     });
   };
 
-  // Skills Handler (Supports smooth comma typing & cleans up when empty)
+  const removeProject = (idx) => {
+    setCanonical(prev => ({
+      ...prev,
+      projects: prev.projects.filter((_, i) => i !== idx)
+    }));
+  };
+
+  // Skills Handler (Supports smooth comma typing)
   const handleSkillsTextChange = (str) => {
     setSkillsText(str);
     const items = str.split(',').map(s => s.trim()).filter(Boolean);
     setCanonical(prev => ({
       ...prev,
-      skills: items.length > 0 ? [{ category: 'Technical Skills', items }] : []
+      skills: items.length > 0 ? [{ category: 'Key Skills', items }] : []
     }));
   };
 
@@ -321,19 +326,19 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     }));
   };
 
-  const updateCertification = (index, field, value) => {
+  const updateCertification = (idx, field, value) => {
     setCanonical(prev => {
-      const updated = [...(prev.certifications || [])];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, certifications: updated };
+      const next = [...(prev.certifications || [])];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...prev, certifications: next };
     });
   };
 
-  const removeCertification = (index) => {
-    setCanonical(prev => {
-      const updated = (prev.certifications || []).filter((_, i) => i !== index);
-      return { ...prev, certifications: updated };
-    });
+  const removeCertification = (idx) => {
+    setCanonical(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, i) => i !== idx)
+    }));
   };
 
   // Achievements Helpers
@@ -347,25 +352,25 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     }));
   };
 
-  const updateAchievement = (index, field, value) => {
+  const updateAchievement = (idx, field, value) => {
     setCanonical(prev => {
-      const updated = [...(prev.achievements || [])];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, achievements: updated };
+      const next = [...(prev.achievements || [])];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...prev, achievements: next };
     });
   };
 
-  const removeAchievement = (index) => {
-    setCanonical(prev => {
-      const updated = (prev.achievements || []).filter((_, i) => i !== index);
-      return { ...prev, achievements: updated };
-    });
+  const removeAchievement = (idx) => {
+    setCanonical(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter((_, i) => i !== idx)
+    }));
   };
 
-  // Extracurricular Handler (Comma-based)
+  // Extracurricular Handler (Supports smooth comma typing)
   const handleExtraCurricularChange = (str) => {
     setExtraCurricularText(str);
-    const items = str.split(',').map(s => s.trim().replace(/^[•\-\*]\s*/, '')).filter(Boolean);
+    const items = str.split(',').map(s => s.trim()).filter(Boolean);
     setCanonical(prev => ({
       ...prev,
       extra_curricular: items
@@ -413,33 +418,41 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   };
 
   const navTabs = [
-    { id: 'personal', label: 'Personal Info', icon: User },
-    { id: 'summary', label: 'Summary', icon: Sparkles },
-    { id: 'education', label: 'Education & Marks', icon: GraduationCap },
-    { id: 'experience', label: 'Experience', icon: Briefcase },
-    { id: 'projects', label: 'Projects', icon: FolderKanban },
-    { id: 'skills', label: 'Skills', icon: Globe },
-    { id: 'certifications', label: 'Certifications', icon: Award },
-    { id: 'achievements', label: 'Achievements', icon: Trophy },
-    { id: 'extracurricular', label: 'Activities', icon: Flame },
-    { id: 'more', label: 'Languages & Strengths', icon: ListChecks },
+    { id: 'personal', label: 'Personal', icon: User, count: canonical.personal?.name ? '✓' : '' },
+    { id: 'summary', label: 'Summary', icon: Sparkles, count: canonical.professional_summary ? '✓' : '' },
+    { id: 'education', label: 'Education', icon: GraduationCap, count: canonical.education?.length || 0 },
+    { id: 'experience', label: 'Experience', icon: Briefcase, count: canonical.experience?.length || 0 },
+    { id: 'projects', label: 'Projects', icon: FolderKanban, count: canonical.projects?.length || 0 },
+    { id: 'skills', label: 'Skills', icon: Globe, count: skillsText ? skillsText.split(',').filter(Boolean).length : 0 },
+    { id: 'certifications', label: 'Certs', icon: Award, count: canonical.certifications?.length || 0 },
+    { id: 'achievements', label: 'Achievements', icon: Trophy, count: canonical.achievements?.length || 0 },
+    { id: 'extracurricular', label: 'Activities', icon: Flame, count: extraCurricularText ? extraCurricularText.split(',').filter(Boolean).length : 0 },
+    { id: 'more', label: 'Languages', icon: ListChecks, count: languagesText ? '✓' : '' },
   ];
+
+  const deskBgClass = 
+    deskTheme === 'dark' ? 'bg-[#090d16]' :
+    deskTheme === 'slate' ? 'bg-[#182234]' :
+    'bg-slate-200/90';
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-950 text-white flex flex-col w-screen h-screen overflow-hidden"
+      className="fixed inset-0 bg-[#070a12] text-slate-100 flex flex-col w-screen h-screen overflow-hidden select-none font-sans"
       style={{ zIndex: 999999, top: 0, left: 0, right: 0, bottom: 0 }}
     >
       
       {/* Top Bar Navigation */}
-      <header className="h-16 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0 shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-orange-500/10 rounded-xl text-orange-400">
+      <header className="h-16 bg-[#0b0f19] border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 shadow-lg z-30">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
             <Sparkles size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-base m-0 leading-tight text-white">Side-by-Side Live Resume Editor</h3>
-            <p className="text-xs text-slate-400 m-0">Edit on the left pane • Real-time live A4 preview on the right</p>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-sm md:text-base m-0 leading-tight text-white">Interactive Resume Studio</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30">iLEAD Live</span>
+            </div>
+            <p className="text-[11px] text-slate-400 m-0 mt-0.5">Real-time bidirectional editing & authentic A4 print preview</p>
           </div>
         </div>
 
@@ -447,17 +460,17 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           <button
             type="button"
             onClick={() => setFullscreenPreview(!fullscreenPreview)}
-            className="btn btn-sm text-xs py-2 px-3 bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 rounded-lg font-semibold cursor-pointer"
+            className="btn btn-sm text-xs py-2 px-3.5 bg-slate-800/70 border border-slate-700/80 hover:bg-slate-700 text-slate-200 flex items-center gap-2 rounded-xl font-medium cursor-pointer transition-all"
           >
             {fullscreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />} 
-            {fullscreenPreview ? 'Show Split Editor' : 'Fullscreen Preview'}
+            <span className="hidden sm:inline">{fullscreenPreview ? 'Show Editor' : 'Fullscreen'}</span>
           </button>
           
           <button
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="btn btn-sm py-2 px-5 bg-orange-500 hover:bg-orange-600 border-none font-bold text-white shadow-lg shadow-orange-500/25 flex items-center gap-2 rounded-lg cursor-pointer text-xs"
+            className="btn btn-sm py-2 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 border-none font-bold text-white shadow-lg shadow-orange-500/25 flex items-center gap-2 rounded-xl cursor-pointer text-xs transition-all active:scale-95"
           >
             <Save size={15} /> {isSaving ? 'Saving...' : 'Save & Regenerate PDF'}
           </button>
@@ -465,10 +478,10 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors cursor-pointer ml-1"
             title="Close Editor"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
       </header>
@@ -479,115 +492,129 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         {/* Left Side: Form Editor Panel */}
         <div 
           style={{ 
-            width: fullscreenPreview ? '0px' : '460px', 
-            minWidth: fullscreenPreview ? '0px' : '380px',
-            display: fullscreenPreview ? 'none' : 'flex',
-            flexDirection: 'column'
+            display: fullscreenPreview ? 'none' : 'flex'
           }}
-          className="bg-slate-950 border-r border-slate-800 shrink-0 h-full overflow-hidden"
+          className="w-full md:w-[540px] xl:w-[600px] 2xl:w-[660px] bg-[#0b0f19] border-r border-slate-800/80 flex-col shrink-0 h-full overflow-hidden z-10"
         >
           
-          {/* Tab Selection */}
-          <div className="flex overflow-x-auto bg-slate-900/90 border-b border-slate-800 px-3 py-2.5 gap-1.5 scrollbar-none shrink-0">
-            {navTabs.map(tab => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                    active 
-                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-                  }`}
-                >
-                  <Icon size={14} /> {tab.label}
-                </button>
-              );
-            })}
+          {/* Tab Selection Bar (Clean Wrapped Pills - No Native Scrollbars) */}
+          <div className="p-3 bg-[#0e1424] border-b border-slate-800/80 shrink-0">
+            <div className="flex flex-wrap gap-1.5">
+              {navTabs.map(tab => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      active 
+                        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 scale-[1.02]' 
+                        : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800/80 border border-slate-700/50'
+                    }`}
+                  >
+                    <Icon size={13} className={active ? 'text-white' : 'text-orange-400'} />
+                    <span>{tab.label}</span>
+                    {tab.count !== undefined && tab.count !== '' && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/25 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Form Tab Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-200">
+          <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-6 text-slate-200 select-text">
             
             {/* 1. Personal Info Tab */}
             {activeTab === 'personal' && (
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Personal Contact Information</h4>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <User size={14} /> Personal Contact Information
+                  </h4>
+                  <span className="text-[11px] text-slate-400">Header & Contact Row</span>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Full Name</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Full Name</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.name || ''} 
                       onChange={e => updatePersonal('name', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Email Address</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Email Address</label>
                     <input 
                       type="email" 
                       value={canonical.personal?.email || ''} 
                       onChange={e => updatePersonal('email', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      placeholder="e.g. student@ilead.edu.in"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Phone Number</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Phone Number</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.phone || ''} 
                       onChange={e => updatePersonal('phone', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      placeholder="e.g. +91 98765 43210"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Location / City</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Location / City</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.location || ''} 
                       onChange={e => updatePersonal('location', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      placeholder="e.g. Kolkata, West Bengal"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">LinkedIn URL</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">LinkedIn URL</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.linkedin || ''} 
                       onChange={e => updatePersonal('linkedin', e.target.value)}
                       placeholder="https://linkedin.com/in/..."
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Portfolio Link</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">Portfolio Link</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.portfolio || ''} 
                       onChange={e => updatePersonal('portfolio', e.target.value)}
                       placeholder="https://myportfolio.com"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">GitHub URL (Optional - leave empty to hide)</label>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">GitHub URL (Optional - leave empty to hide)</label>
                     <input 
                       type="text" 
                       value={canonical.personal?.github || ''} 
                       onChange={e => updatePersonal('github', e.target.value)}
                       placeholder="https://github.com/... (Leave empty if not needed)"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                      className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
                     />
                   </div>
                 </div>
@@ -597,15 +624,20 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 2. Summary Tab */}
             {activeTab === 'summary' && (
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Professional Summary</h4>
-                <p className="text-[11px] text-slate-400">Highlight your career goals, strengths, and background in 2-3 sentences.</p>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles size={14} /> Career Objective / Summary
+                  </h4>
+                  <span className="text-[11px] text-slate-400">2-3 sentences</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">Highlight your academic focus, leadership strengths, and aspirations.</p>
                 
                 <textarea 
                   value={canonical.professional_summary || ''} 
                   onChange={e => updateSummary(e.target.value)}
                   rows={6}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed"
-                  placeholder="e.g. Ambitious Business Administration student with strong leadership and academic performance..."
+                  className="w-full bg-[#111726] border border-slate-700/80 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 leading-relaxed"
+                  placeholder="e.g. Dedicated BBA student with strong academic performance and leadership skills. Passionate about business management and entrepreneurship..."
                 />
               </div>
             )}
@@ -613,84 +645,93 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 3. Education & CGPA Tab */}
             {activeTab === 'education' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Education & CGPA Marks</h4>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                      <GraduationCap size={14} /> Education & CGPA Marks
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Renders in the standard university qualification table</p>
+                  </div>
                   <button 
                     type="button"
                     onClick={addEducation}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                    className="btn btn-xs bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   >
-                    <Plus size={12} /> Add Education
+                    <Plus size={13} /> Add Education
                   </button>
                 </div>
 
                 {canonical.education?.map((edu, idx) => (
-                  <div key={edu.id || edu._id || `edu-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                  <div key={edu.id || edu._id || `edu-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Qualification #{idx + 1}</span>
+                    </div>
+
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         removeEducation(idx);
                       }}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Degree / Course</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Degree / Course</label>
                         <input 
                           type="text" 
                           value={edu.degree || ''} 
                           onChange={e => updateEducation(idx, 'degree', e.target.value)}
-                          placeholder="e.g. BBA / Class XII"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Bachelor of Business Administration"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Institution / School</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Institution / School</label>
                         <input 
                           type="text" 
                           value={edu.institution || ''} 
                           onChange={e => updateEducation(idx, 'institution', e.target.value)}
-                          placeholder="e.g. iLEAD / DPS"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. iLEAD, Kolkata"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Board / Specialization</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Board / University</label>
                         <input 
                           type="text" 
                           value={edu.field || ''} 
                           onChange={e => updateEducation(idx, 'field', e.target.value)}
-                          placeholder="e.g. MAKAUT / Commerce"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. MAKAUT / CBSE"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Graduation Year</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Graduation Year</label>
                         <input 
                           type="text" 
                           value={edu.graduation_date || ''} 
                           onChange={e => updateEducation(idx, 'graduation_date', e.target.value)}
-                          placeholder="e.g. 2026"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. 2026 or 2024 - 2026"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-bold text-orange-400 mb-1">CGPA / Percentage Marks (e.g. 8.75 or 85%)</label>
+                        <label className="block text-[11px] font-bold text-amber-400 mb-1">CGPA / Percentage Marks</label>
                         <input 
                           type="text" 
                           value={edu.gpa || ''} 
                           onChange={e => updateEducation(idx, 'gpa', e.target.value)}
-                          placeholder="e.g. 8.75 CGPA or 85% (Leave blank to hide)"
-                          className="w-full bg-slate-950 border border-orange-500/50 rounded-lg px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. 8.75 or 85% (Leave blank to hide)"
+                          className="w-full bg-[#0a0e1a] border border-amber-500/40 rounded-lg px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -699,62 +740,68 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               </div>
             )}
 
-            {/* 4. Experience Tab (Now with Bullet Points / Points Mode) */}
+            {/* 4. Experience Tab */}
             {activeTab === 'experience' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Work & Internship Experience</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Enter key responsibilities line-by-line to render as bullet points</p>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                      <Briefcase size={14} /> Work & Internship Experience
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Press Enter to add responsibilities as bullet points</p>
                   </div>
                   <button 
                     type="button"
                     onClick={addExperience}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                    className="btn btn-xs bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   >
-                    <Plus size={12} /> Add Experience
+                    <Plus size={13} /> Add Experience
                   </button>
                 </div>
 
                 {canonical.experience?.map((exp, idx) => (
-                  <div key={exp.id || exp._id || `exp-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                  <div key={exp.id || exp._id || `exp-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Experience #{idx + 1}</span>
+                    </div>
+
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         removeExperience(idx);
                       }}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Company / Organization</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Company / Organization</label>
                         <input 
                           type="text" 
                           value={exp.company || ''} 
                           onChange={e => updateExperience(idx, 'company', e.target.value)}
-                          placeholder="e.g. Amazon / Tech Solutions"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Tech Startup Inc."
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Job Role / Position</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Job Role / Position</label>
                         <input 
                           type="text" 
                           value={exp.position || ''} 
                           onChange={e => updateExperience(idx, 'position', e.target.value)}
-                          placeholder="e.g. Business Analyst Intern"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Marketing Intern"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Start Date</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Start Date</label>
                         <input 
                           type="text" 
                           value={exp.duration?.start || exp.start_date || ''} 
@@ -763,13 +810,13 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                             updateExperience(idx, 'duration', { ...(exp.duration || {}), start: val });
                             updateExperience(idx, 'start_date', val);
                           }}
-                          placeholder="e.g. June 2024"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Jun 2024"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">End Date (Leave blank for 'Present')</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">End Date</label>
                         <input 
                           type="text" 
                           value={exp.duration?.end || exp.end_date || ''} 
@@ -778,27 +825,26 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                             updateExperience(idx, 'duration', { ...(exp.duration || {}), end: val });
                             updateExperience(idx, 'end_date', val);
                           }}
-                          placeholder="e.g. Present / August 2024"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Present or Aug 2024"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-400">
-                          Responsibilities & Key Points (One point per line for bullet points)
+                        <label className="block text-[11px] font-semibold text-slate-300">
+                          Responsibilities (One per line for bullet points)
                         </label>
-                        <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
+                        <span className="text-[10px] text-orange-400 font-medium font-mono">Bullet Points</span>
                       </div>
                       <textarea 
                         value={exp.description !== undefined ? exp.description : (Array.isArray(exp.achievements) ? exp.achievements.join('\n') : '')} 
                         onChange={e => handleExperienceTextChange(idx, e.target.value)}
                         rows={4}
-                        placeholder="• Spearheaded marketing campaigns and boosted reach by 35%&#10;• Analyzed client requirements and streamlined reporting&#10;• Mentored 4 team members on market research techniques"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
+                        placeholder="• Increased social media engagement by 35%&#10;• Managed marketing budget for ad campaigns&#10;• Coordinated weekly campaigns with design team"
+                        className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-sans"
                       />
-                      <span className="text-[10px] text-slate-500 block mt-0.5">Press Enter to create a new bullet point</span>
                     </div>
                   </div>
                 ))}
@@ -808,81 +854,89 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 5. Projects Tab */}
             {activeTab === 'projects' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Key Projects</h4>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                      <FolderKanban size={14} /> Key Academic & Tech Projects
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Press Enter to add project points as bullets</p>
+                  </div>
                   <button 
                     type="button"
                     onClick={addProject}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                    className="btn btn-xs bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   >
-                    <Plus size={12} /> Add Project
+                    <Plus size={13} /> Add Project
                   </button>
                 </div>
 
                 {canonical.projects?.map((proj, idx) => (
-                  <div key={proj.id || proj._id || `proj-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                  <div key={proj.id || proj._id || `proj-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Project #{idx + 1}</span>
+                    </div>
+
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         removeProject(idx);
                       }}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Project Title</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Project Title</label>
                         <input 
                           type="text" 
                           value={proj.title || ''} 
                           onChange={e => updateProject(idx, 'title', e.target.value)}
-                          placeholder="e.g. Smart IoT Management System"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Market Analysis Tool"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Technologies Used (comma separated)</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Tools & Technologies (comma separated)</label>
                         <input 
                           type="text" 
                           value={Array.isArray(proj.technologies) ? proj.technologies.join(', ') : (proj.technologies || '')} 
                           onChange={e => updateProject(idx, 'technologies', e.target.value)}
-                          placeholder="e.g. Python, React, IoT, MySQL"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Python, Pandas, BeautifulSoup"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Project Link / URL (Optional)</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Project Link / URL (Optional)</label>
                         <input 
                           type="text" 
                           value={proj.link || ''} 
                           onChange={e => updateProject(idx, 'link', e.target.value)}
                           placeholder="https://github.com/... or live demo"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-400">
-                          Project Details & Key Points (One point per line for bullet points)
+                        <label className="block text-[11px] font-semibold text-slate-300">
+                          Highlights & Points (One per line for bullet points)
                         </label>
-                        <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
+                        <span className="text-[10px] text-orange-400 font-medium font-mono">Bullet Points</span>
                       </div>
                       <textarea 
                         value={proj.description !== undefined ? proj.description : (Array.isArray(proj.highlights) ? proj.highlights.join('\n') : '')} 
                         onChange={e => handleProjectTextChange(idx, e.target.value)}
                         rows={3}
-                        placeholder="• Built responsive frontend with React, Tailwind CSS, and Chart.js&#10;• Designed REST APIs with Django REST Framework&#10;• Implemented automated CI/CD pipeline"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
+                        placeholder="• Built automated web scraper for competitor analytics&#10;• Generated visual dashboards using Matplotlib&#10;• Deployed live on cloud container"
+                        className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-sans"
                       />
-                      <span className="text-[10px] text-slate-500 block mt-0.5">Press Enter to create a new bullet point</span>
                     </div>
                   </div>
                 ))}
@@ -892,17 +946,21 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 6. Skills Tab */}
             {activeTab === 'skills' && (
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Key Skills & Competencies</h4>
-                <p className="text-[11px] text-slate-400">Enter skills separated by commas. Clear the box completely to hide the Skills section.</p>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Globe size={14} /> Key Skills & Competencies
+                  </h4>
+                  <span className="text-[11px] text-slate-400">Comma Separated</span>
+                </div>
+                <p className="text-[11px] text-slate-400">Enter skills separated by commas. Clear the box completely if you wish to omit the Skills section.</p>
                 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Key Skills</label>
                   <textarea 
                     value={skillsText} 
                     onChange={e => handleSkillsTextChange(e.target.value)}
                     rows={6}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed"
-                    placeholder="Python, React, SQL, Problem Solving, Communication, Team Leadership..."
+                    className="w-full bg-[#111726] border border-slate-700/80 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 leading-relaxed"
+                    placeholder="Python, React, Data Analysis, Financial Modeling, Public Speaking, Leadership..."
                   />
                 </div>
               </div>
@@ -911,51 +969,60 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 7. Certifications Tab */}
             {activeTab === 'certifications' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Certifications & Training</h4>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                      <Award size={14} /> Certifications & Courses
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Certificates from Coursera, Google, AWS, LinkedIn, etc.</p>
+                  </div>
                   <button 
                     type="button"
                     onClick={addCertification}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                    className="btn btn-xs bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   >
-                    <Plus size={12} /> Add Certification
+                    <Plus size={13} /> Add Certification
                   </button>
                 </div>
 
                 {canonical.certifications?.map((cert, idx) => (
-                  <div key={cert.id || cert._id || `cert-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                  <div key={cert.id || cert._id || `cert-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Certification #{idx + 1}</span>
+                    </div>
+
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         removeCertification(idx);
                       }}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Certification Name</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Certification Name</label>
                         <input 
                           type="text" 
                           value={cert.name || ''} 
                           onChange={e => updateCertification(idx, 'name', e.target.value)}
-                          placeholder="e.g. AWS Certified Cloud Practitioner"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Google Digital Marketing"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Issuing Organization</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Issuing Organization</label>
                         <input 
                           type="text" 
                           value={cert.issuer || ''} 
                           onChange={e => updateCertification(idx, 'issuer', e.target.value)}
-                          placeholder="e.g. Amazon Web Services"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Google / Coursera"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -964,68 +1031,74 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               </div>
             )}
 
-            {/* 8. Achievements & Responsibilities Tab */}
+            {/* 8. Achievements Tab */}
             {activeTab === 'achievements' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Achievements & Positions of Responsibility</h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">College council roles, awards, competitions, hackathons</p>
+                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                      <Trophy size={14} /> Achievements & Responsibility Roles
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Council roles, competitions, hackathons, sports awards</p>
                   </div>
                   <button 
                     type="button"
                     onClick={addAchievement}
-                    className="btn btn-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border-none flex items-center gap-1 font-bold px-2.5 py-1 rounded-lg cursor-pointer"
+                    className="btn btn-xs bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 flex items-center gap-1.5 font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   >
-                    <Plus size={12} /> Add Achievement
+                    <Plus size={13} /> Add Achievement
                   </button>
                 </div>
 
                 {canonical.achievements?.map((ach, idx) => (
-                  <div key={ach.id || ach._id || `ach-${idx}`} className="p-4 bg-slate-900/90 border border-slate-800 rounded-xl relative space-y-3">
+                  <div key={ach.id || ach._id || `ach-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Achievement #{idx + 1}</span>
+                    </div>
+
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         removeAchievement(idx);
                       }}
-                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                      className="absolute top-3 right-3 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors p-1.5 rounded-lg cursor-pointer"
                       title="Remove entry"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={15} />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Role / Achievement Title</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Role / Achievement Title</label>
                         <input 
                           type="text" 
                           value={ach.title || ''} 
                           onChange={e => updateAchievement(idx, 'title', e.target.value)}
-                          placeholder="e.g. Class Representative & Coordinator"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Event Coordinator / 1st Place Hackathon"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Organization / Authority</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Organization / Event</label>
                         <input 
                           type="text" 
                           value={ach.issuer || ''} 
                           onChange={e => updateAchievement(idx, 'issuer', e.target.value)}
                           placeholder="e.g. iLEAD Student Council"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">Description / Contribution</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Short Description</label>
                         <input 
                           type="text" 
                           value={ach.description || ''} 
                           onChange={e => updateAchievement(idx, 'description', e.target.value)}
-                          placeholder="e.g. Organized annual academic symposium and placement training"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                          placeholder="e.g. Led a team of 15 students for annual college symposium"
+                          className="w-full bg-[#0a0e1a] border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500"
                         />
                       </div>
                     </div>
@@ -1037,17 +1110,21 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {/* 9. Extracurricular Activities Tab */}
             {activeTab === 'extracurricular' && (
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Extra-Curricular Activities</h4>
-                <p className="text-[11px] text-slate-400">Enter activities separated by commas (e.g. clubs, sports, volunteering, college fests).</p>
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Flame size={14} /> Extra-Curricular Activities
+                  </h4>
+                  <span className="text-[11px] text-slate-400">Comma Separated</span>
+                </div>
+                <p className="text-[11px] text-slate-400">Enter activities separated by commas (e.g. clubs, volunteering, cultural events, sports).</p>
                 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Activities (comma separated)</label>
-                  <input 
-                    type="text" 
+                  <textarea 
                     value={extraCurricularText} 
                     onChange={e => handleExtraCurricularChange(e.target.value)}
-                    placeholder="e.g. Technical Head – Tech Fest, Member – Coding Club, NSS Volunteer"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    rows={4}
+                    placeholder="Technical Head – Tech Fest 2025, Member – Coding Club, NSS Volunteer"
+                    className="w-full bg-[#111726] border border-slate-700/80 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 leading-relaxed"
                   />
                 </div>
               </div>
@@ -1055,28 +1132,33 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
             {/* 10. Languages & Strengths Tab */}
             {activeTab === 'more' && (
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Languages & Strengths</h4>
+              <div className="space-y-5">
+                <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <ListChecks size={14} /> Languages & Key Strengths
+                  </h4>
+                  <span className="text-[11px] text-slate-400">Sidebar Items</span>
+                </div>
                 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Languages Known (comma separated)</label>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Languages Known (comma separated)</label>
                   <input 
                     type="text" 
                     value={languagesText} 
                     onChange={e => handleLanguagesTextChange(e.target.value)}
                     placeholder="e.g. English, Hindi, Bengali"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Strengths (comma separated)</label>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Strengths (comma separated)</label>
                   <input 
                     type="text" 
                     value={strengthsText} 
                     onChange={e => handleStrengthsTextChange(e.target.value)}
-                    placeholder="e.g. Leadership, Analytical Thinking, Team Collaboration"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                    placeholder="e.g. Strategic Planning, Team Collaboration, Analytical Problem Solving"
+                    className="w-full bg-[#111726] border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -1085,22 +1167,86 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           </div>
         </div>
 
-        {/* Right Side: Real-Time Live Preview Panel */}
-        <div className="flex-1 bg-slate-200/80 dark:bg-zinc-950 flex flex-col h-full overflow-y-auto p-4 md:p-8 items-center justify-start relative">
+        {/* Right Side: Real-Time Live Preview Workspace */}
+        <div className={`flex-1 ${deskBgClass} flex flex-col h-full overflow-y-auto p-4 md:p-6 items-center justify-start relative transition-colors duration-200`}>
           
-          {/* Floating Live Indicator Toolbar */}
-          <div className="w-full max-w-[860px] mb-4 flex items-center justify-between px-2 shrink-0">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 shadow-sm border border-slate-200 dark:border-zinc-800 text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          {/* Floating Studio Control Bar */}
+          <div className="sticky top-0 z-20 mb-6 px-4 py-2 rounded-full bg-[#0d1322]/90 backdrop-blur-md border border-slate-700/70 shadow-2xl flex items-center gap-3 sm:gap-4 text-xs">
+            {/* Live indicator */}
+            <div className="flex items-center gap-2 font-mono text-emerald-400 font-bold pr-3 border-r border-slate-700/80">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live Real-Time A4 Preview
+              <span className="hidden sm:inline">Live Real-Time A4</span>
+              <span className="sm:hidden">Live</span>
             </div>
-            <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 dark:border-zinc-800">
-              A4 Print Scale: 100%
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-1 sm:gap-2 pr-3 border-r border-slate-700/80">
+              <button 
+                type="button" 
+                onClick={() => setZoom(z => Math.max(50, z - 10))}
+                className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-all"
+                title="Zoom Out"
+              >
+                -
+              </button>
+              <span className="text-[11px] font-mono font-semibold text-slate-200 w-10 text-center">{zoom}%</span>
+              <button 
+                type="button" 
+                onClick={() => setZoom(z => Math.min(130, z + 10))}
+                className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-all"
+                title="Zoom In"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(85)}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${zoom === 85 ? 'bg-orange-500 text-white' : 'text-slate-400 hover:bg-slate-800'}`}
+              >
+                Fit Page
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(100)}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${zoom === 100 ? 'bg-orange-500 text-white' : 'text-slate-400 hover:bg-slate-800'}`}
+              >
+                100%
+              </button>
+            </div>
+
+            {/* Desk Canvas Theme Selector */}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <span className="hidden sm:inline">Desk:</span>
+              <button
+                type="button"
+                onClick={() => setDeskTheme('dark')}
+                className={`w-4 h-4 rounded-full bg-[#090d16] border cursor-pointer transition-all ${deskTheme === 'dark' ? 'border-orange-500 ring-2 ring-orange-500/30 scale-110' : 'border-slate-600'}`}
+                title="Dark Studio"
+              />
+              <button
+                type="button"
+                onClick={() => setDeskTheme('slate')}
+                className={`w-4 h-4 rounded-full bg-[#182234] border cursor-pointer transition-all ${deskTheme === 'slate' ? 'border-orange-500 ring-2 ring-orange-500/30 scale-110' : 'border-slate-500'}`}
+                title="Slate Desk"
+              />
+              <button
+                type="button"
+                onClick={() => setDeskTheme('light')}
+                className={`w-4 h-4 rounded-full bg-slate-300 border cursor-pointer transition-all ${deskTheme === 'light' ? 'border-orange-500 ring-2 ring-orange-500/30 scale-110' : 'border-slate-400'}`}
+                title="Light Desk"
+              />
             </div>
           </div>
 
-          {/* Authentic Elevated A4 Document Sheet */}
-          <div className="w-full max-w-[860px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-slate-300/80 dark:border-zinc-800 min-h-[1122px] shrink-0 mb-8 transition-all">
+          {/* Authentic Elevated A4 Document Sheet with Zoom Scaling */}
+          <div 
+            style={{ 
+              transform: `scale(${zoom / 100})`, 
+              transformOrigin: 'top center',
+              transition: 'transform 0.15s ease-out'
+            }}
+            className="w-full max-w-[840px] bg-white shadow-[0_25px_60px_rgba(0,0,0,0.45)] border border-slate-700/60 min-h-[1122px] shrink-0 mb-16 rounded-sm overflow-hidden"
+          >
             <iframe
               ref={iframeRef}
               title="Resume Live Preview"
