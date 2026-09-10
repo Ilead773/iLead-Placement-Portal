@@ -26,7 +26,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const [loading, setLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
-  const [zoom, setZoom] = useState(85);
+  const [zoom, setZoom] = useState(70);
   const [deskTheme, setDeskTheme] = useState('dark');
 
   // Raw Text Input States (Preserves commas and trailing spaces while typing)
@@ -418,16 +418,16 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   };
 
   const navTabs = [
-    { id: 'personal', label: 'Personal', icon: User, count: canonical.personal?.name ? '✓' : '' },
-    { id: 'summary', label: 'Summary', icon: Sparkles, count: canonical.professional_summary ? '✓' : '' },
-    { id: 'education', label: 'Education', icon: GraduationCap, count: canonical.education?.length || 0 },
-    { id: 'experience', label: 'Experience', icon: Briefcase, count: canonical.experience?.length || 0 },
-    { id: 'projects', label: 'Projects', icon: FolderKanban, count: canonical.projects?.length || 0 },
-    { id: 'skills', label: 'Skills', icon: Globe, count: skillsText ? skillsText.split(',').filter(Boolean).length : 0 },
-    { id: 'certifications', label: 'Certs', icon: Award, count: canonical.certifications?.length || 0 },
-    { id: 'achievements', label: 'Achievements', icon: Trophy, count: canonical.achievements?.length || 0 },
-    { id: 'extracurricular', label: 'Activities', icon: Flame, count: extraCurricularText ? extraCurricularText.split(',').filter(Boolean).length : 0 },
-    { id: 'more', label: 'Languages', icon: ListChecks, count: languagesText ? '✓' : '' },
+    { id: 'personal', label: 'Personal Info', icon: User },
+    { id: 'summary', label: 'Summary', icon: Sparkles },
+    { id: 'education', label: 'Education', icon: GraduationCap },
+    { id: 'experience', label: 'Experience', icon: Briefcase },
+    { id: 'projects', label: 'Projects', icon: FolderKanban },
+    { id: 'skills', label: 'Skills', icon: Globe },
+    { id: 'certifications', label: 'Certifications', icon: Award },
+    { id: 'achievements', label: 'Achievements', icon: Trophy },
+    { id: 'extracurricular', label: 'Activities', icon: Flame },
+    { id: 'more', label: 'Languages & Strengths', icon: ListChecks },
   ];
 
   const deskBgClass = 
@@ -443,16 +443,13 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       
       {/* Top Bar Navigation */}
       <header className="h-16 bg-[#0b0f19] border-b border-slate-800/80 px-6 flex items-center justify-between shrink-0 shadow-lg z-30">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
-            <Sparkles size={20} />
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-orange-500/15 text-orange-400 border border-orange-500/30 flex items-center justify-center">
+            <Sparkles size={18} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm md:text-base m-0 leading-tight text-white">Interactive Resume Studio</h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30">iLEAD Live</span>
-            </div>
-            <p className="text-[11px] text-slate-400 m-0 mt-0.5">Real-time bidirectional editing & authentic A4 print preview</p>
+            <h3 className="font-bold text-base m-0 leading-tight text-white">Resume Editor</h3>
+            <p className="text-xs text-slate-400 m-0 mt-0.5">Edit details on the left, see live preview on the right</p>
           </div>
         </div>
 
@@ -463,7 +460,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             className="btn btn-sm text-xs py-2 px-3.5 bg-slate-800/70 border border-slate-700/80 hover:bg-slate-700 text-slate-200 flex items-center gap-2 rounded-xl font-medium cursor-pointer transition-all"
           >
             {fullscreenPreview ? <Minimize2 size={14} /> : <Maximize2 size={14} />} 
-            <span className="hidden sm:inline">{fullscreenPreview ? 'Show Editor' : 'Fullscreen'}</span>
+            <span className="hidden sm:inline">{fullscreenPreview ? 'Show Both' : 'Fullscreen Preview'}</span>
           </button>
           
           <button
@@ -489,12 +486,12 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
       {/* Main Workspace Body */}
       <div className="flex-1 flex flex-row overflow-hidden w-full h-[calc(100vh-64px)]">
         
-        {/* Left Side: Form Editor Panel */}
+        {/* Left Side: Form Editor Panel (50% Split) */}
         <div 
           style={{ 
             display: fullscreenPreview ? 'none' : 'flex'
           }}
-          className="w-full md:w-[540px] xl:w-[600px] 2xl:w-[660px] bg-[#0b0f19] border-r border-slate-800/80 flex-col shrink-0 h-full overflow-hidden z-10"
+          className="w-1/2 min-w-0 bg-[#0b0f19] border-r border-slate-800/80 flex flex-col shrink-0 h-full overflow-hidden z-10"
         >
           
           {/* Tab Selection Bar (Clean Wrapped Pills - No Native Scrollbars) */}
@@ -516,11 +513,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                   >
                     <Icon size={13} className={active ? 'text-white' : 'text-orange-400'} />
                     <span>{tab.label}</span>
-                    {tab.count !== undefined && tab.count !== '' && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/25 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                        {tab.count}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -535,9 +527,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <User size={14} /> Personal Contact Information
+                    <User size={14} /> Personal Information
                   </h4>
-                  <span className="text-[11px] text-slate-400">Header & Contact Row</span>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -626,9 +617,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               <div className="space-y-3">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles size={14} /> Career Objective / Summary
+                    <Sparkles size={14} /> Career Objective
                   </h4>
-                  <span className="text-[11px] text-slate-400">2-3 sentences</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed">Highlight your academic focus, leadership strengths, and aspirations.</p>
                 
@@ -646,12 +636,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'education' && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                      <GraduationCap size={14} /> Education & CGPA Marks
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Renders in the standard university qualification table</p>
-                  </div>
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <GraduationCap size={14} /> Education
+                  </h4>
                   <button 
                     type="button"
                     onClick={addEducation}
@@ -663,9 +650,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                 {canonical.education?.map((edu, idx) => (
                   <div key={edu.id || edu._id || `edu-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Qualification #{idx + 1}</span>
-                    </div>
 
                     <button 
                       type="button"
@@ -744,12 +728,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'experience' && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                      <Briefcase size={14} /> Work & Internship Experience
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Press Enter to add responsibilities as bullet points</p>
-                  </div>
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Briefcase size={14} /> Experience
+                  </h4>
                   <button 
                     type="button"
                     onClick={addExperience}
@@ -761,10 +742,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                 {canonical.experience?.map((exp, idx) => (
                   <div key={exp.id || exp._id || `exp-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Experience #{idx + 1}</span>
-                    </div>
-
                     <button 
                       type="button"
                       onClick={(e) => {
@@ -832,12 +809,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-300">
-                          Responsibilities (One per line for bullet points)
-                        </label>
-                        <span className="text-[10px] text-orange-400 font-medium font-mono">Bullet Points</span>
-                      </div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Responsibilities (press Enter for bullet points)
+                      </label>
                       <textarea 
                         value={exp.description !== undefined ? exp.description : (Array.isArray(exp.achievements) ? exp.achievements.join('\n') : '')} 
                         onChange={e => handleExperienceTextChange(idx, e.target.value)}
@@ -855,12 +829,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'projects' && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                      <FolderKanban size={14} /> Key Academic & Tech Projects
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Press Enter to add project points as bullets</p>
-                  </div>
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <FolderKanban size={14} /> Projects
+                  </h4>
                   <button 
                     type="button"
                     onClick={addProject}
@@ -872,10 +843,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                 {canonical.projects?.map((proj, idx) => (
                   <div key={proj.id || proj._id || `proj-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Project #{idx + 1}</span>
-                    </div>
-
                     <button 
                       type="button"
                       onClick={(e) => {
@@ -924,12 +891,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-semibold text-slate-300">
-                          Highlights & Points (One per line for bullet points)
-                        </label>
-                        <span className="text-[10px] text-orange-400 font-medium font-mono">Bullet Points</span>
-                      </div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Highlights (press Enter for bullet points)
+                      </label>
                       <textarea 
                         value={proj.description !== undefined ? proj.description : (Array.isArray(proj.highlights) ? proj.highlights.join('\n') : '')} 
                         onChange={e => handleProjectTextChange(idx, e.target.value)}
@@ -948,11 +912,10 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               <div className="space-y-3">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <Globe size={14} /> Key Skills & Competencies
+                    <Globe size={14} /> Skills
                   </h4>
-                  <span className="text-[11px] text-slate-400">Comma Separated</span>
                 </div>
-                <p className="text-[11px] text-slate-400">Enter skills separated by commas. Clear the box completely if you wish to omit the Skills section.</p>
+                <p className="text-[11px] text-slate-400">Enter skills separated by commas.</p>
                 
                 <div>
                   <textarea 
@@ -970,12 +933,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'certifications' && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                      <Award size={14} /> Certifications & Courses
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Certificates from Coursera, Google, AWS, LinkedIn, etc.</p>
-                  </div>
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Award size={14} /> Certifications
+                  </h4>
                   <button 
                     type="button"
                     onClick={addCertification}
@@ -987,10 +947,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                 {canonical.certifications?.map((cert, idx) => (
                   <div key={cert.id || cert._id || `cert-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Certification #{idx + 1}</span>
-                    </div>
-
                     <button 
                       type="button"
                       onClick={(e) => {
@@ -1035,12 +991,9 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'achievements' && (
               <div className="space-y-4">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                      <Trophy size={14} /> Achievements & Responsibility Roles
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Council roles, competitions, hackathons, sports awards</p>
-                  </div>
+                  <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
+                    <Trophy size={14} /> Achievements
+                  </h4>
                   <button 
                     type="button"
                     onClick={addAchievement}
@@ -1052,10 +1005,6 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                 {canonical.achievements?.map((ach, idx) => (
                   <div key={ach.id || ach._id || `ach-${idx}`} className="p-4 bg-[#111726] border border-slate-800 hover:border-slate-700 rounded-xl relative space-y-3.5 shadow-sm transition-all">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded">Achievement #{idx + 1}</span>
-                    </div>
-
                     <button 
                       type="button"
                       onClick={(e) => {
@@ -1070,7 +1019,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Role / Achievement Title</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Role / Title</label>
                         <input 
                           type="text" 
                           value={ach.title || ''} 
@@ -1092,7 +1041,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Short Description</label>
+                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">Description</label>
                         <input 
                           type="text" 
                           value={ach.description || ''} 
@@ -1112,11 +1061,10 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               <div className="space-y-3">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <Flame size={14} /> Extra-Curricular Activities
+                    <Flame size={14} /> Extracurricular Activities
                   </h4>
-                  <span className="text-[11px] text-slate-400">Comma Separated</span>
                 </div>
-                <p className="text-[11px] text-slate-400">Enter activities separated by commas (e.g. clubs, volunteering, cultural events, sports).</p>
+                <p className="text-[11px] text-slate-400">Enter activities separated by commas.</p>
                 
                 <div>
                   <textarea 
@@ -1135,9 +1083,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
               <div className="space-y-5">
                 <div className="pb-2 border-b border-slate-800 flex items-center justify-between">
                   <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-2">
-                    <ListChecks size={14} /> Languages & Key Strengths
+                    <ListChecks size={14} /> Languages & Strengths
                   </h4>
-                  <span className="text-[11px] text-slate-400">Sidebar Items</span>
                 </div>
                 
                 <div>
