@@ -77,6 +77,21 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           setSkillsText(c.skills.join(', '));
         }
 
+        if (Array.isArray(c.experience)) {
+          c.experience.forEach(exp => {
+            if (exp.description === undefined && Array.isArray(exp.achievements) && exp.achievements.length > 0) {
+              exp.description = exp.achievements.join('\n');
+            }
+          });
+        }
+        if (Array.isArray(c.projects)) {
+          c.projects.forEach(proj => {
+            if (proj.description === undefined && Array.isArray(proj.highlights) && proj.highlights.length > 0) {
+              proj.description = proj.highlights.join('\n');
+            }
+          });
+        }
+
         if (c.languages) {
           setLanguagesText(Array.isArray(c.languages) ? c.languages.join(', ') : (c.languages || ''));
         }
@@ -84,7 +99,7 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
           setStrengthsText(Array.isArray(c.strengths) ? c.strengths.join(', ') : (c.strengths || ''));
         }
         if (c.extra_curricular) {
-          setExtraCurricularText(Array.isArray(c.extra_curricular) ? c.extra_curricular.join('\n') : (c.extra_curricular || ''));
+          setExtraCurricularText(Array.isArray(c.extra_curricular) ? c.extra_curricular.join(', ') : (c.extra_curricular || ''));
         }
       }
 
@@ -205,6 +220,19 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     });
   };
 
+  const handleExperienceTextChange = (index, text) => {
+    const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+    setCanonical(prev => {
+      const updated = [...(prev.experience || [])];
+      updated[index] = {
+        ...(updated[index] || {}),
+        description: text,
+        achievements: lines
+      };
+      return { ...prev, experience: updated };
+    });
+  };
+
   // Projects Helpers
   const addProject = () => {
     setCanonical(prev => ({
@@ -231,6 +259,19 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
   const removeProject = (index) => {
     setCanonical(prev => {
       const updated = (prev.projects || []).filter((_, i) => i !== index);
+      return { ...prev, projects: updated };
+    });
+  };
+
+  const handleProjectTextChange = (index, text) => {
+    const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+    setCanonical(prev => {
+      const updated = [...(prev.projects || [])];
+      updated[index] = {
+        ...(updated[index] || {}),
+        description: text,
+        highlights: lines
+      };
       return { ...prev, projects: updated };
     });
   };
@@ -297,10 +338,10 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
     });
   };
 
-  // Extracurricular Handler
+  // Extracurricular Handler (Comma-based)
   const handleExtraCurricularChange = (str) => {
     setExtraCurricularText(str);
-    const items = str.split('\n').map(s => s.trim().replace(/^[•\-\*]\s*/, '')).filter(Boolean);
+    const items = str.split(',').map(s => s.trim().replace(/^[•\-\*]\s*/, '')).filter(Boolean);
     setCanonical(prev => ({
       ...prev,
       extra_curricular: items
@@ -727,17 +768,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                         <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
                       </div>
                       <textarea 
-                        value={
-                          Array.isArray(exp.achievements) && exp.achievements.length > 0 
-                            ? exp.achievements.join('\n') 
-                            : (exp.description || '')
-                        } 
-                        onChange={e => {
-                          const text = e.target.value;
-                          const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
-                          updateExperience(idx, 'achievements', lines);
-                          updateExperience(idx, 'description', text);
-                        }}
+                        value={exp.description !== undefined ? exp.description : (Array.isArray(exp.achievements) ? exp.achievements.join('\n') : '')} 
+                        onChange={e => handleExperienceTextChange(idx, e.target.value)}
                         rows={4}
                         placeholder="• Spearheaded marketing campaigns and boosted reach by 35%&#10;• Analyzed client requirements and streamlined reporting&#10;• Mentored 4 team members on market research techniques"
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
@@ -820,17 +852,8 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
                         <span className="text-[10px] text-orange-400 font-medium">Rendered as bullet list</span>
                       </div>
                       <textarea 
-                        value={
-                          Array.isArray(proj.highlights) && proj.highlights.length > 0 
-                            ? proj.highlights.join('\n') 
-                            : (proj.description || '')
-                        } 
-                        onChange={e => {
-                          const text = e.target.value;
-                          const lines = text.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
-                          updateProject(idx, 'highlights', lines);
-                          updateProject(idx, 'description', text);
-                        }}
+                        value={proj.description !== undefined ? proj.description : (Array.isArray(proj.highlights) ? proj.highlights.join('\n') : '')} 
+                        onChange={e => handleProjectTextChange(idx, e.target.value)}
                         rows={3}
                         placeholder="• Built responsive frontend with React, Tailwind CSS, and Chart.js&#10;• Designed REST APIs with Django REST Framework&#10;• Implemented automated CI/CD pipeline"
                         className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
@@ -991,16 +1014,16 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
             {activeTab === 'extracurricular' && (
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-orange-400 uppercase tracking-wider">Extra-Curricular Activities</h4>
-                <p className="text-[11px] text-slate-400">Enter each activity on a new line (e.g. clubs, sports, volunteering, fests).</p>
+                <p className="text-[11px] text-slate-400">Enter activities separated by commas (e.g. clubs, sports, volunteering, college fests).</p>
                 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Activities (One per line)</label>
-                  <textarea 
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Activities (comma separated)</label>
+                  <input 
+                    type="text" 
                     value={extraCurricularText} 
                     onChange={e => handleExtraCurricularChange(e.target.value)}
-                    rows={6}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-orange-500 leading-relaxed font-mono"
-                    placeholder="Technical Head – iLEAD Tech Fest 2025&#10;Member – Coding Club, iLEAD&#10;NSS Volunteer – Community Digital Literacy Drive"
+                    placeholder="e.g. Technical Head – Tech Fest, Member – Coding Club, NSS Volunteer"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
                   />
                 </div>
               </div>
@@ -1039,20 +1062,25 @@ export default function SideBySideResumeEditor({ resumeId, initialData, onClose,
         </div>
 
         {/* Right Side: Real-Time Live Preview Panel */}
-        <div className="flex-1 bg-slate-900 flex flex-col h-full overflow-y-auto p-4 md:p-8 items-center justify-start relative">
+        <div className="flex-1 bg-slate-200/80 dark:bg-zinc-950 flex flex-col h-full overflow-y-auto p-4 md:p-8 items-center justify-start relative">
           
-          <div className="w-full max-w-[860px] bg-slate-950 border border-slate-800 px-4 py-2 flex items-center justify-between text-xs text-slate-400 rounded-t-xl mb-0 shrink-0 shadow-md">
-            <span className="flex items-center gap-2 font-mono text-emerald-400 font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Real-Time A4 Preview
-            </span>
-            <span>A4 Print Scale: 100%</span>
+          {/* Floating Live Indicator Toolbar */}
+          <div className="w-full max-w-[860px] mb-4 flex items-center justify-between px-2 shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white dark:bg-zinc-900 shadow-sm border border-slate-200 dark:border-zinc-800 text-xs font-semibold text-slate-700 dark:text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Real-Time A4 Preview
+            </div>
+            <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-full shadow-sm border border-slate-200 dark:border-zinc-800">
+              A4 Print Scale: 100%
+            </div>
           </div>
 
-          <div className="w-full max-w-[860px] bg-white shadow-2xl rounded-b-xl overflow-hidden min-h-[1100px] shrink-0 my-auto border border-slate-800">
+          {/* Authentic Elevated A4 Document Sheet */}
+          <div className="w-full max-w-[860px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-slate-300/80 dark:border-zinc-800 min-h-[1120px] shrink-0 overflow-hidden mb-8">
             <iframe
               ref={iframeRef}
               title="Resume Live Preview"
-              className="w-full h-[1120px] border-none bg-white"
+              className="w-full h-[1140px] border-none bg-white block"
             />
           </div>
         </div>

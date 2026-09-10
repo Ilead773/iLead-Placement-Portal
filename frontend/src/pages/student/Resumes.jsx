@@ -893,18 +893,22 @@ export default function StudentResumes() {
       {/* Quick Resume Preview Modal */}
       {previewResumeHtml && (
         <div 
-          className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 md:p-6 animate-in fade-in"
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 md:p-6 animate-in fade-in"
           style={{ zIndex: 99999, top: 0, left: 0, right: 0, bottom: 0 }}
         >
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-[900px] h-[92vh] flex flex-col overflow-hidden shadow-2xl">
-            <div className="px-6 py-3.5 border-b border-slate-800 flex items-center justify-between text-white shrink-0">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl h-[94vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Top Toolbar */}
+            <div className="px-6 py-3.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-orange-500/10 text-orange-400 rounded-lg">
-                  <Eye size={18} />
+                <div className="p-2 bg-orange-500/10 text-orange-400 rounded-xl">
+                  <FileText size={18} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm m-0 text-white leading-tight">{previewResumeTitle}</h3>
-                  <p className="text-[10px] text-slate-400 m-0">Quick Document Preview</p>
+                  <h3 className="font-bold text-sm m-0 text-white leading-tight flex items-center gap-2">
+                    {previewResumeTitle}
+                    <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-800 text-slate-300 rounded-md border border-slate-700">A4 Document</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 m-0">Standard Print Layout</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -914,24 +918,27 @@ export default function StudentResumes() {
                     setPreviewResumeHtml('');
                     if (r) handleSideBySideEditClick(r);
                   }}
-                  className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs shadow-md border-none cursor-pointer"
+                  className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 text-xs shadow-md border-none cursor-pointer transition-all"
                 >
-                  <Edit size={13} /> Open Side-by-Side Editor
+                  <Edit size={13} /> Open Live Editor
                 </button>
                 <button
                   onClick={() => setPreviewResumeHtml('')}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Close Preview"
                 >
                   <X size={20} />
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-950 flex justify-center items-start">
-              <div className="w-full max-w-[820px] bg-white rounded shadow-xl overflow-hidden min-h-[1050px]">
+
+            {/* Document Canvas (Natural neutral viewer desk with authentic paper elevation) */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-200/80 dark:bg-zinc-900/90 flex justify-center items-start">
+              <div className="w-full max-w-[820px] bg-white shadow-[0_12px_40px_rgba(0,0,0,0.16)] border border-slate-300 dark:border-zinc-800 min-h-[1120px] overflow-hidden">
                 <iframe
                   srcDoc={previewResumeHtml}
                   title="Resume Quick Preview"
-                  className="w-full h-[1100px] bg-white border-none"
+                  className="w-full h-[1150px] bg-white border-none block"
                 />
               </div>
             </div>
